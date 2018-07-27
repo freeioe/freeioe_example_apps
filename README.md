@@ -1,2 +1,2 @@
-# freeioe_prebuild_exts
-FreeIOE Prebuild extensions
+# freeioe_example_apps
+FreeIOE Example Applications
