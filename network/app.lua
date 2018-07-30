@@ -176,7 +176,7 @@ end
 function app:run(tms)
 	self:read_ntp()
 	self:read_network_lan()
-	return 1000 * 60 -- one minutes
+	return 1000 * 5 -- five seconds
 end
 
 function app:on_post_change_apply(output, value)
