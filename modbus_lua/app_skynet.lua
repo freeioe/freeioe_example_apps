@@ -210,7 +210,7 @@ function app:run(tms)
 	end
 
 	--- 返回下一次调用run之前的时间间隔
-	return tms
+	return self._conf.loop_gap or 5000
 end
 
 --- 返回应用对象

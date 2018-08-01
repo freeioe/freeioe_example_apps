@@ -16,5 +16,6 @@
 			"sn": "xxx-xx-xx-2",
 			"tpl": "bms2"
 		}
-	]
+	],
+	"loop_gap": 3000
 }
