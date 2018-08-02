@@ -306,7 +306,7 @@ function app:set_run_inputs()
 	end
 
 	--- Starttime
-	self._dev:set_input_prop('starttime', 'value', self._start_time)
+	self._dev:set_input_prop('starttime', 'value', self._start_time or 0)
 
 	-- for heartbeat stuff
 	self._dev:set_input_prop('enable_heartbeat', 'value', self._conf.enable_heartbeat and 1 or 0)
