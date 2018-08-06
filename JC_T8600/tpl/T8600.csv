@@ -1,0 +1,45 @@
+COMMENT,name,description,series,,,,
+META,JC_T8600,Johnson Control T8600,T8600,,,,
+,,,,,,,
+COMMENT,name,description,vt,package,data type,start addr,rate
+INPUT,water,电动水阀,int,PACK01,bit,1,1
+INPUT,fan,电动风阀,int,PACK01,bit,3,1
+INPUT,fan_high,送风机-高,int,PACK01,bit,5,1
+INPUT,fan_middle,送风机-中,int,PACK01,bit,6,1
+INPUT,fan_low,送风机-低,int,PACK01,bit,7,1
+INPUT,heater,电加热器,int,PACK01,bit,8,1
+INPUT,temp_sensor_short,温度探头短路,int,PACK02,bit,3,1
+INPUT,temp_sensor_open,温度探头短路,int,PACK02,bit,4,1
+INPUT,status,状态,int,PACK03,uint16,3,1
+INPUT,mode,模式,int,PACK03,uint16,4,1
+INPUT,set_point,设设置温度,,PACK03,uint16,5,0.1
+INPUT,fan_mode,风机模式,int,PACK03,uint16,6,1
+INPUT,system_type,机型,int,PACK03,uint16,7,1
+INPUT,anti_freeze_set_point,设定防冻温度,,PACK03,uint16,8,0.1
+INPUT,comm_check,通讯检测,int,PACK03,uint16,9,1
+INPUT,anti_freeze,防冻功能,int,PACK03,uint16,12,1
+INPUT,screen_lock,键盘锁定,int,PACK03,uint16,13,1
+INPUT,occupy,门卡信息,int,PACK03,uint16,14,1
+INPUT,unoccupy_cold_set_point,门卡拔出后制冷温度,,PACK03,uint16,15,0.1
+INPUT,unoccupy_heate_set_point,门卡拔出后制热温度,,PACK03,uint16,16,0.1
+INPUT,temperature,室内温度,,PACK04,uint16,1,0.1
+,,,,,,,
+COMMENT,name,description,vt,function code,data type,addr,rate
+OUTPUT,status,状态,int,6,uint16,3,1
+OUTPUT,mode,模式,int,6,uint16,4,1
+OUTPUT,set_point,设设置温度,,6,uint16,5,0.1
+OUTPUT,fan_mode,风机模式,int,6,uint16,6,1
+OUTPUT,anti_freeze_set_point,设定防冻温度,,6,uint16,8,0.1
+OUTPUT,anti_freeze,防冻功能,int,6,uint16,12,1
+OUTPUT,screen_lock,键盘锁定,int,6,uint16,13,1
+OUTPUT,occupy,门卡信息,int,6,uint16,14,1
+OUTPUT,unoccupy_cold_set_point,门卡拔出后制冷温度,,6,uint16,15,0.1
+OUTPUT,unoccupy_heate_set_point,门卡拔出后制热温度,,6,uint16,16,0.1
+,,,,,,,
+,,,,,,,
+,,,,,,,
+COMMENT,name,description,function code,start addr,len,,
+PACKET,PACK01,01命令报文,1,1,8,,
+PACKET,PACK02,02命令报文,2,3,2,,
+PACKET,PACK03,03命令报文,3,3,28,,
+PACKET,PACK04,04命令报文,4,1,2,,

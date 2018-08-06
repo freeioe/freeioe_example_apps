@@ -1,0 +1,20 @@
+{
+	"opt": {
+		"port": "/dev/ttymxc1",
+		"baudrate": 115200
+	},
+	"devs": [{
+			"unit": 1,
+			"name": "T8600_1",
+			"sn": "xxx-xx-xx-1",
+			"tpl": "T8600"
+		},
+		{
+			"unit": 2,
+			"name": "T8600_2",
+			"sn": "xxx-xx-xx-2",
+			"tpl": "T8600"
+		}
+	],
+	"loop_gap": 3000
+}

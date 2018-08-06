@@ -1,5 +1,5 @@
 COMMENT,name,description,series,,,,
-META,Modbus,Modbus Device,XXX,,,,
+META,BMS,BMS Device,XXX,,,,
 ,,,,,,,
 COMMENT,name,description,vt,package,data type,start addr,rate
 INPUT,Us01,单体电压01,,PACK01,int16,1,0.001
