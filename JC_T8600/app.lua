@@ -82,7 +82,6 @@ function app:start()
 					vt = v.vt
 				}
 			end
-			inputs[#inputs + 1] = { name = "status", desc = "设备状态", vt="int"}
 			--- outputs
 			local outputs = {}
 			for _, v in ipairs(tpl.outputs) do
@@ -256,14 +255,20 @@ function app:read_packet(dev, stat, unit, pack)
 
 	--- 解析数据
 	local d = modbus.decode
+	if d.uint8(pdu, 1) == (0x80 + pack.func) then
+		local basexx = require 'basexx'
+		self._log:warning("read package failed 0x"..basexx.to_hex(string.sub(pdu, 1, 1)))
+		return
+	end
+
 	local len = d.uint8(pdu, 2)
-	--assert(len >= 38 * 2)
+	--assert(len >= pack.len * 2)
+	local pdu_data = string.sub(pdu, 3)
 
 	for _, input in ipairs(pack.inputs) do
 		local df = d[input.dt]
 		assert(df)
-		local index = input.saddr
-		local val = df(pdu, index + 2)
+		local val = df(pdu_data, input.offset)
 		if input.rate and input.rate ~= 1 then
 			val = val * input.rate
 			dev:set_input_prop(input.name, "value", val)
@@ -271,14 +276,12 @@ function app:read_packet(dev, stat, unit, pack)
 			dev:set_input_prop(input.name, "value", math.tointeger(val))
 		end
 	end
-	dev:set_input_prop('status', 'value', 0)
 end
 
 function app:invalid_dev(dev, pack)
 	for _, input in ipairs(pack.inputs) do
 		dev:set_input_prop(input.name, "value", 0, nil, 1)
 	end
-	dev:set_input_prop('status', 'value', 1, nil, 1)
 end
 
 function app:read_dev(dev, stat, unit, tpl)

@@ -28,7 +28,7 @@ local function load_tpl(name)
 				end
 				input.pack = v[5]
 				input.dt = v[6]
-				input.saddr = v[7]
+				input.offset = v[7]
 				input.rate = v[8]
 
 				inputs[#inputs + 1] = input
