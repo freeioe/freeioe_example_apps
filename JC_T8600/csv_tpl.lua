@@ -45,7 +45,7 @@ local function load_tpl(name)
 				output.dt = v[6]
 				output.addr = v[7]
 				output.rate = v[8]
-				output[#output + 1] = output
+				outputs[#outputs + 1] = output
 			end
 			if v[1] == 'PACKET' then
 				local pack = {

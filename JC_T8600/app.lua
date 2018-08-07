@@ -144,23 +144,30 @@ function app:write_output(sn, output, prop, value)
 		return false, "Cannot write property which is not value"
 	end
 	
-	return self:write_package(dev.dev, dev.stat, dev.unit, tpl_output, value)
+	local r, err = self:write_packet(dev.dev, dev.stat, dev.unit, tpl_output, value)
+	if not r then
+		local info = "Write output failure!"
+		local data = { sn=sn, output=output, prop=prop, value=value, err=err }
+		self._dev:fire_event(event.LEVEL_ERROR, event.EVENT_DEV, info, data)
+	end
+	return r, err
 end
 
 function app:write_packet(dev, stat, unit, output, value)
 	--- 设定写数据的地址
 	local req = {
-		func = tonumber(output.func) or 0x03, -- 03指令
+		func = tonumber(output.func) or 0x06, -- 06指令
 		addr = output.addr, -- 地址
 		unit = unit or output.unit,
 		len = output.len or 1,
 	}
-	local d = modbus.decode
-	local df = d[output.dt]
-	assert(df)
+	local timeout = output.timeout or 500
+	local ef = modbus.encode[output.dt]
+	local df = modbus.decode[output.dt]
+	assert(ef and df)
 
 	local val = math.floor(value * (1/output.rate))
-	req.data = table.concat({ df(val) })
+	req.data = table.concat({ ef(val) })
 	
 	--- 设定通讯口数据回调
 	self._client:set_io_cb(function(io, msg)
@@ -200,9 +207,13 @@ function app:write_packet(dev, stat, unit, output, value)
 	stat:inc('packets_in', 1)
 
 	--- 解析数据
-	local val_ret = df(pdu, 0)
+	local pdu_data = string.sub(pdu, 4)
+	local val_ret = df(pdu_data, 1)
+	if val_ret ~= val then
+		return nil, "Write failed!"
+	end
 
-	return val_ret == val
+	return true
 end
 
 function app:read_packet(dev, stat, unit, pack)
@@ -227,6 +238,7 @@ function app:read_packet(dev, stat, unit, pack)
 		end
 	end)
 	--- 读取数据
+	local timeout = pack.timeout or 500
 	local r, pdu, err = pcall(function(req, timeout) 
 		--- 统计数据
 		stat:inc('packets_out', 1)
