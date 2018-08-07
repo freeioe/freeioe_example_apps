@@ -8,6 +8,7 @@ local function load_tpl(name)
 
 	local meta = {}
 	local inputs = {}
+	local outputs = {}
 	local packets =  {}
 
 	for k,v in ipairs(t) do
@@ -27,10 +28,24 @@ local function load_tpl(name)
 				end
 				input.pack = v[5]
 				input.dt = v[6]
-				input.saddr = v[7]
+				input.offset = v[7]
 				input.rate = v[8]
 
 				inputs[#inputs + 1] = input
+			end
+			if v[1] == 'OUTPUT' then
+				local output = {
+					name = v[2],
+					desc = v[3],
+				}
+				if string.len(v[4]) > 0 then
+					output.vt = v[4]
+				end
+				output.func = v[5]
+				output.dt = v[6]
+				output.addr = v[7]
+				output.rate = v[8]
+				outputs[#outputs + 1] = output
 			end
 			if v[1] == 'PACKET' then
 				local pack = {
@@ -57,6 +72,7 @@ local function load_tpl(name)
 	return {
 		meta = meta,
 		inputs = inputs,
+		outputs = outputs,
 		packets = packets
 	}
 end
