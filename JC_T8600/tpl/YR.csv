@@ -1,5 +1,5 @@
 COMMENT,name,description,series,,,,
-META,York YR,Johnson Control York YR,YR,,,,
+META,York YR,约克螺杆冷水组YR系列,YR,,,,
 ,,,,,,,
 COMMENT,name,description,vt,package,data type,start addr,rate
 INPUT,lcl_set_point,冷冻水出水温度设定点,,PACK01,uint16,1,0.1
