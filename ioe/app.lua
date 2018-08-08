@@ -59,10 +59,12 @@ function app:start()
 		{
 			name = 'mem_used',
 			desc = 'System memory used size',
+			vt = "int",
 		},
 		{
 			name = 'mem_free',
 			desc = 'System memory free size',
+			vt = "int",
 		},
 		{
 			name = "uptime",
