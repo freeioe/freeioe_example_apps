@@ -260,14 +260,11 @@ function app:first_run()
 	local sv, sgv = sysinfo.skynet_version()
 	self._log:notice("Skynet Platform Version:", sv, sgv)
 	local plat = sysinfo.platform() or "unknown"
-
-	self._dev:set_input_prop('starttime', "value", self._start_time)
-	self._dev:set_input_prop('version', "value", v)
-	self._dev:set_input_prop('version', "git_version", gv)
-	self._dev:set_input_prop('skynet_version', "value", sv)
-	self._dev:set_input_prop('skynet_version', "git_version", sgv)
-	self._dev:set_input_prop('platform', "value", plat)
-
+	self._version = v
+	--self._git_version = gv
+	self._skynet_version = sv
+	--self._skynet_git_version = sgv
+	self._plat = plat
 
 	--- Calculate uptime for earch 60 seconds
 	local calc_tmp_disk = nil
@@ -361,6 +358,13 @@ function app:run(tms)
 	end
 	self:check_time_diff()
 	self:read_wan_sr()
+
+	self._dev:set_input_prop('starttime', "value", self._start_time)
+	self._dev:set_input_prop('version', "value", self._version)
+	--self._dev:set_input_prop('version', "git_version", self._git_version)
+	self._dev:set_input_prop('skynet_version', "value", self._skynet_version)
+	--self._dev:set_input_prop('skynet_version', "git_version", self._skynet_git_version)
+	self._dev:set_input_prop('platform', "value", self._plat)
 
 	local loadavg = sysinfo.loadavg()
 	self._dev:set_input_prop('cpuload', "value", tonumber(loadavg.lavg_15))
