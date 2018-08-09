@@ -23,7 +23,7 @@ local default_vals = {
 local function create_var(idx, devobj, input, device)
 	local var, err = devobj:getChild(input.name)
 	if var then
-		var:setDescription(opcua.LocalizedText.new("zh_CN", input.desc))
+		var.description = opcua.LocalizedText.new("zh_CN", input.desc)
 		return var
 	end
 	local attr = opcua.VariableAttributes.new()
@@ -52,7 +52,7 @@ local function set_var_value(var, value, timestamp, quality)
 	val.status = quality
 	local tm = opcua.DateTime.fromUnixTime(math.floor(timestamp)) +  math.floor((timestamp%1) * 100) * 100000
 	val.sourceTimestamp = tm
-	var:setDataValue(val)
+	var.dataValue = val
 end
 
 function app:is_connected()
@@ -108,7 +108,7 @@ function app:create_device_node(sn, props)
 			local var = create_var(idx, devobj, input, device)
 			vars[input.name] = var
 		else
-			var:setDescription(opcua.LocalizedText.new("zh_CN", input.desc))
+			var.description = opcua.LocalizedText.new("zh_CN", input.desc)
 		end
 	end
 	nodes[sn] = node
@@ -139,7 +139,7 @@ function app:on_mod_device(app, sn, props)
 		if not var then
 			vars[input.name] = create_var(idx, node.devobj, input, node.device)
 		else
-			var:setDescription(opcua.LocalizedText.new("zh_CN", input.desc))
+			var.description = opcua.LocalizedText.new("zh_CN", input.desc)
 		end
 	end
 end

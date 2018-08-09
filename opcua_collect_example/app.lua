@@ -204,7 +204,7 @@ function app:run(tms)
 		local dev = self._devs[node.name]
 		assert(dev)
 		for k, v in pairs(node.vars) do
-			local dv = v:getValue()
+			local dv = v.value
 			--[[
 			print(dv, dv:isEmpty(), dv:isScalar())
 			print(dv:asLong(), dv:asDouble(), dv:asString())

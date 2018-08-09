@@ -78,10 +78,11 @@ local inputs = {
 }
 
 local function create_input(inputs, nodes, opcua_var)
+	assert(opcua_var)
 	-- Variable
 	local input = {
 		name = opcua_var.id.index,
-		desc = opcua_var:getDescription().text
+		desc = opcua_var.description.text
 	}
 	if string.sub(input.name, 1, 1) == '#' then
 		input.name = string.sub(input.name, 2)
@@ -98,13 +99,13 @@ end
 local function map_node(inputs, nodes, opcua_node)
 	local children = opcua_node:getChildren()
 	for _, v in ipairs(children) do
-		--print("Child", v:getBrowseName(), v)
+		--print("Child", v.browseName, v)
 
 		if v.nodeClass == 2 then
 			create_input(inputs, nodes, v)
 		end
 		if v.nodeClass == 1 then
-			--print("Object", v:getBrowseName(), v)
+			--print("Object", v.browseName, v)
 			map_node(inputs, nodes, v)
 		end
 	end
@@ -265,7 +266,7 @@ function app:run(tms)
 	--- 获取节点当前值数据
 	for _, node in pairs(self._nodes) do
 		--print(node.name, node.obj)
-		local dv = node.obj:getValue()
+		local dv = node.obj.value
 		--[[
 		print(dv, dv:isEmpty(), dv:isScalar())
 		print(dv:asLong(), dv:asDouble(), dv:asString())
