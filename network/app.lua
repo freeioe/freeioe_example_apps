@@ -34,7 +34,7 @@ function app:uci_show(section)
 	local r_section = string.gsub(section, '%.', '%%.')
 	for line in string.gmatch(info, '(.-)\n') do
 		local option, value = string.match(line, '^'..r_section..'%.(.+)=(.+)$')
-		self._log:debug('UCI.SHOW', section, option, value)
+		--self._log:debug('UCI.SHOW', section, option, value)
 		if option and value then
 			ret[option] = parse_value(value)
 		end
