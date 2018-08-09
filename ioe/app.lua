@@ -50,22 +50,22 @@ function app:start()
 			name = 'cpu_temp',
 			desc = 'System CPU Temperature'
 		},
-		--[[
 		{
 			name = 'mem_total',
 			desc = 'System memory total size',
 		},
-		--]]
 		{
 			name = 'mem_used',
 			desc = 'System memory used size',
 			vt = "int",
 		},
+		--[[
 		{
 			name = 'mem_free',
 			desc = 'System memory free size',
 			vt = "int",
 		},
+		]]--
 		{
 			name = "uptime",
 			desc = "System uptime",
@@ -378,9 +378,9 @@ function app:run(tms)
 	end
 
 	local mem = sysinfo.meminfo()
-	--self._dev:set_input_prop('mem_total', 'value', tonumber(mem.total))
+	self._dev:set_input_prop('mem_total', 'value', tonumber(mem.total))
 	self._dev:set_input_prop('mem_used', 'value', tonumber(mem.used))
-	self._dev:set_input_prop('mem_free', 'value', tonumber(mem.free))
+	--self._dev:set_input_prop('mem_free', 'value', tonumber(mem.free))
 	
 	-- cloud flags
 	--
@@ -440,8 +440,8 @@ function app:run(tms)
 		end
 	end
 
-	--- five seconds
-	return 1000 * 5
+	--- fifteen seconds by default
+	return self._conf.run_frep or 1000 * 15
 end
 
 function app:on_post_fire_event(msg, lvl, tp, data)
