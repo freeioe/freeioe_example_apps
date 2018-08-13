@@ -279,12 +279,17 @@ function app:first_run()
 		if r then
 			self._dev:set_input_prop('disk_tmp_used', 'value', r.used_percent)
 
+			if self._tmp_event_fired then
+				if os.time() - self._tmp_event_fired > 3600 then
+					self._tmp_event_fired = nil
+				end
+			end
 			-- Check used percent limitation
 			if not self._tmp_event_fired and r.used_percent > 98 then
 				local info = "/tmp disk is nearly full!!!"
 				self._log:error(info)
 				self._dev:fire_event(event.LEVEL_ERROR, event.EVENT_SYS, info, r)
-				self._tmp_event_fired = true
+				self._tmp_event_fired = os.time()
 			end
 		end
 
