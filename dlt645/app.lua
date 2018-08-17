@@ -103,7 +103,7 @@ function app:start()
 	end
 
 	--- 获取配置
-	self._client = dlt645_client(serialchannel, config.opt, true)
+	self._client = dlt645_client(serialchannel, config.opt, true, false)
 
 	return true
 end
