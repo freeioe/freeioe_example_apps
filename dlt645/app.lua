@@ -45,8 +45,8 @@ function app:start()
 	local config = self._conf or {}
 
 	config.opt = config.opt or {
-		--port = "/dev/ttymxc1",
-		port = "/tmp/ttyS10",
+		port = "/dev/ttymxc1",
+		--port = "/tmp/ttyS10",
 		baudrate = 19200
 	}
 

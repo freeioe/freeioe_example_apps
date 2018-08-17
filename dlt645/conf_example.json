@@ -1,20 +1,19 @@
 {
-	"channel_type": "serial",
 	"opt": {
 		"port": "/dev/ttymxc1",
-		"baudrate": 115200
+		"baudrate": 19200
 	},
 	"devs": [{
-			"unit": 1,
-			"name": "bms01",
+			"addr": 991122334455,
+			"name": "s01",
 			"sn": "xxx-xx-xx-1",
-			"tpl": "bms"
+			"tpl": "s1"
 		},
 		{
-			"unit": 2,
-			"name": "bms02",
+			"unit": 112233445566,
+			"name": "s02",
 			"sn": "xxx-xx-xx-2",
-			"tpl": "bms2"
+			"tpl": "s2"
 		}
 	],
 	"loop_gap": 3000
