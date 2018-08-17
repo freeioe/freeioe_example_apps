@@ -1,0 +1,12 @@
+COMMENT,name,description,series,,,,
+META,S1,Supper Meter Device,v1,,,,
+,,,,,,,
+COMMENT,name,description,data address,vt,offset,rate,format
+INPUT,total,组合有功总电能(kWh),0x00000000,,,,
+INPUT,total_positive,正向有功总电能(kWh),0x00010000,,,,
+INPUT,total_negative,反向有功总电能(kWh),0x00020000,,,,
+INPUT,balance,剩余电量(kWh),0x00900100,,,,
+INPUT,overdraft,透支电量(kWh),0x00900101,,,,
+,,,,,,,
+COMMENT,name,description,data address,vt,rate,format,
+OUTPUT,xxx,xxx,0x00000000,,,,

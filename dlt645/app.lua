@@ -1,19 +1,18 @@
 local class = require 'middleclass'
 --- 导入需要的模块
-local modbus = require 'modbus.init'
-local sm_client = require 'modbus.skynet_client'
-local socketchannel = require 'socketchannel'
+local dlt645_client = require 'dlt645.client'
+local dlt645_data = require 'dlt645.data'
 local serialchannel = require 'serialchannel'
 local csv_tpl = require 'csv_tpl'
 
 --- 注册对象(请尽量使用唯一的标识字符串)
-local app = class("MODBUS_LUA_App")
+local app = class("DL/T_645_2007_App")
 --- 设定应用最小运行接口版本(目前版本为1,为了以后的接口兼容性)
 app.API_VER = 1
 
 ---
 -- 应用对象初始化函数
--- @param name: 应用本地安装名称。 如modbus_com_1
+-- @param name: 应用本地安装名称。 如dlt645_1
 -- @param sys: 系统sys接口对象。参考API文档中的sys接口说明
 -- @param conf: 应用配置参数。由安装配置中的json数据转换出来的数据对象
 function app:initialize(name, sys, conf)
@@ -45,23 +44,14 @@ function app:start()
 	local sys_id = self._sys:id()
 	local config = self._conf or {}
 
-	config.channel_type = config.channel_type or 'socket'
-	if config.channel_type == 'socket' then
-		config.opt = config.opt or {
-			host = "127.0.0.1",
-			port = 1503,
-			nodelay = true,
-		}
-	else
-		config.opt = config.opt or {
-			port = "/dev/ttymxc1",
-			baudrate = 115200
-		}
-	end
+	config.opt = config.opt or {
+		port = "/dev/ttymxc1",
+		baudrate = 19200
+	}
 
 	config.devs = config.devs or {
-		{ unit = 1, name = 'bms01', sn = 'xxx-xx-1', tpl = 'bms' },
-		{ unit = 2, name = 'bms02', sn = 'xxx-xx-2', tpl = 'bms2' },
+		{ unit = 1, name = 'S1', sn = 'xxx-xx-1', tpl = 's1' },
+		{ unit = 2, name = 'S2', sn = 'xxx-xx-2', tpl = 's2' },
 	}
 
 	self._devs = {}
@@ -75,8 +65,8 @@ function app:start()
 			self._log:error("loading csv tpl failed", err)
 		else
 			local meta = self._api:default_meta()
-			meta.name = tpl.meta.name or "Modbus"
-			meta.description = tpl.meta.desc or "Modbus Device"
+			meta.name = tpl.meta.name or "DLT645 Meter"
+			meta.description = tpl.meta.desc or "DLT645 Meter Device"
 			meta.series = tpl.meta.series or "XXX"
 			meta.inst = v.name
 			--- inputs
@@ -88,7 +78,6 @@ function app:start()
 					vt = v.vt
 				}
 			end
-			inputs[#inputs + 1] = { name = "status", desc = "设备状态", vt="int"}
 			--- outputs
 			local outputs = {}
 			for _, v in ipairs(tpl.outputs) do
@@ -112,15 +101,8 @@ function app:start()
 		end
 	end
 
-	local client = nil
-
 	--- 获取配置
-	if config.channel_type == 'socket' then
-		client = sm_client(socketchannel, config.opt, modbus.apdu_tcp, 1)
-	else
-		client = sm_client(serialchannel, config.opt, modbus.apdu_rtu, 1)
-	end
-	self._client = client
+	self._client = dlt645_client(serialchannel, config.opt, true)
 
 	return true
 end
@@ -166,18 +148,14 @@ function app:write_output(sn, output, prop, value)
 	return r, err
 end
 
-function app:write_packet(dev, stat, unit, output, value)
+function app:write_packet(dev, stat, dev_addr, output, value)
 	--- 设定写数据的地址
 	local req = {
 		func = tonumber(output.func) or 0x06, -- 06指令
-		addr = output.addr, -- 地址
-		unit = unit or output.unit,
-		len = output.len or 1,
+		addr = dev_addr, -- 地址
+		data = dlt645_data.encode(output.addr, value)
 	}
 	local timeout = output.timeout or 500
-	local ef = modbus.encode[output.dt]
-	local df = modbus.decode[output.dt]
-	assert(ef and df)
 
 	local val = math.floor(value * (1/output.rate))
 	req.data = table.concat({ ef(val) })
@@ -220,23 +198,24 @@ function app:write_packet(dev, stat, unit, output, value)
 	stat:inc('packets_in', 1)
 
 	--- 解析数据
+	--[[
 	local pdu_data = string.sub(pdu, 4)
 	local val_ret = df(pdu_data, 1)
 	if val_ret ~= val then
 		return nil, "Write failed!"
 	end
+	]]--
 
 	return true
 end
 
-function app:read_packet(dev, stat, unit, pack)
+function app:read_packet(dev, stat, dev_address, pack)
 	--- 设定读取的起始地址和读取的长度
-	local base_address = pack.saddr or 0x00
 	local req = {
-		func = tonumber(pack.func) or 0x03, -- 03指令
-		addr = base_address, -- 起始地址
-		len = pack.len or 10, -- 长度
-		unit = unit or pack.unit
+		code = tonumber(pack.func)
+		dev_addr = dev_address,
+		data_addr = pack.addr-- 数据标识地址
+		-- TODO: For reading count/time
 	}
 
 	--- 设定通讯口数据回调
@@ -279,36 +258,53 @@ function app:read_packet(dev, stat, unit, pack)
 	stat:inc('packets_in', 1)
 
 	--- 解析数据
-	local d = modbus.decode
-	if d.uint8(pdu, 1) == (0x80 + pack.func) then
+	local d = dlt645_data.decode
+	if pdu.sflag then
 		local basexx = require 'basexx'
 		self._log:warning("read package failed 0x"..basexx.to_hex(string.sub(pdu, 1, 1)))
 		return
 	end
 
-	local len = d.uint8(pdu, 2)
-	--assert(len >= pack.len * 2)
-	local pdu_data = string.sub(pdu, 3)
+	local data_addr, data_value = d(pdu.data, pack.format)
+	if data_addr ~= pack.addr then
+		self._log:warning("Got incorrect data_addr", pack.addr, data_addr)
+		return
+	end
 
-	for _, input in ipairs(pack.inputs) do
-		local df = d[input.dt]
-		assert(df)
-		local val = df(pdu_data, input.offset)
+	local function set_input(input, val)
+		if input.format and string.len(input.format) > 0 then
+			self._log:warning("Cannot specify data format in correct version")
+			-- TODO: for user specified format
+		end
+
 		if input.rate and input.rate ~= 1 then
 			val = val * input.rate
-			dev:set_input_prop(input.name, "value", val)
-		else
+		end
+		if input.vt == 'int' then
 			dev:set_input_prop(input.name, "value", math.tointeger(val))
+		else
+			-- TODO: for time table stuff
+			if type(val) = 'table' then
+				val = cjson.encode(val)
+			end
+			dev:set_input_prop(input.name, "value", val)
 		end
 	end
-	dev:set_input_prop('status', 'value', 0)
+
+	if #pack.inputs == 1 then
+		set_input(pack.inputs[1], data_value)
+	else
+		for _, input in ipairs(pack.inputs) do
+			local val = data_value(input.offset)
+			set_input(input, val)
+		end
+	end
 end
 
 function app:invalid_dev(dev, pack)
 	for _, input in ipairs(pack.inputs) do
 		dev:set_input_prop(input.name, "value", 0, nil, 1)
 	end
-	dev:set_input_prop('status', 'value', 1, nil, 1)
 end
 
 function app:read_dev(dev, stat, unit, tpl)
