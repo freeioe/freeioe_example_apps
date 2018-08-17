@@ -45,18 +45,19 @@ function app:start()
 	local config = self._conf or {}
 
 	config.opt = config.opt or {
-		port = "/dev/ttymxc1",
+		--port = "/dev/ttymxc1",
+		port = "/tmp/ttyS10",
 		baudrate = 19200
 	}
 
 	config.devs = config.devs or {
-		{ unit = 1, name = 'S1', sn = 'xxx-xx-1', tpl = 's1' },
-		{ unit = 2, name = 'S2', sn = 'xxx-xx-2', tpl = 's2' },
+		{ addr = 992233445566, name = 'S1', sn = 'xxx-xx-1', tpl = 's1' },
+		{ addr = 990000000001, name = 'S2', sn = 'xxx-xx-2', tpl = 's2' },
 	}
 
 	self._devs = {}
 	for _, v in ipairs(config.devs) do
-		assert(v.sn and v.name and v.unit and v.tpl)
+		assert(v.sn and v.name and v.addr and v.tpl)
 
 		--- 生成设备的序列号
 		local dev_sn = sys_id.."."..v.sn
@@ -92,7 +93,7 @@ function app:start()
 			local stat = dev:stat('port')
 
 			table.insert(self._devs, {
-				unit = v.unit,
+				addr = v.addr,
 				sn = dev_sn,
 				dev = dev,
 				tpl = tpl,
@@ -139,7 +140,7 @@ function app:write_output(sn, output, prop, value)
 		return false, "Cannot write property which is not value"
 	end
 	
-	local r, err = self:write_packet(dev.dev, dev.stat, dev.unit, tpl_output, value)
+	local r, err = self:write_packet(dev.dev, dev.stat, dev.addr, tpl_output, value)
 	if not r then
 		local info = "Write output failure!"
 		local data = { sn=sn, output=output, prop=prop, value=value, err=err }
@@ -209,11 +210,11 @@ function app:write_packet(dev, stat, dev_addr, output, value)
 	return true
 end
 
-function app:read_packet(dev, stat, dev_address, pack)
+function app:read_packet(dev, stat, dev_addr, pack)
 	--- 设定读取的起始地址和读取的长度
 	local req = {
-		code = tonumber(pack.func)
-		dev_addr = dev_address,
+		code = 0x11,
+		addr = dev_addr,
 		data_addr = pack.addr-- 数据标识地址
 		-- TODO: For reading count/time
 	}
@@ -254,18 +255,17 @@ function app:read_packet(dev, stat, dev_address, pack)
 	end
 
 	--- 统计数据
-	self._log:trace("read input registers done!", unit)
+	self._log:trace("read input registers done!", dev_addr)
 	stat:inc('packets_in', 1)
 
 	--- 解析数据
-	local d = dlt645_data.decode
 	if pdu.sflag then
 		local basexx = require 'basexx'
 		self._log:warning("read package failed 0x"..basexx.to_hex(string.sub(pdu, 1, 1)))
 		return
 	end
 
-	local data_addr, data_value = d(pdu.data, pack.format)
+	local data_addr, data_value = dlt645_data.decode(pdu.data, pack.format)
 	if data_addr ~= pack.addr then
 		self._log:warning("Got incorrect data_addr", pack.addr, data_addr)
 		return
@@ -284,7 +284,7 @@ function app:read_packet(dev, stat, dev_address, pack)
 			dev:set_input_prop(input.name, "value", math.tointeger(val))
 		else
 			-- TODO: for time table stuff
-			if type(val) = 'table' then
+			if type(val) == 'table' then
 				val = cjson.encode(val)
 			end
 			dev:set_input_prop(input.name, "value", val)
@@ -307,9 +307,9 @@ function app:invalid_dev(dev, pack)
 	end
 end
 
-function app:read_dev(dev, stat, unit, tpl)
+function app:read_dev(dev, stat, addr, tpl)
 	for _, pack in ipairs(tpl.packets) do
-		self:read_packet(dev, stat, unit, pack)
+		self:read_packet(dev, stat, addr, pack)
 	end
 end
 
@@ -320,7 +320,7 @@ function app:run(tms)
 	end
 
 	for _, dev in ipairs(self._devs) do
-		self:read_dev(dev.dev, dev.stat, dev.unit, dev.tpl)
+		self:read_dev(dev.dev, dev.stat, dev.addr, dev.tpl)
 	end
 
 	--- 返回下一次调用run之前的时间间隔

@@ -23,7 +23,7 @@ local function load_tpl(name)
 					name = v[2],
 					desc = v[3],
 				}
-				output.addr = tonumber(v[4])
+				input.addr = tonumber(v[4])
 				if string.len(v[5]) > 0 then
 					input.vt = v[5]
 				end
