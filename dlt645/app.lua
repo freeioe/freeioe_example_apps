@@ -262,8 +262,7 @@ function app:read_packet(dev, stat, dev_addr, pack)
 
 	--- 解析数据
 	if pdu.sflag then
-		local basexx = require 'basexx'
-		self._log:warning("read package failed 0x"..basexx.to_hex(string.sub(pdu, 1, 1)))
+		self._log:warning(string.format("read package failed 0x%02X", pdu.code), pdu.sflag)
 		return
 	end
 
