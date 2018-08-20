@@ -158,7 +158,7 @@ function app:write_packet(dev, stat, dev_addr, output, value)
 		addr = dev_addr, -- 地址
 		data = dlt645_data.encode(output.addr, value)
 	}
-	local timeout = output.timeout or 500
+	local timeout = output.timeout or 3000
 
 	local val = math.floor(value * (1/output.rate))
 	req.data = table.concat({ ef(val) })
@@ -233,13 +233,13 @@ function app:read_packet(dev, stat, dev_addr, pack)
 		end
 	end)
 	--- 读取数据
-	local timeout = pack.timeout or 500
+	local timeout = pack.timeout or 3000
 	local r, pdu, err = pcall(function(req, timeout) 
 		--- 统计数据
 		stat:inc('packets_out', 1)
 		--- 接口调用
 		return self._client:request(req, timeout)
-	end, req, 1000)
+	end, req, timeout)
 
 	if not r then 
 		pdu = tostring(pdu)
@@ -325,7 +325,7 @@ function app:run(tms)
 	end
 
 	--- 返回下一次调用run之前的时间间隔
-	return self._conf.loop_gap or 5000
+	return self._conf.loop_gap or 3000
 end
 
 --- 返回应用对象
