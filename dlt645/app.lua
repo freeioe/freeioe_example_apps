@@ -60,7 +60,8 @@ function app:start()
 		assert(v.sn and v.name and v.addr and v.tpl)
 
 		--- 生成设备的序列号
-		local dev_sn = sys_id.."."..v.sn
+		local dev_sn = v.sn
+
 		local tpl, err = csv_tpl.load_tpl(v.tpl)
 		if not tpl then
 			self._log:error("loading csv tpl failed", err)
@@ -103,7 +104,8 @@ function app:start()
 	end
 
 	--- 获取配置
-	self._client = dlt645_client(serialchannel, config.opt, true, false)
+	local fe_required = self._conf.fe_required == true
+	self._client = dlt645_client(serialchannel, config.opt, true, fe_required)
 
 	return true
 end
