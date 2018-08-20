@@ -47,7 +47,7 @@ function app:start()
 	config.opt = config.opt or {
 		port = "/dev/ttymxc1",
 		--port = "/tmp/ttyS10",
-		baudrate = 19200
+		baudrate = 9600
 	}
 
 	config.devs = config.devs or {
