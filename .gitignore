@@ -43,3 +43,4 @@ luac.out
 *.ini
 .~*
 *.swp
+tpl

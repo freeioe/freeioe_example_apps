@@ -334,6 +334,13 @@ function app:first_run()
 	self._sys:timeout(100, function()
 		self:cfg_crash_check()
 	end)
+
+	local check_cloud = function()
+		self:check_cloud_status()
+		-- Reset timer
+		self._cancel_timers['cloud_led'] = self._sys:cancelable_timeout(1000, check_cloud)
+	end
+	check_cloud()
 end
 
 function app:check_time_diff()
@@ -355,6 +362,19 @@ function app:read_wan_sr()
 		if info and #info == 16 then
 			self._wan_sum:set('recv', math.floor(info[1] / 1000))
 			self._wan_sum:set('send', math.floor(info[9] / 1000))
+		end
+	end
+end
+--- For cloud led
+function app:check_cloud_status()
+	-- Cloud LED
+	if leds.cloud then
+		local cloud = snax.uniqueservice('cloud')
+		local cloud_status, cloud_status_last = cloud.req.get_status()
+		if cloud_status then
+			leds.cloud:brightness(1)
+		else
+			leds.cloud:brightness(0)
 		end
 	end
 end
@@ -406,17 +426,6 @@ function app:run(tms)
 	self._dev:set_input_prop('comm_upload', 'value', enable_comm_upload or 0)
 	self._dev:set_input_prop('log_upload', 'value', enable_log_upload or 0)
 	self._dev:set_input_prop('enable_beta', 'value', enable_beta and 1 or 0)
-
-	-- Cloud LED
-	if leds.cloud then
-		local cloud = snax.uniqueservice('cloud')
-		local cloud_status, cloud_status_last = cloud.req.get_status()
-		if cloud_status then
-			leds.cloud:brightness(1)
-		else
-			leds.cloud:brightness(0)
-		end
-	end
 
 	-- Application run status
 	local appmgr = snax.uniqueservice('appmgr')
