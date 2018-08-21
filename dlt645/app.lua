@@ -4,6 +4,7 @@ local dlt645_client = require 'dlt645.client'
 local dlt645_data = require 'dlt645.data'
 local serialchannel = require 'serialchannel'
 local csv_tpl = require 'csv_tpl'
+local conf_helper = require 'app.conf_helper'
 
 --- 注册对象(请尽量使用唯一的标识字符串)
 local app = class("DL/T_645_2007_App")
@@ -23,6 +24,7 @@ function app:initialize(name, sys, conf)
 	self._api = sys:data_api()
 	--- 获取日志接口
 	self._log = sys:logger()
+	--- 配置接口
 	self._log:debug(name.." Application initlized")
 end
 
@@ -45,23 +47,34 @@ function app:start()
 	local config = self._conf or {}
 
 	config.opt = config.opt or {
-		port = "/dev/ttymxc1",
-		--port = "/tmp/ttyS10",
+		--port = "/dev/ttymxc1",
+		port = "/tmp/ttyS10",
 		baudrate = 9600
 	}
 
-	config.devs = config.devs or {
-		{ addr = 992233445566, name = 'S1', sn = 'xxx-xx-1', tpl = 's1' },
-		{ addr = 990000000001, name = 'S2', sn = 'xxx-xx-2', tpl = 's2' },
+	config.tpls = config.tpls or {
+		{ id = "TPL000000001", name = "S1", ver = 1 },
+		{ id = "TPL000000001", name = "S2", ver = 1 }
 	}
 
+	config.devs = config.devs or {
+		{ addr = 992233445566, name = 's1', sn = 'xxx-xx-1', tpl = 'S1' },
+		{ addr = 990000000001, name = 's2', sn = 'xxx-xx-2', tpl = 'S2' },
+	}
+	local helper = conf_helper:new(self._sys, config)
+	helper:fetch()
+	
+	local cjson = require 'cjson'
+	self._log:debug("DLT645 Template fetch done", cjson.encode(helper:devices()))
+
 	self._devs = {}
-	for _, v in ipairs(config.devs) do
+	for _, v in ipairs(helper:devices()) do
 		assert(v.sn and v.name and v.addr and v.tpl)
 
 		--- 生成设备的序列号
 		local dev_sn = v.sn
 
+		self._log:debug("Try to load csv tpl:", v.tpl)
 		local tpl, err = csv_tpl.load_tpl(v.tpl)
 		if not tpl then
 			self._log:error("loading csv tpl failed", err)

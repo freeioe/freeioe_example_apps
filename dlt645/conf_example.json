@@ -3,17 +3,28 @@
 		"port": "/dev/ttymxc1",
 		"baudrate": 19200
 	},
+	"tpls": [{
+			"id": "TPL.000000001",
+			"name": "tpl1",
+			"ver": 1
+		},
+		{
+			"id": "TPL.000000001",
+			"name": "tpl2",
+			"ver": 1
+		}
+	],
 	"devs": [{
 			"addr": 991122334455,
 			"name": "s01",
 			"sn": "xxx-xx-xx-1",
-			"tpl": "s1"
+			"tpl": "tpl1"
 		},
 		{
 			"unit": 112233445566,
 			"name": "s02",
 			"sn": "xxx-xx-xx-2",
-			"tpl": "s2"
+			"tpl": "tpl2"
 		}
 	],
 	"loop_gap": 3000
