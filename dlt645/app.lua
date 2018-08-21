@@ -5,6 +5,7 @@ local dlt645_data = require 'dlt645.data'
 local serialchannel = require 'serialchannel'
 local csv_tpl = require 'csv_tpl'
 local conf_helper = require 'app.conf_helper'
+local cjson = require 'cjson'
 
 --- 注册对象(请尽量使用唯一的标识字符串)
 local app = class("DL/T_645_2007_App")
@@ -44,7 +45,16 @@ function app:start()
 
 	---获取设备序列号和应用配置
 	local sys_id = self._sys:id()
-	local config = self._conf or {}
+
+	local conf = self._conf or {}
+	local conf_api = self._sys:conf_api(conf.cnf or 'CNF000000001', 'cnf', 'tpl')
+
+	local config_str, err = conf_api:data(conf.version or 1)
+	if not config_str then
+		self._log:warning("DLT645 conf loading failure", err)
+	end
+
+	local config = cjson.decode(config_str or "") or {}
 
 	config.opt = config.opt or {
 		--port = "/dev/ttymxc1",
@@ -64,7 +74,6 @@ function app:start()
 	local helper = conf_helper:new(self._sys, config)
 	helper:fetch()
 	
-	local cjson = require 'cjson'
 	self._log:debug("DLT645 Template fetch done", cjson.encode(helper:devices()))
 
 	self._devs = {}
