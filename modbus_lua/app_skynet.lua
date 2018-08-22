@@ -116,7 +116,7 @@ function app:start()
 
 	--- 获取配置
 	local conf = helper:config()
-	conf.channel_type = config.channel_type or 'socket'
+	conf.channel_type = conf.channel_type or 'socket'
 	if conf.channel_type == 'socket' then
 		conf.opt = conf.opt or {
 			host = "127.0.0.1",
