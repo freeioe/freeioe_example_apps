@@ -46,15 +46,7 @@ function app:start()
 	---获取设备序列号和应用配置
 	local sys_id = self._sys:id()
 
-	local conf = self._conf or {}
-	local conf_api = self._sys:conf_api(conf.cnf or 'CNF000000001', 'cnf', 'tpl')
-
-	local config_str, err = conf_api:data(conf.version or 1)
-	if not config_str then
-		self._log:warning("DLT645 conf loading failure", err)
-	end
-
-	local config = cjson.decode(config_str or "") or {}
+	local config = self._conf or {}
 
 	config.opt = config.opt or {
 		--port = "/dev/ttymxc1",
@@ -74,7 +66,7 @@ function app:start()
 	local helper = conf_helper:new(self._sys, config)
 	helper:fetch()
 	
-	self._log:debug("DLT645 Template fetch done", cjson.encode(helper:devices()))
+	self._log:debug("Cloud templates fetch done!")
 
 	self._devs = {}
 	for _, v in ipairs(helper:devices()) do

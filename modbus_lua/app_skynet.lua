@@ -5,6 +5,8 @@ local sm_client = require 'modbus.skynet_client'
 local socketchannel = require 'socketchannel'
 local serialchannel = require 'serialchannel'
 local csv_tpl = require 'csv_tpl'
+local conf_helper = require 'app.conf_helper'
+local cjson = require 'cjson.safe'
 
 --- 注册对象(请尽量使用唯一的标识字符串)
 local app = class("MODBUS_LUA_App")
@@ -43,29 +45,29 @@ function app:start()
 
 	---获取设备序列号和应用配置
 	local sys_id = self._sys:id()
+
 	local config = self._conf or {}
-
-	config.channel_type = config.channel_type or 'socket'
-	if config.channel_type == 'socket' then
-		config.opt = config.opt or {
-			host = "127.0.0.1",
-			port = 1503,
-			nodelay = true,
-		}
-	else
-		config.opt = config.opt or {
-			port = "/dev/ttymxc1",
-			baudrate = 115200
-		}
-	end
-
+	--[[
 	config.devs = config.devs or {
 		{ unit = 1, name = 'bms01', sn = 'xxx-xx-1', tpl = 'bms' },
-		{ unit = 2, name = 'bms02', sn = 'xxx-xx-2', tpl = 'bms2' },
+		{ unit = 2, name = 'bms02', sn = 'xxx-xx-2', tpl = 'bms2' }
 	}
+	]]--
+
+	--- 获取云配置
+	if not config.devs or config.cnf then
+		if not config.cnf then
+			config = 'CNF000000002.1' -- loading cloud configuration CNF000000002 version 1
+		else
+			config = config.cnf .. '.' .. config.ver
+		end
+	end
+
+	local helper = conf_helper:new(self._sys, config)
+	helper:fetch()
 
 	self._devs = {}
-	for _, v in ipairs(config.devs) do
+	for _, v in ipairs(helper:devices()) do
 		assert(v.sn and v.name and v.unit and v.tpl)
 
 		--- 生成设备的序列号
@@ -88,7 +90,6 @@ function app:start()
 					vt = v.vt
 				}
 			end
-			inputs[#inputs + 1] = { name = "status", desc = "设备状态", vt="int"}
 			--- outputs
 			local outputs = {}
 			for _, v in ipairs(tpl.outputs) do
@@ -115,11 +116,26 @@ function app:start()
 	local client = nil
 
 	--- 获取配置
-	if config.channel_type == 'socket' then
-		client = sm_client(socketchannel, config.opt, modbus.apdu_tcp, 1)
+	local conf = helper:config()
+	conf.channel_type = config.channel_type or 'socket'
+	if conf.channel_type == 'socket' then
+		conf.opt = conf.opt or {
+			host = "127.0.0.1",
+			port = 1503,
+			nodelay = true
+		}
 	else
-		client = sm_client(serialchannel, config.opt, modbus.apdu_rtu, 1)
+		conf.opt = conf.opt or {
+			port = "/dev/ttymxc1",
+			baudrate = 115200
+		}
 	end
+	if conf.channel_type == 'socket' then
+		client = sm_client(socketchannel, conf.opt, modbus.apdu_tcp, 1)
+	else
+		client = sm_client(serialchannel, conf.opt, modbus.apdu_rtu, 1)
+	end
+
 	self._client = client
 
 	return true
@@ -301,14 +317,12 @@ function app:read_packet(dev, stat, unit, pack)
 			dev:set_input_prop(input.name, "value", math.tointeger(val))
 		end
 	end
-	dev:set_input_prop('status', 'value', 0)
 end
 
 function app:invalid_dev(dev, pack)
 	for _, input in ipairs(pack.inputs) do
 		dev:set_input_prop(input.name, "value", 0, nil, 1)
 	end
-	dev:set_input_prop('status', 'value', 1, nil, 1)
 end
 
 function app:read_dev(dev, stat, unit, tpl)
