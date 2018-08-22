@@ -272,7 +272,8 @@ function app:first_run()
 	local calc_tmp_disk = nil
 	local tmp_disk_frep = self._conf.tmp_disk_frep or (1000 * 60)
 	calc_tmp_disk = function()
-		self._dev:set_input_prop('uptime', "value", self._sys:now())
+		local uptime = sysinfo.uptime()
+		self._dev:set_input_prop('uptime', "value", math.floor(uptime))
 
 		-- temp disk usage
 		local r, err = disk.df('/tmp')
