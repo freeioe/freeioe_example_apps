@@ -6,7 +6,6 @@ local socketchannel = require 'socketchannel'
 local serialchannel = require 'serialchannel'
 local csv_tpl = require 'csv_tpl'
 local conf_helper = require 'app.conf_helper'
-local cjson = require 'cjson.safe'
 
 --- 注册对象(请尽量使用唯一的标识字符串)
 local app = class("MODBUS_LUA_App")

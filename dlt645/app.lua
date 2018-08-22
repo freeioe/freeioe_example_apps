@@ -5,7 +5,7 @@ local dlt645_data = require 'dlt645.data'
 local serialchannel = require 'serialchannel'
 local csv_tpl = require 'csv_tpl'
 local conf_helper = require 'app.conf_helper'
-local cjson = require 'cjson'
+local cjson = require 'cjson.safe'
 
 --- 注册对象(请尽量使用唯一的标识字符串)
 local app = class("DL/T_645_2007_App")
