@@ -41,6 +41,15 @@ local function get_default_conf(sys, conf)
 			use_compression = true,
 		}
 	end
+	if conf.enable_ws then
+		ini_conf[id..'__ws'] = {
+			['type'] = 'http',
+			local_port = 8818,
+			subdomain = 'ws.'..string.lower(id),
+			use_encryption = true,
+			use_compression = true,
+		}
+	end
 
 	for k,v in pairs(conf.visitors or {}) do
 		if v.use_encryption == nil then
