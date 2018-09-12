@@ -6,6 +6,7 @@ local gcom = require 'utils.gcom'
 local leds = require 'utils.leds'
 local event = require 'app.event'
 local sum = require 'summation'
+local ioe = require 'ioe'
 -- own libs
 local disk = require 'disk'
 local netinfo = require 'netinfo'
@@ -417,7 +418,7 @@ function app:run(tms)
 	local enable_stat_upload = datacenter.get("CLOUD", "STAT_UPLOAD")
 	local enable_comm_upload = datacenter.get("CLOUD", "COMM_UPLOAD")
 	local enable_log_upload = datacenter.get("CLOUD", "LOG_UPLOAD")
-	local enable_beta = datacenter.get('CLOUD', 'USING_BETA')
+	local enable_beta = ioe.beta()
 
 	self._dev:set_input_prop('data_upload', 'value', enable_data_upload and 1 or 0)
 	self._dev:set_input_prop('data_upload_cov', 'value', data_upload_cov and 1 or 0)
