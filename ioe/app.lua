@@ -45,19 +45,19 @@ function app:start()
 	local inputs = {
 		{
 			name = 'cpuload',
-			desc = 'System CPU Load'
+			desc = 'CPU Load Avg_15'
 		},
 		{
 			name = 'cpu_temp',
-			desc = 'System CPU Temperature'
+			desc = 'CPU Temperature'
 		},
 		{
 			name = 'mem_total',
-			desc = 'System memory total size',
+			desc = 'Memory total size',
 		},
 		{
 			name = 'mem_used',
-			desc = 'System memory used size',
+			desc = 'Memory used size',
 			vt = "int",
 		},
 		--[[
@@ -79,7 +79,7 @@ function app:start()
 		},
 		{
 			name = "version",
-			desc = "System Version",
+			desc = "FreeIOE Version",
 			vt = "int",
 		},
 		{
@@ -94,22 +94,22 @@ function app:start()
 		},
 		{
 			name = "firmware_version",
-			desc = "Operation system firmware version",
+			desc = "OS firmware version",
 			vt = "string",
 		},
 		{
 			name = "data_upload",
-			desc = "Upload data to cloud",
+			desc = "Data upload flag",
 			vt = "int",
 		},
 		{
 			name = "data_upload_cov",
-			desc = "Upload data COV setting",
+			desc = "Data upload COV setting",
 			vt = "int",
 		},
 		{
 			name = "data_upload_cov_ttl",
-			desc = "Upload data COV TTL",
+			desc = "Data upload COV TTL",
 			vt = "int",
 		},
 		{
@@ -119,22 +119,22 @@ function app:start()
 		},
 		{
 			name = "stat_upload",
-			desc = "Upload statictis data to cloud",
+			desc = "Statictis data upload flag",
 			vt = "int",
 		},
 		{
 			name = "comm_upload",
-			desc = "Upload communication data to cloud",
+			desc = "Comms upload end time",
 			vt = "int",
 		},
 		{
 			name = "log_upload",
-			desc = "Upload logs to cloud",
+			desc = "Logs upload end time",
 			vt = "int",
 		},
 		{
 			name = "enable_beta",
-			desc = "Device using beta enable flag",
+			desc = "Device beta mode flag",
 			vt = "int",
 		},
 		{
@@ -160,7 +160,7 @@ function app:start()
 			},
 			{
 				name = 'cpsi',
-				desc = 'GPRS/LTE work mode and so on',
+				desc = 'GPRS/LTE work mode',
 				vt = "string",
 			},
 			{
@@ -198,7 +198,7 @@ function app:start()
 		}
 		inputs[#inputs + 1] = {
 			name = 'app_run_'..k,
-			desc = 'Application status for '..k,
+			desc = 'Status for app '..k,
 			vt = "int",
 		}
 	end
