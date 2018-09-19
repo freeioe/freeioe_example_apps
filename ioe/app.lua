@@ -147,7 +147,6 @@ function app:start()
 	if string.sub(sys_id, 1, 8) == '2-30002-' then
 		self._gcom = true
 		self._cpu_temp = true
-		self._firmware_version = sysinfo.firmware_version()
 		local gcom_inputs = {
 			{
 				name = 'ccid',
@@ -276,6 +275,8 @@ function app:first_run()
 	--self._skynet_git_version = sgv
 	self._plat = plat
 
+	self._firmware_version = sysinfo.firmware_version()
+
 	--- Calculate uptime for earch 60 seconds
 	local calc_tmp_disk = nil
 	local tmp_disk_frep = self._conf.tmp_disk_frep or (1000 * 60)
@@ -401,6 +402,8 @@ function app:run(tms)
 	self._dev:set_input_prop('skynet_version', "value", self._skynet_version)
 	--self._dev:set_input_prop('skynet_version', "git_version", self._skynet_git_version)
 	self._dev:set_input_prop('platform', "value", self._plat)
+	--- System Firmware Version
+	self._dev:set_input_prop('firmware_version', "value", self._firmware_version or "UNKNOWN")
 
 	--- CPU load avg
 	local loadavg = sysinfo.loadavg()
@@ -412,13 +415,6 @@ function app:run(tms)
 		self._dev:set_input_prop('cpu_temp', "value", tonumber(cpu_temp))
 	else
 		self._dev:set_input_prop('cpu_temp', "value", 0, nil, 1)
-	end
-
-	--- System Firmware Version
-	if self._firmware_version then
-		self._dev:set_input_prop('firmware_version', "value", self._firmware_version)
-	else
-		self._dev:set_input_prop('firmware_version', "value", "", nil, 1)
 	end
 
 	--- System memory usage
