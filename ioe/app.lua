@@ -93,6 +93,11 @@ function app:start()
 			vt = "string",
 		},
 		{
+			name = "firmware_version",
+			desc = "Operation system firmware version",
+			vt = "string",
+		},
+		{
 			name = "data_upload",
 			desc = "Upload data to cloud",
 			vt = "int",
@@ -141,6 +146,8 @@ function app:start()
 	local id = self._sys:id()
 	if string.sub(sys_id, 1, 8) == '2-30002-' then
 		self._gcom = true
+		self._cpu_temp = true
+		self._firmware_version = sysinfo.firmware_version()
 		local gcom_inputs = {
 			{
 				name = 'ccid',
@@ -395,15 +402,26 @@ function app:run(tms)
 	--self._dev:set_input_prop('skynet_version', "git_version", self._skynet_git_version)
 	self._dev:set_input_prop('platform', "value", self._plat)
 
+	--- CPU load avg
 	local loadavg = sysinfo.loadavg()
 	self._dev:set_input_prop('cpuload', "value", tonumber(loadavg.lavg_15))
-	local cpu_temp = sysinfo.cpu_temperature()
+
+	--- CPU temperature
+	local cpu_temp = self._cpu_temp and sysinfo.cpu_temperature() or nil
 	if cpu_temp then
 		self._dev:set_input_prop('cpu_temp', "value", tonumber(cpu_temp))
 	else
 		self._dev:set_input_prop('cpu_temp', "value", 0, nil, 1)
 	end
 
+	--- System Firmware Version
+	if self._firmware_version then
+		self._dev:set_input_prop('firmware_version', "value", self._firmware_version)
+	else
+		self._dev:set_input_prop('firmware_version', "value", "", nil, 1)
+	end
+
+	--- System memory usage
 	local mem = sysinfo.meminfo()
 	self._dev:set_input_prop('mem_total', 'value', tonumber(mem.total))
 	self._dev:set_input_prop('mem_used', 'value', tonumber(mem.used))
