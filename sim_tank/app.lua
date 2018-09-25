@@ -54,7 +54,17 @@ function app:start()
 	})
 
 	local dev_sn = self._sys:id()..'.'..self._name
+	--[[
+	local inputs = {
+		{
+			name = 'em_test',
+			desc = 'emergency test',
+			vt = "int"
+		}
+	}
+	]]--
 	local inputs = {}
+
 	local outputs = {}
 	for k, v in pairs(self._values) do
 		inputs[#inputs + 1] = {
@@ -107,6 +117,8 @@ function app:run(tms)
 	vals.tank_2 = vals.tank_2 + 1
 
 	self:set_inputs()
+
+	--self._dev:set_input_prop_emergency('em_test', 'value', os.time())
 
 	return 1000 * 5 -- five seconds
 end

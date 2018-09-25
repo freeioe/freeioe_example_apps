@@ -158,18 +158,34 @@ end
 function app:read_ntp()
 	local ntp, err = self:uci_show('system.ntp')
 	if ntp then
-		self._dev:set_input_prop('ntp', 'value', cjson.encode(ntp))
+		if not emergency_fire then
+			self._dev:set_input_prop('ntp', 'value', cjson.encode(ntp))
+		else
+			self._dev:set_input_prop_emergency('ntp', 'value', cjson.encode(ntp))
+		end
 	else
-		self._dev:set_input_prop('ntp', 'value', '', self._sys:time(), 1)
+		if not emergency_fire then
+			self._dev:set_input_prop('ntp', 'value', '', self._sys:time(), 1)
+		else
+			self._dev:set_input_prop_emergency('ntp', 'value', '', self._sys:time(), 1)
+		end
 	end
 end
 
-function app:read_network_lan()
+function app:read_network_lan(emergency_fire)
 	local network, err = self:uci_show('network.lan')
 	if network then
-		self._dev:set_input_prop('network_lan', 'value', cjson.encode(network))
+		if not emergency_fire then
+			self._dev:set_input_prop('network_lan', 'value', cjson.encode(network))
+		else
+			self._dev:set_input_prop_emergency('network_lan', 'value', cjson.encode(network))
+		end
 	else
-		self._dev:set_input_prop('network_lan', 'value', '', self._sys:time(), 1)
+		if not emergency_fire then
+			self._dev:set_input_prop('network_lan', 'value', '', self._sys:time(), 1)
+		else
+			self._dev:set_input_prop_emergency('network_lan', 'value', '', self._sys:time(), 1)
+		end
 	end
 end
 
@@ -182,30 +198,34 @@ end
 function app:on_post_change_apply(output, value)
 	if output == 'ntp' then
 		self:uci_set('system.ntp', value)
-		self:read_ntp()
+		self._sys:sleep(500)
+		self:read_ntp(true)
 	end
 	if output == 'network_lan' then
 		self:uci_set('network.lan', value)
-		self:read_network_lan()
+		self._sys:sleep(500)
+		self:read_network_lan(true)
 	end
+	return true
 end
 
 
 function app:on_post_command(action, force)
 	if action == 'refresh' then
 		self:read_ntp()
-		self:read_network_lan()
+		self:read_network_lan(true)
 	end
 	if action == 'ntp_reload' then
 		local info, err = sysinfo.exec('/ect/init.d/sysntpd reload')
 		log.info('ntp_reload result', info, err)
-		self:read_ntp()
+		self:read_ntp(true)
 	end
 	if action == 'network_reload' then
 		local info, err = sysinfo.exec('/ect/init.d/network reload')
 		log.info('network_reload result', info, err)
-		self:read_network_lan()
+		self:read_network_lan(true)
 	end
+	return true
 end
 
 return app
