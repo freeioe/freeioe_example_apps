@@ -155,7 +155,7 @@ function app:close(reason)
 	--print(self._name, reason)
 end
 
-function app:read_ntp()
+function app:read_ntp(emergency_fire)
 	local ntp, err = self:uci_show('system.ntp')
 	if ntp then
 		if not emergency_fire then
@@ -212,7 +212,7 @@ end
 
 function app:on_post_command(action, force)
 	if action == 'refresh' then
-		self:read_ntp()
+		self:read_ntp(true)
 		self:read_network_lan(true)
 	end
 	if action == 'ntp_reload' then
