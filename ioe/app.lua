@@ -320,6 +320,7 @@ function app:first_run()
 			local csq, err = gcom.get_csq()
 			if csq then
 				self._dev:set_input_prop('csq', "value", tonumber(csq))
+				self:lte_strength(csq)
 			end
 			local cpsi, err = gcom.get_cpsi()
 			if cpsi then
@@ -375,6 +376,7 @@ function app:read_wan_sr()
 		end
 	end
 end
+
 --- For cloud led
 function app:check_cloud_status()
 	-- Cloud LED
@@ -386,6 +388,16 @@ function app:check_cloud_status()
 		else
 			leds.cloud:brightness(0)
 		end
+	end
+end
+
+--- For signal strength
+function app:lte_strength(csq)
+	if leds.bs then
+		leds.bs:brightness( (csq > 0 and csq < 18) and 1 or 0)
+	end
+	if lends.gs then
+		leds.bs:brightness( (csq >= 18) and 1 or 0)
 	end
 end
 
