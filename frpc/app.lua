@@ -45,7 +45,7 @@ local function get_default_conf(sys, conf)
 		ini_conf[id..'__ws'] = {
 			['type'] = 'http',
 			local_port = 8818,
-			subdomain = 'ws.'..string.lower(id),
+			subdomain = string.lower(id)..'_ws',
 			use_encryption = true,
 			use_compression = true,
 		}
