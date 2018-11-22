@@ -355,7 +355,7 @@ function app:first_run()
 end
 
 function app:check_time_diff()
-	if math.abs(os.time() - self._sys:time()) > 2.49 then
+	if math.abs(os.time() - self._sys:time()) > 1.49 then
 		self._log:error("Time diff found, system will be rebooted in five seconds. ", os.time(), self._sys:time())
 		self._dev:fire_event(event.LEVEL_FATAL, event.EVENT_SYS, "Time diff found!", {os_time = os.time(), time=self._sys:time()}, os.time())
 		self._sys:timeout(500, function()
