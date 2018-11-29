@@ -377,8 +377,19 @@ function app:read_wan_sr()
 	end
 end
 
+function app:check_symlink()
+	if lfs.attributes("/etc/rc.d/S22symlink", 'mode') then
+		return true
+	end
+	return false
+end
+
 --- For cloud led
 function app:check_cloud_status()
+	if self:check_symlink() then
+		return
+	end
+
 	-- Cloud LED
 	if leds.cloud then
 		local cloud = snax.uniqueservice('cloud')
@@ -393,6 +404,10 @@ end
 
 --- For signal strength
 function app:lte_strength(csq)
+	if self:check_symlink() then
+		return
+	end
+
 	if leds.bs then
 		leds.bs:brightness( (csq > 0 and csq < 18) and 1 or 0)
 	end
