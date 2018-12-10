@@ -225,6 +225,13 @@ function app:start()
 		leds.cloud:brightness(0)
 	end
 
+	if sysinfo.os_id() == 'openwrt' then
+		local ubus = snax.uniqueservice('ubus')
+	else
+		--local ubus = snax.uniqueservice('ubus', '172.30.11.230', 11000)
+		--local ubus = snax.uniqueservice('ubus', '/tmp/ubus.sock')
+	end
+
 	return true
 end
 
