@@ -1,0 +1,458 @@
+Result of method:	connect
+key=handle value=32770
+key=rc value=0
+Result of method:	actf
+key=data value=14000
+key=rc value=0
+Result of method:	acts
+key=data value=2500
+key=rc value=0
+Result of method:	acts2
+key=data value is:
+key=1 value=2500
+key=2 value=-10
+key=3 value=42
+key=4 value=0
+key=5 value=0
+key=6 value=0
+key=7 value=0
+key=8 value=0
+key=index value=-1
+key=rc value=0
+Result of method:	acts2
+key=data value is:
+key=1 value=2500
+key=2 value=0
+key=3 value=0
+key=4 value=0
+key=5 value=0
+key=6 value=0
+key=7 value=0
+key=8 value=0
+key=index value=1
+key=rc value=0
+Result of method:	axis
+key=data value is:
+key=1 value=0
+key=2 value=-58800
+key=3 value=-134261
+key=4 value=0
+key=5 value=0
+key=6 value=0
+key=7 value=0
+key=8 value=0
+key=9 value=0
+key=10 value=0
+key=11 value=0
+key=12 value=0
+key=13 value=0
+key=14 value=0
+key=15 value=0
+key=16 value=0
+key=17 value=0
+key=18 value=0
+key=19 value=0
+key=20 value=0
+key=21 value=1074741248
+key=22 value=0
+key=23 value=1127219200
+key=24 value=-2147483648
+key=25 value=1074741248
+key=26 value=0
+key=27 value=0
+key=28 value=0
+key=29 value=0
+key=30 value=0
+key=31 value=0
+key=32 value=0
+key=index value=-1
+key=rc value=0
+Result of method:	axis
+key=data value is:
+key=1 value=0
+key=2 value=0
+key=3 value=0
+key=4 value=0
+key=5 value=0
+key=6 value=0
+key=7 value=0
+key=8 value=0
+key=9 value=0
+key=10 value=0
+key=11 value=0
+key=12 value=0
+key=13 value=0
+key=14 value=0
+key=15 value=0
+key=16 value=0
+key=17 value=0
+key=18 value=0
+key=19 value=0
+key=20 value=0
+key=21 value=0
+key=22 value=0
+key=23 value=0
+key=24 value=0
+key=25 value=0
+key=26 value=0
+key=27 value=0
+key=28 value=0
+key=29 value=0
+key=30 value=0
+key=31 value=0
+key=32 value=0
+key=index value=1
+key=rc value=0
+Result of method:	axis
+key=error value=data type error
+key=rc value=4
+Result of method:	axis
+key=error value=data type error
+key=rc value=4
+Result of method:	rdsvmeter
+key=data value is:
+key=1 value is:
+key=reserve value=0
+key=name value=88
+key=suff2 value=64
+key=dec value=0
+key=suff1 value=0
+key=data value=5
+key=unit value=0
+key=2 value is:
+key=reserve value=0
+key=name value=89
+key=suff2 value=64
+key=dec value=0
+key=suff1 value=0
+key=data value=19
+key=unit value=0
+key=3 value is:
+key=reserve value=0
+key=name value=90
+key=suff2 value=64
+key=dec value=0
+key=suff1 value=0
+key=data value=42
+key=unit value=0
+key=rc value=0
+Result of method:	rdspmeter
+key=data value is:
+key=1 value is:
+key=spload value is:
+key=reserve value=0
+key=name value=83
+key=suff2 value=0
+key=dec value=0
+key=suff1 value=49
+key=data value=0
+key=unit value=0
+key=spspeed value is:
+key=reserve value=0
+key=name value=83
+key=suff2 value=0
+key=dec value=0
+key=suff1 value=49
+key=data value=2500
+key=unit value=1
+key=rc value=0
+Result of method:	rdspdlname
+key=data value is:
+key=1 value is:
+key=suff1 value=49
+key=suff3 value=20
+key=name value=83
+key=suff2 value=0
+key=rc value=0
+Result of method:	alarm
+key=status value=0
+key=rc value=0
+Result of method:	alarm2
+key=status value=0
+key=rc value=0
+Result of method:	rdalminfo
+key=data value is:
+key=rc value=0
+Result of method:	rdalmmsg
+key=data value is:
+key=rc value=0
+Result of method:	rdalmmsg2
+key=data value is:
+key=rc value=0
+Result of method:	rdalmmsg2
+key=data value is:
+key=rc value=0
+Result of method:	getdtailerr
+key=err_no value=0
+key=err_dtno value=0
+key=rc value=0
+Result of method:	rdprgnum
+key=mdata value=555
+key=data value=555
+key=rc value=0
+Result of method:	rdexecprog
+key=length value=61
+key=blknum value=1
+key=data value=G90 G53 Y0 
+G90G53Y-350
+G90G53X4450
+G0G53Y0
+G90G53Y-350
+M99
+%
+key=rc value=0
+Result of method:	rdpmcrng
+key=addr_type value=1
+key=rc value=0
+key=start value=100
+key=data value is:
+key=1 value=0
+key=2 value=2
+key=3 value=5
+key=4 value=1
+key=5 value=0
+key=6 value=0
+key=7 value=0
+key=8 value=0
+key=9 value=0
+key=10 value=0
+key=11 value=0
+key=12 value=0
+key=13 value=0
+key=14 value=0
+key=15 value=0
+key=16 value=0
+key=17 value=0
+key=18 value=0
+key=19 value=0
+key=20 value=0
+key=21 value=12336
+key=22 value=28704
+key=23 value=889
+key=24 value=0
+key=25 value=25848
+key=26 value=30420
+key=27 value=25848
+key=28 value=30420
+key=29 value=0
+key=30 value=0
+key=31 value=0
+key=32 value=0
+key=33 value=29472
+key=34 value=25455
+key=35 value=12907
+key=36 value=15648
+key=37 value=14368
+key=38 value=8192
+key=39 value=8253
+key=40 value=12600
+key=41 value=13113
+key=42 value=29472
+key=43 value=25455
+key=44 value=12651
+key=45 value=15648
+key=46 value=14112
+key=47 value=29472
+key=48 value=25455
+key=data_type value=1
+key=end value=108
+Result of method:	disconnect
+key=rc value=0
+root@Q102:~# lua test_focas.lua 
+Result of method:	connect
+key=handle value=32769
+key=rc value=0
+Result of method:	actf
+key=data value=0
+key=rc value=0
+Result of method:	acts
+key=data value=0
+key=rc value=0
+Result of method:	acts2
+key=data value is:
+key=1 value=0
+key=2 value=19
+key=3 value=42
+key=4 value=0
+key=5 value=0
+key=6 value=0
+key=7 value=0
+key=8 value=0
+key=index value=-1
+key=rc value=0
+Result of method:	acts2
+key=data value is:
+key=1 value=0
+key=2 value=0
+key=3 value=0
+key=4 value=0
+key=5 value=0
+key=6 value=0
+key=7 value=0
+key=8 value=0
+key=index value=1
+key=rc value=0
+Result of method:	axis
+key=data value is:
+key=1 value=4450000
+key=2 value=-350000
+key=3 value=-134261
+key=4 value=0
+key=5 value=0
+key=6 value=0
+key=7 value=0
+key=8 value=0
+key=9 value=0
+key=10 value=0
+key=11 value=1074741248
+key=12 value=0
+key=13 value=1127219200
+key=14 value=-2147483648
+key=15 value=1074741248
+key=16 value=0
+key=17 value=0
+key=18 value=0
+key=19 value=0
+key=20 value=0
+key=21 value=0
+key=22 value=0
+key=23 value=0
+key=24 value=0
+key=25 value=0
+key=26 value=0
+key=27 value=0
+key=28 value=0
+key=29 value=0
+key=30 value=0
+key=31 value=0
+key=32 value=0
+key=index value=-1
+key=rc value=0
+Result of method:	axis
+key=data value is:
+key=1 value=4450000
+key=2 value=0
+key=3 value=0
+key=4 value=0
+key=5 value=0
+key=6 value=0
+key=7 value=0
+key=8 value=0
+key=9 value=0
+key=10 value=0
+key=11 value=0
+key=12 value=0
+key=13 value=0
+key=14 value=0
+key=15 value=0
+key=16 value=0
+key=17 value=0
+key=18 value=0
+key=19 value=0
+key=20 value=0
+key=21 value=0
+key=22 value=0
+key=23 value=0
+key=24 value=0
+key=25 value=0
+key=26 value=0
+key=27 value=0
+key=28 value=0
+key=29 value=0
+key=30 value=0
+key=31 value=0
+key=32 value=0
+key=index value=1
+key=rc value=0
+Result of method:	axis
+key=error value=data type error
+key=rc value=4
+Result of method:	axis
+key=error value=data type error
+key=rc value=4
+Result of method:	rdsvmeter
+key=data value is:
+key=1 value is:
+key=reserve value=0
+key=name value=88
+key=suff2 value=0
+key=dec value=0
+key=suff1 value=0
+key=data value=6
+key=unit value=0
+key=2 value is:
+key=reserve value=0
+key=name value=89
+key=suff2 value=0
+key=dec value=0
+key=suff1 value=0
+key=data value=6
+key=unit value=0
+key=3 value is:
+key=reserve value=0
+key=name value=90
+key=suff2 value=0
+key=dec value=0
+key=suff1 value=0
+key=data value=46
+key=unit value=0
+key=rc value=0
+Result of method:	rdspmeter
+key=data value is:
+key=1 value is:
+key=spload value is:
+key=reserve value=0
+key=name value=83
+key=suff2 value=0
+key=dec value=0
+key=suff1 value=49
+key=data value=0
+key=unit value=0
+key=spspeed value is:
+key=reserve value=0
+key=name value=83
+key=suff2 value=0
+key=dec value=0
+key=suff1 value=49
+key=data value=0
+key=unit value=1
+key=rc value=0
+Result of method:	rdspdlname
+key=data value is:
+key=1 value is:
+key=suff1 value=49
+key=suff3 value=20
+key=name value=83
+key=suff2 value=0
+key=rc value=0
+Result of method:	alarm
+key=status value=-32768
+key=rc value=0
+Result of method:	alarm2
+key=status value=32768
+key=rc value=0
+Result of method:	rdalminfo
+key=data value is:
+key=1 value is:
+key=alm_msg value= AIR PRESSURE FAILED!
+key=msg_len value=21
+key=alm_no value=1027
+key=axis value=0
+key=rc value=0
+Result of method:	rdalmmsg
+key=data value is:
+key=rc value=0
+Result of method:	rdalmmsg2
+key=data value is:
+key=rc value=0
+Result of method:	rdalmmsg2
+key=data value is:
+key=rc value=0
+Result of method:	getdtailerr
+key=err_no value=0
+key=err_dtno value=0
+key=rc value=0
+Result of method:	rdprgnum
+key=mdata value=555
+key=data value=555
+

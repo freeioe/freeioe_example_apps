@@ -1,0 +1,121 @@
+#!/bin/sh
+
+MOUNTS_FILE=/tmp/mounts
+
+out() { printf "$1 $2\n" "${@:3}"; }
+error() { out "==> ERROR:" "$@"; } >&2
+warning() { out "==> WARNING:" "$@"; } >&2
+msg() { out "==>" "$@"; }
+msg2() { out "  ->" "$@";}
+die() { error "$@"; exit 1; }
+
+ignore_error() {
+	"$@" 2>/dev/null
+	return 0
+}
+
+chroot_add_mount() {
+	mkdir -p $2 && mount "$@" && echo -e "$2\n$(cat $MOUNTS_FILE)" > $MOUNTS_FILE
+}
+
+chroot_setup() {
+	MOUNTS_FILE=$1/mounts
+	chroot_teardown
+	touch $MOUNTS_FILE
+
+	trap 'chroot_teardown' EXIT
+
+	chroot_add_mount proc "$1/proc" -t proc -o nosuid,noexec,nodev &&
+		chroot_add_mount sys "$1/sys" -t sysfs -o nosuid,noexec,nodev,ro &&
+		chroot_add_mount udev "$1/dev" -t devtmpfs -o mode=0755,nosuid &&
+		chroot_add_mount devpts "$1/dev/pts" -t devpts -o mode=0620,gid=5,nosuid,noexec &&
+		chroot_add_mount shm "$1/dev/shm" -t tmpfs -o mode=1777,nosuid,nodev &&
+		chroot_add_mount tmp "$1/tmp" -t tmpfs -o mode=1777,strictatime,nodev,nosuid &&
+		chroot_add_mount /var "$1/var" -o bind
+	}
+
+chroot_teardown() {
+	if [[ -f $MOUNTS_FILE ]]; then
+		for line in $(cat $MOUNTS_FILE )
+		do
+			umount ${line}
+		done
+		rm -f $MOUNTS_FILE
+	fi
+}
+
+usage() {
+  cat <<EOF
+usage: ${0##*/} chroot-dir [command]
+
+	-h                  Print this help message
+	-u <user>[:group]   Specify non-root user and optional group to use
+
+If 'command' is unspecified, ${0##*/} will launch /bin/bash.
+
+EOF
+}
+
+chroot_add_resolv_conf() {
+  local chrootdir=$1 resolv_conf=$1/etc/resolv.conf
+
+  [[ -e /etc/resolv.conf ]] || return 0
+
+  # Handle resolv.conf as a symlink to somewhere else.
+  if [[ -L $chrootdir/etc/resolv.conf ]]; then
+	# readlink(1) should always give us *something* since we know at this point
+	# it's a symlink. For simplicity, ignore the case of nested symlinks.
+	resolv_conf=$(readlink "$chrootdir/etc/resolv.conf")
+	if [[ $resolv_conf = /* ]]; then
+	  resolv_conf=$chrootdir$resolv_conf
+  else
+	  resolv_conf=$chrootdir/etc/$resolv_conf
+  fi
+
+	# ensure file exists to bind mount over
+	if [[ ! -f $resolv_conf ]]; then
+	  install -Dm644 /dev/null "$resolv_conf" || return 1
+  fi
+elif [[ ! -e $chrootdir/etc/resolv.conf ]]; then
+	# The chroot might not have a resolv.conf.
+	return 0
+fi
+
+  chroot_add_mount /etc/resolv.conf "$resolv_conf" --bind
+}
+
+while getopts ':hu:' flag; do
+  case $flag in
+	  h)
+	  usage
+	  exit 0
+	  ;;
+  u)
+	  userspec=$OPTARG
+	  ;;
+  :)
+	  die '%s: option requires an argument -- '\''%s'\' "${0##*/}" "$OPTARG"
+	  ;;
+  ?)
+	  die '%s: invalid option -- '\''%s'\' "${0##*/}" "$OPTARG"
+	  ;;
+esac
+done
+shift $(( OPTIND - 1 ))
+
+if [ $USER != "root" ] ; then
+	die 'This script must be run with root privileges'
+fi
+if [ $# -lt 1 ] ; then
+	die 'No chroot directory specified'
+fi
+
+chrootdir=$1
+shift
+
+[[ -d $chrootdir ]] || die "Can't create chroot on non-directory %s" "$chrootdir"
+
+chroot_setup "$chrootdir" || die "failed to setup chroot %s" "$chrootdir"
+chroot_add_resolv_conf "$chrootdir" || die "failed to setup resolv.conf"
+
+chroot "$chrootdir" "$@"
