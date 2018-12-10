@@ -7,6 +7,7 @@ local leds = require 'utils.leds'
 local event = require 'app.event'
 local sum = require 'summation'
 local ioe = require 'ioe'
+local lfs = require 'lfs'
 -- own libs
 local disk = require 'disk'
 local netinfo = require 'netinfo'
@@ -483,7 +484,7 @@ function app:run(tms)
 	applist['ioe'] = nil
 	for k, v in pairs(applist) do
 		if not self._apps_cache[k] then
-			local app = datacenter.get("APPS", k)
+			local app = datacenter.get("APPS", k) or {name='REMOVED', version=0, sn='REMOVED'}
 			self._apps_cache[k] = {
 				name = app.name,
 				version = app.version,

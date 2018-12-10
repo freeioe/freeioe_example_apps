@@ -27,7 +27,7 @@ function app:initialize(name, sys, conf)
 	self._log = sys:logger()
 	self._log:debug(name.." Application initlized")
 
-	--self._run_ubusd = true
+	self._run_ubusd = true
 end
 
 --- 应用启动函数
@@ -58,6 +58,7 @@ function app:start()
 		{ ip="192.168.0.200", port=8193, name = 'cnc01', sn = 'xxx-xx-1', tpl = 'cnc' },
 		--{ ip="127.0.0.2", port=8193, name = 'cnc02', sn = 'xxx-xx-2', tpl = 'cnc' },
 	}
+	print(cjson.encode(config.devs))
 
 	--- 获取云配置
 	if not config.devs or config.cnf then
