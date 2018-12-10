@@ -151,7 +151,7 @@ end
 --- 应用退出函数
 function app:close(reason)
 	if self._ubusd then
-		self_ubusd:stop()
+		self._ubusd:stop()
 	end
 	self._log:notice("app closed", self._name, reason)
 end
