@@ -140,7 +140,6 @@ function app:start()
 
 	for _, dev in ipairs(self._devs) do
 		local r, err = dev.focas:connect(self._ubus, self._ubus_name)
-		assert(r, err)
 		if not r then
 			self._log:error("Connect to device failed!", err)
 		end
