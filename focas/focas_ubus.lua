@@ -30,16 +30,15 @@ end
 function focas_ubus:prepare_armhf_rootfs(sysroot)
 	local cp_chroot = string.format('cp "%s/bin/arm/arch-chroot" %s/bin/arch-chroot', self._app_dir, sysroot)
 	local cp_focas_ubus = string.format('cp "%s/bin/arm/focas_ubus" %s/bin/focas_ubus', self._app_dir, sysroot)
+	os.execute(cp_chroot)
+	os.execute(cp_focas_ubu)
+
 	local init_d_script = '/etc/init.d/focas_ubus'
-	os.execute('chmod a+x '..self._app_dir..'/bin/arm/init.rc')
 	if lfs.attributes(init_d_script, 'mode') then
 		os.execute(init_d_script..' stop')
 	else
-		os.execute(string.format('ln -s %s/bin/arm/init.rc '..init_d_script, self._app_dir))
+		os.execute(string.format('ln -s %s/init.d/arm/focas_ubus '..init_d_script, self._app_dir))
 	end
-	os.execute(cp_chroot)
-	os.execute(cp_focas_ubu)
-	os.execute(init_d_script..' enable')
 end
 
 function focas_ubus:start()
@@ -55,7 +54,6 @@ end
 function focas_ubus:remove()
 	self:stop()
 	local init_d_script = '/etc/init.d/focas_ubus'
-	os.execute(init_d_script..' disable')
 	os.execute('rm -f '..init_d_script)
 end
 
