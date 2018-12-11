@@ -226,8 +226,13 @@ function app:start()
 		leds.cloud:brightness(0)
 	end
 
-	if sysinfo.os_id() == 'openwrt' then
-		local ubus = snax.uniqueservice('ubus')
+	-- detect ubus
+	if lfs.attributes('/var/run/ubus.sock', 'mode') then
+		local lsocket_loaded, lsocket = pcall(require, 'lsocket')
+		if lsocket_loaded  then
+			--- Ubus is depends on lsocket
+			local ubus = snax.uniqueservice('ubus')
+		end
 	else
 		--local ubus = snax.uniqueservice('ubus', '172.30.11.230', 11000)
 		--local ubus = snax.uniqueservice('ubus', '/tmp/ubus.sock')
