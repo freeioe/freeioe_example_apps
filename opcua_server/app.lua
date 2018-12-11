@@ -186,7 +186,8 @@ function app:start()
 	self._logger = function(level, category, ...)
 		Level_Funcs[level](self._log, Category_Names[category], ...)
 	end
-	opcua.setLogger(self._logger)
+	--- OpcUa has no more setLogger function
+	--opcua.setLogger(self._logger)
 
 	--- 生成OPCUA服务器实例
 	local server = opcua.Server.new()
