@@ -231,9 +231,13 @@ function app:start()
 		local lsocket_loaded, lsocket = pcall(require, 'lsocket')
 		if lsocket_loaded  then
 			--- Ubus is depends on lsocket
+			self._log:notice("Starts ubus service!!!")
 			local ubus = snax.uniqueservice('ubus')
+		else
+			self._log:notice("Module lsocket is not found, ubus service will not be started!!!")
 		end
 	else
+		self._log:notice("Unix socket for ubus not found, ubus service will not be started!!!")
 		--local ubus = snax.uniqueservice('ubus', '172.30.11.230', 11000)
 		--local ubus = snax.uniqueservice('ubus', '/tmp/ubus.sock')
 	end
