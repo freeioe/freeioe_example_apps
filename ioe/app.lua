@@ -429,7 +429,7 @@ function app:lte_strength(csq)
 		leds.bs:brightness( (csq > 0 and csq < 18) and 1 or 0)
 	end
 	if leds.gs then
-		leds.gs:brightness( (csq >= 18) and 1 or 0)
+		leds.gs:brightness( (csq >= 18 and csq < 32) and 1 or 0)
 	end
 end
 
