@@ -42,16 +42,25 @@ function focas_ubus:prepare_armhf_rootfs(sysroot)
 end
 
 function focas_ubus:start()
+	if not self._arch then
+		return
+	end
 	local init_d_script = '/etc/init.d/focas_ubus'
 	os.execute(init_d_script..' start')
 end
 
 function focas_ubus:stop()
+	if not self._arch then
+		return
+	end
 	local init_d_script = '/etc/init.d/focas_ubus'
 	os.execute(init_d_script..' stop')
 end
 
 function focas_ubus:remove()
+	if not self._arch then
+		return
+	end
 	self:stop()
 	local init_d_script = '/etc/init.d/focas_ubus'
 	os.execute('rm -f '..init_d_script)

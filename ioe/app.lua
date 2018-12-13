@@ -75,7 +75,7 @@ function app:start()
 		},
 		{
 			name = "starttime",
-			desc = "System start time in UTC",
+			desc = "FreeIOE start time in UTC",
 			vt = "int",
 		},
 		{
