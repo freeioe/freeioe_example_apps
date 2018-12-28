@@ -142,6 +142,10 @@ end
 
 --- 应用退出函数
 function app:close(reason)
+	if self._client then
+		self._client:close()
+		self._client = nil
+	end
 	print(self._name, reason)
 end
 
