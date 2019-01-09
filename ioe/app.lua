@@ -143,10 +143,12 @@ function app:start()
 			desc = "Device beta mode flag",
 			vt = "int",
 		},
+		--[[
 		{
 			name = 'disk_tmp_used',
 			desc = "Disk /tmp used percent",
 		}
+		]]--
 	}
 	local sys_id = self._sys:hw_id()
 	local id = self._sys:id()
@@ -225,6 +227,12 @@ function app:start()
 	meta.name = "ThingsLink"
 	meta.description = "ThingsLink IOE Device"
 	meta.series = "FreeIOE" -- TODO:
+	--
+	meta.platform = sysinfo.platform() or "unknown"
+	meta.firmware = sysinfo.firmware_version()
+	meta.version = sysinfo.version()
+	meta.skynet = sysinfo.skynet_version()
+
 	self._dev = self._api:add_device(id, meta, inputs, nil, cmds)
 
 	if leds.cloud then
@@ -309,7 +317,7 @@ function app:first_run()
 		-- temp disk usage
 		local r, err = disk.df('/tmp')
 		if r then
-			self._dev:set_input_prop('disk_tmp_used', 'value', r.used_percent)
+			--self._dev:set_input_prop('disk_tmp_used', 'value', r.used_percent)
 
 			if self._tmp_event_fired then
 				if os.time() - self._tmp_event_fired > 3600 then
