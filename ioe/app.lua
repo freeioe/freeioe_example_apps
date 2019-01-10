@@ -379,7 +379,8 @@ function app:first_run()
 			self._dev:set_input_prop('wan_r', "value", self._wan_sum:get('recv'))
 			self._dev:set_input_prop('wan_s', "value", self._wan_sum:get('send'))
 		end
-		calc_gcom()
+		--- GCOM takes too much time which may blocks the first run too long
+		self._sys:timeout(200, function() calc_gcom() end)
 	end
 
 	self._sys:timeout(100, function()
@@ -465,6 +466,7 @@ end
 function app:run(tms)
 	if not self._start_time then
 		self:first_run()
+		--self._log:debug("System started!!!")
 	end
 	self:check_time_diff()
 	self:read_wan_sr()
