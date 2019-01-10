@@ -308,7 +308,7 @@ function app:first_run()
 
 	self._firmware_version = sysinfo.firmware_version()
 
-	--- Calculate uptime/mem stuff/tmp_disk for earch 60 seconds
+	--- Calculate uptime/mem stuff/cpu_temp/tmp_disk for earch 60 seconds
 	local calc_tmp_disk = nil
 	local tmp_disk_frep = self._conf.tmp_disk_frep or (1000 * 60)
 	calc_tmp_disk = function()
@@ -318,11 +318,20 @@ function app:first_run()
 		--- System uptime
 		local uptime = sysinfo.uptime()
 		self._dev:set_input_prop('uptime', "value", math.floor(uptime))
+
 		--- System memory usage
 		local mem = sysinfo.meminfo()
 		self._dev:set_input_prop('mem_total', 'value', tonumber(mem.total))
 		self._dev:set_input_prop('mem_used', 'value', tonumber(mem.used))
 		--self._dev:set_input_prop('mem_free', 'value', tonumber(mem.free))
+
+		--- CPU temperature
+		local cpu_temp = self._cpu_temp and sysinfo.cpu_temperature() or nil
+		if cpu_temp then
+			self._dev:set_input_prop('cpu_temp', "value", tonumber(cpu_temp))
+		else
+			self._dev:set_input_prop('cpu_temp', "value", 0, nil, 1)
+		end
 
 		-- temp disk usage
 		local r, err = disk.df('/tmp')
@@ -472,14 +481,6 @@ function app:run(tms)
 	--- CPU load avg
 	local loadavg = sysinfo.loadavg()
 	self._dev:set_input_prop('cpuload', "value", tonumber(loadavg.lavg_15))
-
-	--- CPU temperature
-	local cpu_temp = self._cpu_temp and sysinfo.cpu_temperature() or nil
-	if cpu_temp then
-		self._dev:set_input_prop('cpu_temp', "value", tonumber(cpu_temp))
-	else
-		self._dev:set_input_prop('cpu_temp', "value", 0, nil, 1)
-	end
 
 	-- cloud flags
 	--
