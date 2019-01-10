@@ -234,6 +234,7 @@ function app:start()
 	meta.skynet = sysinfo.skynet_version()
 
 	self._dev = self._api:add_device(id, meta, inputs, nil, cmds)
+	self._dev:cov({ttl=60})
 
 	if leds.cloud then
 		leds.cloud:brightness(0)
@@ -307,12 +308,21 @@ function app:first_run()
 
 	self._firmware_version = sysinfo.firmware_version()
 
-	--- Calculate uptime for earch 60 seconds
+	--- Calculate uptime/mem stuff/tmp_disk for earch 60 seconds
 	local calc_tmp_disk = nil
 	local tmp_disk_frep = self._conf.tmp_disk_frep or (1000 * 60)
 	calc_tmp_disk = function()
+		-- Reset timer
+		self._cancel_timers['tmp_disk'] = self._sys:cancelable_timeout(tmp_disk_frep, calc_tmp_disk)
+
+		--- System uptime
 		local uptime = sysinfo.uptime()
 		self._dev:set_input_prop('uptime', "value", math.floor(uptime))
+		--- System memory usage
+		local mem = sysinfo.meminfo()
+		self._dev:set_input_prop('mem_total', 'value', tonumber(mem.total))
+		self._dev:set_input_prop('mem_used', 'value', tonumber(mem.used))
+		--self._dev:set_input_prop('mem_free', 'value', tonumber(mem.free))
 
 		-- temp disk usage
 		local r, err = disk.df('/tmp')
@@ -332,9 +342,6 @@ function app:first_run()
 				self._tmp_event_fired = os.time()
 			end
 		end
-
-		-- Reset timer
-		self._cancel_timers['tmp_disk'] = self._sys:cancelable_timeout(tmp_disk_frep, calc_tmp_disk)
 	end
 	calc_tmp_disk()
 
@@ -343,6 +350,9 @@ function app:first_run()
 		local calc_gcom = nil
 		local gcom_frep = self._conf.gcom_frep or (1000 * 60)
 		calc_gcom = function()
+			-- Reset timer
+			self._cancel_timers['gcom'] = self._sys:cancelable_timeout(gcom_frep, calc_gcom)
+
 			local ccid, err = gcom.get_ccid()
 			if ccid then
 				self._dev:set_input_prop('ccid', "value", ccid)
@@ -359,9 +369,6 @@ function app:first_run()
 
 			self._dev:set_input_prop('wan_r', "value", self._wan_sum:get('recv'))
 			self._dev:set_input_prop('wan_s', "value", self._wan_sum:get('send'))
-
-			-- Reset timer
-			self._cancel_timers['gcom'] = self._sys:cancelable_timeout(gcom_frep, calc_gcom)
 		end
 		calc_gcom()
 	end
@@ -474,12 +481,6 @@ function app:run(tms)
 		self._dev:set_input_prop('cpu_temp', "value", 0, nil, 1)
 	end
 
-	--- System memory usage
-	local mem = sysinfo.meminfo()
-	self._dev:set_input_prop('mem_total', 'value', tonumber(mem.total))
-	self._dev:set_input_prop('mem_used', 'value', tonumber(mem.used))
-	--self._dev:set_input_prop('mem_free', 'value', tonumber(mem.free))
-	
 	-- cloud flags
 	--
 	local enable_data_upload = datacenter.get("CLOUD", "DATA_UPLOAD")
@@ -530,7 +531,7 @@ function app:run(tms)
 	end
 
 	--- fifteen seconds by default
-	return self._conf.run_frep or 1000 * 15
+	return self._conf.run_frep or 1000
 end
 
 function app:on_post_fire_event(msg, lvl, tp, data)
