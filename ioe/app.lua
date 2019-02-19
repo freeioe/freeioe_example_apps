@@ -439,7 +439,7 @@ function app:check_cloud_status()
 
 	-- Cloud LED
 	if leds.cloud then
-		local cloud = snax.uniqueservice('cloud')
+		local cloud = snax.queryservice('cloud')
 		local cloud_status, cloud_status_last = cloud.req.get_status()
 		if cloud_status then
 			leds.cloud:brightness(1)
@@ -507,7 +507,7 @@ function app:run(tms)
 	self._dev:set_input_prop('enable_beta', 'value', enable_beta and 1 or 0)
 
 	-- Application run status
-	local appmgr = snax.uniqueservice('appmgr')
+	local appmgr = snax.queryservice('appmgr')
 	local applist = appmgr.req.list()
 	applist['ioe'] = nil
 	for k, v in pairs(applist) do
