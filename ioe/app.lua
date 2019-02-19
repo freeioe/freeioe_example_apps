@@ -310,10 +310,10 @@ function app:first_run()
 
 	--- Calculate uptime/mem stuff/cpu_temp/tmp_disk for earch 60 seconds
 	local calc_tmp_disk = nil
-	local tmp_disk_frep = self._conf.tmp_disk_frep or (1000 * 60)
+	local tmp_disk_freq = self._conf.tmp_disk_freq or (1000 * 60)
 	calc_tmp_disk = function()
 		-- Reset timer
-		self._cancel_timers['tmp_disk'] = self._sys:cancelable_timeout(tmp_disk_frep, calc_tmp_disk)
+		self._cancel_timers['tmp_disk'] = self._sys:cancelable_timeout(tmp_disk_freq, calc_tmp_disk)
 
 		--- System uptime
 		local uptime = sysinfo.uptime()
@@ -357,10 +357,10 @@ function app:first_run()
 	if self._gcom then
 		self:read_wan_sr()
 		local calc_gcom = nil
-		local gcom_frep = self._conf.gcom_frep or (1000 * 60)
+		local gcom_freq = self._conf.gcom_freq or (1000 * 60)
 		calc_gcom = function()
 			-- Reset timer
-			self._cancel_timers['gcom'] = self._sys:cancelable_timeout(gcom_frep, calc_gcom)
+			self._cancel_timers['gcom'] = self._sys:cancelable_timeout(gcom_freq, calc_gcom)
 
 			local ccid, err = gcom.get_ccid()
 			if ccid then
@@ -393,10 +393,12 @@ function app:first_run()
 		self:cfg_crash_check()
 	end)
 
-	local check_cloud = function()
+	local check_cloud = nil
+	local cloud_freq = self._conf.cloud_freq or (1000 * 3)
+	check_cloud = function()
 		self:check_cloud_status()
 		-- Reset timer
-		self._cancel_timers['cloud_led'] = self._sys:cancelable_timeout(1000, check_cloud)
+		self._cancel_timers['cloud_led'] = self._sys:cancelable_timeout(cloud_freq, check_cloud)
 	end
 	check_cloud()
 end
@@ -425,10 +427,14 @@ function app:read_wan_sr()
 end
 
 function app:check_symlink()
-	if lfs.attributes("/etc/rc.d/S22symlink", 'mode') then
-		return true
+	if self._symlink == nil then
+		if lfs.attributes("/etc/rc.d/S22symlink", 'mode') then
+			self._symlink = true
+		else
+			self._symlink = false
+		end
 	end
-	return false
+	return self._symlink
 end
 
 --- For cloud led
@@ -534,7 +540,7 @@ function app:run(tms)
 	end
 
 	--- fifteen seconds by default
-	return self._conf.run_frep or 1000
+	return self._conf.run_freq or 1000
 end
 
 function app:on_post_fire_event(msg, lvl, tp, data)
