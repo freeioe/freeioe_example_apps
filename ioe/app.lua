@@ -494,7 +494,7 @@ function app:run(tms)
 	--
 	local enable_data_upload = datacenter.get("CLOUD", "DATA_UPLOAD")
 	local data_upload_cov = datacenter.get("CLOUD", "COV") or true
-	local data_upload_cov_ttl = datacenter.get("CLOUD", "COV_TTL") or 60
+	local data_upload_cov_ttl = datacenter.get("CLOUD", "COV_TTL") or 300
 	local data_upload_period = datacenter.get("CLOUD", "DATA_UPLOAD_PERIOD") or (enable_data_upload and 1000 or 60 * 1000)
 	local enable_stat_upload = datacenter.get("CLOUD", "STAT_UPLOAD")
 	local enable_comm_upload = datacenter.get("CLOUD", "COMM_UPLOAD")
