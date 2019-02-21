@@ -229,14 +229,20 @@ end
 function app:start()
 	self._nodes = {}
 
-	local config = opcua.ConnectionConfig.new()
-	config.protocolVersion = 0
-	config.sendBufferSize = 65535
-	config.recvBufferSize = 65535
-	config.maxMessageSize = 0
-	config.maxChunkCount = 0
+	local client = opcua.Client.new()
+	local config = client:getConfig()
 
-	local client = opcua.Client.new(5000, 10 * 60 * 1000, config)
+	--[[
+	config.localConnectionConfig.protocolVersion = 0
+	config.localConnectionConfig.sendBufferSize = 65535
+	config.localConnectionConfig.recvBufferSize = 65535
+	config.localConnectionConfig.maxMessageSize = 0
+	config.localConnectionConfig.maxChunkCount = 0
+	]]--
+
+	config.timeout = 5000
+	config.secureChannelLifeTime = 10 * 60 * 1000
+
 	self._client_obj = client
 
 	self._sys:fork(function() self:print_debug() end)

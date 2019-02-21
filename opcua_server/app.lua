@@ -196,8 +196,9 @@ function app:start()
 	server.config:setServerURI("urn:://opcua.symid.com")
 
 	--- 添加命名空间
-	local id = self._sys:id()
-	local idx = server:addNamespace("http://freeioe.org/"..id)
+	--local id = self._sys:id()
+	--local idx = server:addNamespace("http://freeioe.org/"..id)
+	local idx = server:addNamespace("http://freeioe.org")
 
 	self._server = server
 	self._idx = idx
@@ -235,7 +236,7 @@ function app:run(tms)
 		--- 暂停OPCUA模块运行，处理FREEIOE系统消息
 		self._sys:sleep(ms % 10)
 	end
-	print('XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX')
+	--print('XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX')
 
 	return 1000
 end

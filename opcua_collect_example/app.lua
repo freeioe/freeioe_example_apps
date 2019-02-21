@@ -144,17 +144,23 @@ function app:start()
 	self._nodes = {}
 	self._devs = {}
 
-	--- 设定OpcUa连接配置
-	local config = opcua.ConnectionConfig.new()
-	config.protocolVersion = 0  -- 协议版本
-	config.sendBufferSize = 65535  -- 发送缓存大小
-	config.recvBufferSize = 65535  -- 接受缓存大小
-	config.maxMessageSize = 0	-- 消息大小限制
-	config.maxChunkCount = 0	--
-
 	--- 生成OpcUa客户端对象
-	local client = opcua.Client.new(5000, 10 * 60 * 1000, config)
+	local client = opcua.Client.new() 
 	self._client_obj = client
+
+	--- 设定OpcUa连接配置
+	local config = client:getConfig()
+	--[[
+	local cc = config.localConnectionConfig
+	cc.protocolVersion = 0  -- 协议版本
+	cc.sendBufferSize = 65535  -- 发送缓存大小
+	cc.recvBufferSize = 65535  -- 接受缓存大小
+	cc.maxMessageSize = 0	-- 消息大小限制
+	cc.maxChunkCount = 0	--
+	]]--
+
+	config.timeout = 5000
+	config.secureChannelLifeTime = 10 * 60 * 1000
 
 	--- 发起OpcUa连接
 	self._sys:fork(function() self:connect_proc() end)
