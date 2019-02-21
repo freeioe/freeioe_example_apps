@@ -129,12 +129,13 @@ function app:connect_proc()
 	local password = self._conf.password or "password"
 	--local r, err = client:connect_username(ep, username, password)
 	local r, err = client:connect(ep)
-	if r then
-		self._log:notice("OPC Client connect successfully!", self._sys:time())
+	if r and r == 0 then
+		self._log:notice("OPC Client connect successfully!")
 		self._connect_retry = 2000
 		self:on_connected(client)
 	else
-		self._log:error("OPC Client connect failure!", err, self._sys:time())
+		local err = err or opcua.getStatusCodeName(r)
+		self._log:error("OPC Client connect failure!", err)
 		self:on_disconnect()
 	end
 end

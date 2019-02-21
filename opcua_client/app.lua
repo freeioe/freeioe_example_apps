@@ -174,7 +174,7 @@ function app:on_post_input(app, sn, input, prop, value, timestamp, quality)
 		local r, err = pcall(set_var_value, var, value, timestamp, quality)
 		self._input_count_out = self._input_count_out + 1
 		if not r then
-			self._log:error("OPC Client failure!", err, self._sys:time())
+			self._log:error("OPC Client failure!", err)
 		end
 	end
 end
@@ -197,8 +197,8 @@ function app:connect_proc()
 	local username = self._conf.username or "user1"
 	local password = self._conf.password or "password"
 	local r, err = client:connect_username(ep, username, password)
-	if r then
-		self._log:notice("OPC Client connect successfully!", self._sys:time())
+	if r and r == 0 then
+		self._log:notice("OPC Client connect successfully!")
 		self._client = client
 		self._connect_retry = 2000
 		
@@ -207,7 +207,8 @@ function app:connect_proc()
 			self:create_device_node(sn, props)
 		end
 	else
-		self._log:error("OPC Client connect failure!", err, self._sys:time())
+		local err = err or opcua.getStatusCodeName(r)
+		self._log:error("OPC Client connect failure! Error: "..err)
 		self:on_disconnect()
 	end
 end
