@@ -12,7 +12,7 @@ local categories = {
 	"reply",
 	"response",
 }
-local mqtt_reconnect_timeout = 100
+local mqtt_reconnect_timeout = 1000
 
 local function huawei_timestamp(timestamp)
 	return os.date("%Y%m%dT%H%M%SZ", math.floor(timestamp))
@@ -87,8 +87,8 @@ function app:start_reconnect()
 	self._mqtt_client = nil
 	self._sys:timeout(mqtt_reconnect_timeout, function() self:connect_proc() end)
 	mqtt_reconnect_timeout = mqtt_reconnect_timeout * 2
-	if mqtt_reconnect_timeout > 10 * 60 * 100 then
-		mqtt_reconnect_timeout = 100
+	if mqtt_reconnect_timeout > 10 * 60 * 1000 then
+		mqtt_reconnect_timeout = 1000
 	end
 end
 
@@ -206,7 +206,7 @@ function app:connect_proc()
 			end
 			--client:subscribe("+/#", 1)
 			--
-			mqtt_reconnect_timeout = 100
+			mqtt_reconnect_timeout = 1000
 			self:fire_devices(1000)
 		else
 			log:warning("ON_CONNECT", success, rc, msg) 
