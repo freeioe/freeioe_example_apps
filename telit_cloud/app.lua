@@ -59,7 +59,7 @@ function app:on_add_device(src_app, sn, props)
 	local sysid = self._sys:id()
 	if sn ~= sysid then
 		local def_key = self._def_keys[sn]
-		if not def_key and sysid = string.sub(sn, 1, string.len(sysid)) then
+		if not def_key and sysid == string.sub(sn, 1, string.len(sysid)) then
 			local ssn = string.sub(sn, string.len(sysid) + 1)
 			if ssn[1] == '.' then
 				ssn = string.sub(ssn, 2)
@@ -118,7 +118,7 @@ function app:on_add_device(src_app, sn, props)
 			key = key_escape(sn),
 			defKey = def_key,
 			desc = props.meta.description or 'UNKNOWN',
-			tags = tags,
+			--tags = tags, -- disable tags for now
 		}
 		local cmd = {
 			command = "thing.create",
@@ -240,17 +240,30 @@ function app:publish_data_list(val_list)
 }
 ]]--
 	local data_list = {}
+	local attr_list = {}
 	for _, v in ipairs(val_list) do
 		local sn, input = string.match(v[1], '^([^%.]+)%.(.+)$')
-		if not data_list[sn] then
-			data_list[sn] = {}
+
+		if type(v[2]) ~= 'string' then
+			if not data_list[sn] then
+				data_list[sn] = {}
+			end
+			table.insert(data_list[sn], {
+				key = input,
+				value = v[2],
+				ts = self:format_timestamp(v[3]),
+				--corrId = self._mqtt_username,
+			})
+		else
+			if not attr_list[sn] then
+				attr_list[sn] = {}
+			end
+			table.insert(attr_list[sn], {
+				key = input,
+				value = v[2],
+				ts = self:format_timestamp(v[3]),
+			})
 		end
-		table.insert(data_list[sn], {
-			key = input,
-			value = v[2],
-			ts = self:format_timestamp(v[3]),
-			--corrId = self._mqtt_username,
-		})
 	end
 
 	for sn, data in pairs(data_list) do
@@ -258,8 +271,34 @@ function app:publish_data_list(val_list)
 			command = "property.batch",
 			params = {
 				thingKey = sn,
-				key = 'UNKNOW',
-				ts = self:format_timestamp(ioe.time()),
+				--key = 'UNKNOW',
+				--ts = self:format_timestamp(ioe.time()),
+				data = data
+			}
+		}
+
+		local val, err = cjson.encode({cmd=cmd})
+		--print(val)
+		if not val then
+			self._log:warning('cjson encode failure. error: ', err)
+			return true -- skip current datas
+		end
+
+		local deflated = self:compress(val)
+		local r, err = self:mqtt_publish("apiz", deflated, 1, false)
+
+		if not r then
+			return nil, err
+		end
+	end
+
+	for sn, data in pairs(attr_list) do
+		local cmd = {
+			command = "attribute.batch",
+			params = {
+				thingKey = sn,
+				--key = 'UNKNOW',
+				--ts = self:format_timestamp(ioe.time()),
 				data = data
 			}
 		}
