@@ -1,4 +1,6 @@
 local class = require 'middleclass'
+local ioe = require 'ioe'
+local event = require 'app.event'
 local app_calc = require 'app.utils.calc'
 local openweathermap = require 'openweathermap'
 local frpc_http = require 'frpc_http'
@@ -36,7 +38,6 @@ local function create_handler(app)
 	return {
 		--- 处理设备对象添加消息
 		on_add_device = function(app_src, sn, props)
-			print('on_add')
 			--- 获取对象目录
 		end,
 		--- 处理设备对象删除消息
@@ -110,9 +111,20 @@ function app:start()
 
 	self._calc:add('temp', {
 		{ sn = self._dev_sn, input = 'weather_temp', prop='value' },
-		{ sn = self._sys:id(), input = 'cpuload', prop='value' }
+		{ sn = self._sys:id(), input = 'cpu_temp', prop='value' }
 	}, function(weather_temp, cpu_temp)
 		self._log:notice('TEMP:', weather_temp, cpu_temp)
+		if math.abs(weather_temp - cpu_temp) > 10 then
+			if (ioe.time() - (self._temp_alert_last or 0)) >= self._alert_cycle then
+				local data = {
+					weather_temp = weather_temp,
+					gateway_temp = cpu_temp
+				}
+				self._log:warning("Fire temperature event")
+				self._dev:fire_event(event.LEVEL_WARNING, event.EVENT_APP, 'Temperature alert!!!', data)
+				self._temp_alert_last = ioe.time()
+			end
+		end
 	end, 30)
 
 	return true
@@ -146,17 +158,17 @@ end
 function app:load_init_values()
 	-- 设定温度城市
 	self._weather_city = self._conf.weather_city or 1809858
-	self._weather_poll_cycle = self._conf.weather_poll_cycle or 10 * 60
-	self._enable_weather = self._conf.enable_weather or 0
+	self._weather_poll_cycle = tonumber(self._conf.weather_poll_cycle) or 10 * 60
+	self._enable_weather = tonumber(self._conf.enable_weather) or 0
 
 
 	-- 温度预警初始值
-	self._hot_policy = self._conf.hot_policy or 25
-	self._very_hot_policy = self._conf.very_hot_policy or 29
-	self._critical_policy = self._conf.critical_policy or 32
-	self._alert_cycle = self._conf.alert_cycle or 300 -- (5 * 60)
-	self._disable_alert = self._conf.disable_alert or 0
-	self._alert_cpu_temp = self._conf.alert_cpu_temp or 70
+	self._hot_policy = tonumber(self._conf.hot_policy) or 25
+	self._very_hot_policy = tonumber(self._conf.very_hot_policy) or 29
+	self._critical_policy = tonumber(self._conf.critical_policy) or 32
+	self._alert_cycle = tonumber(self._conf.alert_cycle) or 300 -- (5 * 60)
+	self._disable_alert = tonumber(self._conf.disable_alert) or 0
+	self._alert_cpu_temp = tonumber(self._conf.alert_cpu_temp) or 70
 
 	self._dev:set_input_prop('hot_policy', 'value', self._hot_policy)
 	self._dev:set_input_prop('very_hot_policy', 'value', self._very_hot_policy)

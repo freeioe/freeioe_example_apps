@@ -154,7 +154,6 @@ function app:start()
 	local id = self._sys:id()
 	if string.sub(sys_id, 1, 8) == '2-30002-' then
 		self._gcom = true
-		self._cpu_temp = true
 		local gcom_inputs = {
 			{
 				name = 'ccid',
@@ -326,7 +325,7 @@ function app:first_run()
 		--self._dev:set_input_prop('mem_free', 'value', tonumber(mem.free))
 
 		--- CPU temperature
-		local cpu_temp = self._cpu_temp and sysinfo.cpu_temperature() or nil
+		local cpu_temp = sysinfo.cpu_temperature() or nil
 		if cpu_temp then
 			self._dev:set_input_prop('cpu_temp', "value", tonumber(cpu_temp))
 		else
