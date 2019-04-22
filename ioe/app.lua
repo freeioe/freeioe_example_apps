@@ -377,9 +377,11 @@ function app:first_run()
 
 			self._dev:set_input_prop('wan_r', "value", self._wan_sum:get('recv'))
 			self._dev:set_input_prop('wan_s', "value", self._wan_sum:get('send'))
+			--- GCOM core dump file removal hacks
+			os.execute("rm -rf /tmp/gcom*.core")
 		end
 		--- GCOM takes too much time which may blocks the first run too long
-		self._sys:timeout(200, function() calc_gcom() end)
+		self._sys:timeout(1000, function() calc_gcom() end)
 	end
 
 	self._sys:timeout(100, function()
