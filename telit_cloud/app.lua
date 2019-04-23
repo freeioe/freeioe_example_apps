@@ -3,7 +3,7 @@ local cjson = require 'cjson.safe'
 local app_mqtt = require 'app.mqtt'
 
 --- 创建应用（名称，最小API版本)
-local app = app_mqtt("_TELIT_CLOUD_MQTT", 1)
+local app = app_mqtt("_TELIT_CLOUD_MQTT", 4)
 
 function app:app_initialize(name, sys, conf)
 	self._log:debug("Telit app intialize!!!")
