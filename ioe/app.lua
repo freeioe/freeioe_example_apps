@@ -46,15 +46,18 @@ function app:start()
 	local inputs = {
 		{
 			name = 'cpuload',
-			desc = 'CPU Load Avg_15'
+			desc = 'CPU load avg_15'
 		},
 		{
 			name = 'cpu_temp',
-			desc = 'CPU Temperature'
+			desc = 'CPU temperature',
+			unit = '℃',
 		},
 		{
 			name = 'mem_total',
 			desc = 'Memory total size',
+			vt = 'int';
+			unit = 'byte',
 		},
 		{
 			name = 'mem_used',
@@ -70,8 +73,9 @@ function app:start()
 		]]--
 		{
 			name = "uptime",
-			desc = "System uptime",
+			desc = "System uptime in UTC",
 			vt = "int",
+			unit = 'sec'
 		},
 		{
 			name = "starttime",
@@ -85,12 +89,12 @@ function app:start()
 		},
 		{
 			name = "skynet_version",
-			desc = "Skynet Platform Version",
+			desc = "Skynet Version",
 			vt = "int",
 		},
 		{
 			name = "platform",
-			desc = "Skynet Platform type",
+			desc = "Platform type",
 			vt = "string",
 		},
 		{
@@ -100,32 +104,34 @@ function app:start()
 		},
 		{
 			name = "data_upload",
-			desc = "Data upload flag",
+			desc = "Data upload option",
 			vt = "int",
 		},
 		{
 			name = "data_upload_cov",
-			desc = "Data upload COV setting",
+			desc = "Data upload COV option",
 			vt = "int",
 		},
 		{
 			name = "data_upload_cov_ttl",
 			desc = "Data upload COV TTL",
 			vt = "int",
+			unit = 'sec'
 		},
 		{
 			name = "data_upload_period",
 			desc = "Data upload period",
 			vt = "int",
+			unit = 'ms'
 		},
 		{
 			name = "stat_upload",
-			desc = "Statictis data upload flag",
+			desc = "Statictis data upload option",
 			vt = "int",
 		},
 		{
 			name = "comm_upload",
-			desc = "Comms upload end time",
+			desc = "Communication data upload end time",
 			vt = "int",
 		},
 		{
@@ -140,7 +146,7 @@ function app:start()
 		},
 		{
 			name = "enable_beta",
-			desc = "Device beta mode flag",
+			desc = "Device beta mode",
 			vt = "int",
 		},
 		--[[
@@ -172,13 +178,15 @@ function app:start()
 			},
 			{
 				name = 'wan_s',
-				desc = 'GPRS/LET network send bytes (kB)',
+				desc = 'GPRS/LET send this month',
 				vt = 'int',
+				unit = 'kB'
 			},
 			{
 				name = 'wan_r',
-				desc = 'GPRS/LET network receive bytes (kB)',
+				desc = 'GPRS/LET receive this month',
 				vt = 'int',
+				unit = 'kB'
 			},
 		}
 
@@ -205,7 +213,7 @@ function app:start()
 		}
 		inputs[#inputs + 1] = {
 			name = 'app_run_'..k,
-			desc = 'Status for app '..k,
+			desc = 'Running status of '..k,
 			vt = "int",
 		}
 	end

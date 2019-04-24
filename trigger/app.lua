@@ -5,14 +5,14 @@ local app_calc = require 'app.utils.calc'
 local openweathermap = require 'openweathermap'
 local frpc_http = require 'frpc_http'
 
---- 注册对象(请尽量使用唯一的标识字符串)
+--- 注册应用对象
 local app = class("FREEIOE_EXAMPLE_TRIGGER_APP")
---- 设定应用最小运行接口版本(目前版本为1,为了以后的接口兼容性)
+--- API版本4有我们需要的app.utils.calc
 app.API_VER = 4
 
 ---
 -- 应用对象初始化函数
--- @param name: 应用本地安装名称。 如modbus_com_1
+-- @param name: 应用本地安装名称。 如trigger(我们使用网关ID.name作为设备ID)
 -- @param sys: 系统sys接口对象。参考API文档中的sys接口说明
 -- @param conf: 应用配置参数。由安装配置中的json数据转换出来的数据对象
 function app:initialize(name, sys, conf)
@@ -27,11 +27,17 @@ function app:initialize(name, sys, conf)
 	--- 计算帮助类初始化
 	self._calc = app_calc(self._sys, self._api, self._log)
 
+	--- 用作缓存上次报警事件的发生时间，防止不停上送事件
 	self._events_last = {}
 
-	self._auto_fan = nil -- 风扇自动控制触发函数，用于更新风扇自动控制参数
+	-- 风扇自动控制触发函数，用于更新风扇自动控制参数
+	self._auto_fan = nil
 
-	self._fan_mute = nil -- 风扇改变模式暂停错误检测
+	-- 风扇改变模式暂停错误检测
+	self._fan_mute = nil
+
+	-- 自动控制温度漂移
+	self._room_temp_offset = 0
 end
 
 --- 创建数据回调对象
@@ -74,73 +80,80 @@ function app:start()
 	self._api:set_handler(handler, true)
 
 	local inputs = {
-		{ name = "weather_city", desc = "OpenWeatherMap规定的城市编号(广州:1809858", vt = "int" },
+		{ name = "weather_city", desc = "OpenWeatherMap规定的城市编号(广州:1809858)", vt = "int" },
 		{ name = "weather_city_name", desc = "OpenWeatherMap规定的城市编号对应的名称", vt = "string" },
-		{ name = "weather_temp", desc = "从OpenWeatherMap网站获取的天气温度" },
-		{ name = "weather_poll_cycle", desc = "从OpenWeatherMap网站获取的的周期(秒)", vt = "int" },
+		{ name = "weather_temp", desc = "从OpenWeatherMap网站获取的天气温度", unit="℃" },
+		{ name = "weather_poll_cycle", desc = "从OpenWeatherMap网站获取的的周期", vt = "int", unit="second" },
 		{ name = "enable_weather", desc = "是否开启根据天气温度进行风扇调节", vt = "int"},
 
 		{ name = "fan_ctrl_mode", desc = "风扇控制模式", vt="string"},
 		{ name = "room_temp_alert", desc = "室温报警状态", vt="int"},
+		{ name = "fan_error", desc = "风扇运行错误", vt="int"},
+		{ name = "room_offset", desc = "风扇容积比例"},
 
 		{ name = "T8600_SN", desc = "T8600控制器序列号", vt = "string"},
 		{ name = "PLC1200_SN", desc = "PLC1200序列号", vt = "string"},
 		{ name = "SPM91_SN", desc = "SPM91电表序列号", vt = "string"},
 
-		{ name = "hot_policy", desc = "高温温度（摄氏度)" },
-		{ name = "very_hot_policy", desc = "超高温温度（摄氏度)" },
-		{ name = "critical_policy", desc = "临界(报警)温度（摄氏度)" },
-		{ name = "alert_cycle", desc = "报警周期(秒)", vt = "int" },
+		{ name = "hot_policy", desc = "高温温度", unit="℃"},
+		{ name = "very_hot_policy", desc = "超高温温度", unit="℃"},
+		{ name = "critical_policy", desc = "临界(报警)温度", unit="℃"},
+		{ name = "alert_cycle", desc = "报警周期(秒)", vt = "int", unit="秒"},
 		{ name = "disable_alert", desc = "禁止报警", vt = "int" },
-		{ name = "alert_cpu_temp", desc = "智能网关CPU预警温度(摄氏度)", vt = "int"},
+		{ name = "alert_cpu_temp", desc = "智能网关CPU预警温度", vt = "int", unit="℃"},
 	}
 
 	local outputs = {
-		{ name = "hot_policy", desc = "高温温度（摄氏度)" },
-		{ name = "very_hot_policy", desc = "超高温温度（摄氏度)" },
-		{ name = "critical_policy", desc = "临界(报警)温度（摄氏度)" },
-		{ name = "alert_cycle", desc = "报警周期(秒)", vt = "int" },
+		{ name = "hot_policy", desc = "高温温度", unit="℃" },
+		{ name = "very_hot_policy", desc = "超高温温度", unit="℃" },
+		{ name = "critical_policy", desc = "临界(报警)温度", unit="℃" },
+		{ name = "alert_cycle", desc = "报警周期", vt = "int", unit="秒" },
 		{ name = "disable_alert", desc = "禁止报警", vt = "int" },
-		{ name = "alert_cpu_temp", desc = "智能网关CPU预警温度(摄氏度)", vt = "int"},
+		{ name = "alert_cpu_temp", desc = "智能网关CPU预警温度(摄氏度)", vt = "int", unit="℃"},
 	}
 
 	local dev_sn = self._sys:id()..'.'..self._name
 	self._dev_sn = dev_sn 
 	local meta = self._api:default_meta()
-	meta.name = "FRPC Client"
-	meta.description = "FRPC Client Running Status"
+	meta.name = "ShowBoxTrigger"
+	meta.description = "FreeIOE Show Box Trigger"
 	meta.series = "X"
 	self._dev = self._api:add_device(dev_sn, meta, inputs, outputs, cmds)
 
-	self._log:notice("Started!!!!")
+	self._log:notice("Trigger Started!!!!")
 
 	self:load_init_values()
 
 	self:start_weather_temp_proc()
 
-	--- 温度触发器
+	--- 网关触发器
 	self._calc:add('temp', {
 		{ sn = self._dev_sn, input = 'weather_temp', prop='value' },
 		{ sn = self._sys:id(), input = 'cpu_temp', prop='value' }
 	}, function(weather_temp, cpu_temp)
 		self._log:notice('TEMP:', weather_temp, cpu_temp)
-		if math.abs(weather_temp - cpu_temp) > 10 then
+		if weather_temp < 30 and cpu_temp > 60 then
+			local info = "CPU温度过高"
 			local data = {
 				weather_temp = weather_temp,
 				gateway_temp = cpu_temp
 			}
-			self:try_fire_event('temp', event.LEVEL_WARNING, 'Temperature alert!!!', data)
+			self:try_fire_event('cpu_temp', event.LEVEL_WARNING, info, data)
 		end
 	end)
 	--end, 30)
 
-	---旋钮触发器
+	---容量触发器
 	self._calc:add('plc_md64', {
 		{ sn = self._plc1200, input = 'md64', prop='value' },
-		{ sn = self._spm91, input = 'Ia', prop='value' }
-	}, function(md64, ia)
-		self._log:notice('plc_md64:', md64, ia)
-		--TODO:
+		{ sn = self._dev_sn, input = 'weather_temp', prop='value' },
+	}, function(md64, weather_temp)
+		self._log:notice('plc_md64:', md64, weather_temp)
+		self._room_temp_offset = math.abs(weather_temp - 25) * md64
+		self._dev:set_input_prop_emergency('room_temp_offset', 'value', self._room_temp_offset)
+		if self._auto_fan then
+			self._auto_fan()
+		end
 	end)
 
 
@@ -231,22 +244,23 @@ function app:start()
 		end
 
 		--- 自动控制
-		if room_temp >= self._critical_policy then
+		local temp = room_temp + self._room_temp_offset
+		if temp >= self._critical_policy then
 			self._log:info("开启风扇高转速")
 			self:set_fan_control(1, 0, 0)
 		end
 
-		if room_temp >= self._very_hot_policy and room_temp < self._critical_policy then
+		if temp >= self._very_hot_policy and room_temp < self._critical_policy then
 			self._log:info("开启风扇中转速")
 			self:set_fan_control(0, 1, 0)
 		end
 
-		if room_temp >= self._hot_policy and room_temp < self._very_hot_policy then
+		if temp >= self._hot_policy and room_temp < self._very_hot_policy then
 			self._log:info("开启风扇低转速")
 			self:set_fan_control(0, 0, 1)
 		end
 
-		if room_temp < self._hot_policy then
+		if temp < self._hot_policy then
 			self:set_fan_control(0, 0, 0)
 		end
 	end)
@@ -272,6 +286,7 @@ function app:set_fan_control(fsh, fsm, fsl)
 	device:set_output_prop('Q0_2', 'value', fsl)
 end
 
+--- 发送事件信息，次函数通过alert_cycle来控制上送平台的次数
 function app:try_fire_event(name, level, info, data)
 	if self._disable_alert == 1 then
 		self._log:warning("Alert disabled, skip event: "..info)
@@ -298,6 +313,10 @@ end
 --- 应用运行入口
 function app:run(tms)
 	--self:on_post_device_ctrl('stop', true)
+	--
+	self._dev:set_input_prop('weather_city', 'value', self._weather_city)
+	self._dev:set_input_prop('weather_poll_cycle', 'value', self._weather_poll_cycle)
+	self._dev:set_input_prop('enable_weather', 'value', self._enable_weather)
 
 	self._dev:set_input_prop('hot_policy', 'value', self._hot_policy)
 	self._dev:set_input_prop('very_hot_policy', 'value', self._very_hot_policy)
@@ -313,6 +332,8 @@ function app:run(tms)
 	self._dev:set_input_prop('fan_ctrl_mode', 'value', self._fan_ctrl_mode)
 	self._dev:set_input_prop('room_temp_alert', 'value', self._room_temp_alert)
 	self._dev:set_input_prop('fan_error', 'value', self._fan_error)
+	self._dev:set_input_prop('room_temp_offset', 'value', self._room_temp_offset)
+
 	return 1000 * 5
 end
 
@@ -335,6 +356,10 @@ function app:load_init_values()
 	self._disable_alert = tonumber(self._conf.disable_alert) or 0
 	self._alert_cpu_temp = tonumber(self._conf.alert_cpu_temp) or 70
 
+	self._dev:set_input_prop('weather_city', 'value', self._weather_city)
+	self._dev:set_input_prop('weather_poll_cycle', 'value', self._weather_poll_cycle)
+	self._dev:set_input_prop('enable_weather', 'value', self._enable_weather)
+
 	self._dev:set_input_prop('hot_policy', 'value', self._hot_policy)
 	self._dev:set_input_prop('very_hot_policy', 'value', self._very_hot_policy)
 	self._dev:set_input_prop('critical_policy', 'value', self._critical_policy)
@@ -345,11 +370,8 @@ function app:load_init_values()
 
 	-- 设备关联序列号
 	self._t8600 = self._sys:id()..'.'..(self._conf.T8600 or 'T8600')
-	self._t8600_values = {}
 	self._plc1200 = self._sys:id()..'.'..(self._conf.PLC120 or 'PLC1200')
-	self._plc1200_values = {}
 	self._spm91 = self._sys:id()..'.'..(self._conf.SPM91 or 'SPM91')
-	self._spm91_values = {}
 
 	self._dev:set_input_prop('T8600_SN', 'value', self._t8600)
 	self._dev:set_input_prop('PLC1200_SN', 'value', self._plc1200)
@@ -373,17 +395,15 @@ function app:start_weather_temp_proc()
 			return
 		end
 
-		self._dev:set_input_prop('weather_city', 'value', self._weather_city)
 		self._dev:set_input_prop('weather_city_name', 'value', city_name)
 		self._dev:set_input_prop('weather_temp', 'value', temp)
-		self._dev:set_input_prop('enable_weather', 'value', self._enable_weather)
 	end
 
 	-- First time start after 1 second
 	self._weather_temp_cancel = self._sys:cancelable_timeout(1000, temp_proc)
 end
 
-
+--- 处理数据输出
 function app:handle_output(output, prop, value)
 	if prop ~= 'value' then
 		return nil, "Only support value property"
@@ -440,22 +460,6 @@ function app:handle_output(output, prop, value)
 	]]--
 
 	return false, "Ouput "..output.." not supported!"
-end
-
-function app:handle_input(sn, input, prop, value)
-	if prop ~= 'value' then
-		return
-	end
-
-	if sn == self._t8600 then
-		self._t8600_values[input] = value
-	end
-	if sn == self._spm91 then
-		self._spm91_values[input] = value
-	end
-	if sn == self._plc1200 then
-		self._plc1200_values[input] = value
-	end
 end
 
 function app:on_post_device_ctrl(sn, output, prop, value)
