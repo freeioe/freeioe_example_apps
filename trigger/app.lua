@@ -75,6 +75,8 @@ end
 
 --- 应用启动函数
 function app:start()
+	self._calc:start()
+
 	local handler = create_handler(self)
 	handler = self._calc:map_handler(handler)
 	self._api:set_handler(handler, true)
