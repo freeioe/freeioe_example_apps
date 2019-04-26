@@ -13,7 +13,7 @@ local disk = require 'disk'
 local netinfo = require 'netinfo'
 
 local app = class("FREEIOE_SYS_APP_CLASS")
-app.API_VER = 1
+app.API_VER = 4
 
 function app:initialize(name, sys, conf)
 	self._name = name
@@ -414,11 +414,17 @@ end
 
 function app:check_time_diff()
 	if math.abs(os.time() - self._sys:time()) > 1.49 then
-		self._log:error("Time diff found, system will be rebooted in five seconds. ", os.time(), self._sys:time())
+		self._log:error("Time diff found, FreeIOE is trying to fix this. ", os.time(), self._sys:time())
 		self._dev:fire_event(event.LEVEL_FATAL, event.EVENT_SYS, "Time diff found!", {os_time = os.time(), time=self._sys:time()}, os.time())
-		self._sys:timeout(500, function()
-			self._sys:abort()
-		end)
+		if self._sys.fix_time then
+			self._sys:fix_time()
+		else
+			--- this will be removed later
+			self._log:error("Reboot FreeIOE after 5 seconds for fix time diff!")
+			self._sys:timeout(500, function()
+				self._sys:abort()
+			end)
+		end
 	else
 		--print(os.time() - self._sys:time())
 	end
