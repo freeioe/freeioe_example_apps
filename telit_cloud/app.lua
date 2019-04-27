@@ -1,6 +1,7 @@
 local ioe = require 'ioe'
 local cjson = require 'cjson.safe'
 local app_mqtt = require 'app.mqtt'
+local telit_helper = require 'telit_helper'
 
 --- 创建应用（名称，最小API版本)
 local app = app_mqtt("_TELIT_CLOUD_MQTT", 4)
@@ -41,6 +42,16 @@ function app:pack_devices(devices)
 	for sn, props in pairs(devices) do
 		self:on_add_device('__fake_name', sn, props)
 	end
+end
+
+function app:subscribe_device(dev_sn)
+	local topic = string.format('thing/%s/attribute/toedge', telit_helper.escape_key(dev_sn))
+	return self:subscribe(topic, 1)
+end
+
+function app:unsubscribe_device(dev_sn)
+	local topic = string.format('thing/%s/attribute/toedge', telit_helper.escape_key(dev_sn))
+	return self:unsubscribe(topic)
 end
 
 function app:on_add_device(src_app, sn, props)
@@ -115,7 +126,7 @@ function app:on_add_device(src_app, sn, props)
 		end
 		local params = {
 			name = props.meta.name or 'UNKNOWN',
-			key = key_escape(sn),
+			key = telit_helper.escape_key(sn),
 			defKey = def_key,
 			desc = props.meta.description or 'UNKNOWN',
 			--tags = tags, -- disable tags for now
@@ -132,13 +143,19 @@ function app:on_add_device(src_app, sn, props)
 
 		self._log:trace(val)
 		self._key_created[sn] = true
-		return self:mqtt_publish("api", val, 1, false)
+		local r, err = self:mqtt_publish("api", val, 1, false)
+		if r then
+			self:subscribe_device(sn)
+			return true
+		end
+		return nil, err
 	end
 	return true
 end
 
 function app:on_del_device(src_app, sn)
 	self._log:debug("Telit on_del_device")
+	self:unsubscribe_device(sn)
 	return true
 end
 
@@ -151,20 +168,47 @@ function app:format_timestamp(timestamp)
 	return string.format("%s.%03dZ", os.date('!%FT%T', timestamp//1), ((timestamp * 1000) % 1000))
 end
 
-local key_escape_entities = {
-	['.'] = '__',
-	['/'] = '___',
-	['\\'] = '____',
-}
-
-function key_escape(text)
-	text = text or ""
-	return (text:gsub([=[[./\]]=], key_escape_entities))
+function app:pack_key(src_app, sn, input)
+	return telit_helper.escape_key(sn)..'/'..telit_helper.escape_key(input)
 end
 
+function app:publish_attribute(dev_sn, input, value, timestamp)
+	if not self:connected() then
+		return nil, "MQTT connection lost!"
+	end
+--[[
+{
+  "cmd": {
+    "command": "attribute.publish",
+    "params": {
+      "thingKey": "mything",
+      "key": "boardid",
+      "value": "102",
+      "ts": "2016-10-20T02:03:04.322Z",
+      "republish": false
+    }
+  }
+}
+]]--
+    local cmd = {
+		command = "attribute.publish",
+		params = {
+			thingKey = telit_helper.escape_key(dev_sn),
+			key = telit_helper.escape_key(input),
+			value = value,
+			ts = self:format_timestamp(timestamp or ioe.time()),
+			republish = false
+		}
+	}
+	local val, err = cjson.encode({cmd=cmd})
+	if not val then
+		self._log:warning('cjson encode failure. error: ', err)
+		return true -- skip this data
+	end
 
-function app:pack_key(src_app, sn, input)
-	return key_escape(sn)..'.'..key_escape(input)
+	self._log:trace(val)
+	return self:mqtt_publish("api", val, 1, false)
+
 end
 
 function app:publish_data(key, value, timestamp, quality)
@@ -172,8 +216,8 @@ function app:publish_data(key, value, timestamp, quality)
 		return nil, "MQTT connection lost!"
 	end
 
-	local sn, input = string.match(key, '^([^%.]+)%.(.+)$')
-	assert(key and sn)
+	local sn, input = string.match(key, '^([^/]+)/(.+)$')
+	assert(key and sn and input)
     local cmd = {
 		command = "property.publish",
 		params = {
@@ -193,7 +237,6 @@ function app:publish_data(key, value, timestamp, quality)
 	self._log:trace(val)
 	return self:mqtt_publish("api", val, 1, false)
 end
-
 
 
 --- The implementation for publish data in list (zip compressing required)
@@ -327,12 +370,42 @@ function app:on_connect_ok()
 	self:subscribe('replyz', 1)
 end
 
-function app:on_message(packet_id, topic, data, qos, retained)
+function app:on_message(packet_id, topic, payload, qos, retained)
 	if topic == 'replyz' then
-		local inflated, eof, bytes_in, bytes_out = self:decompress(data)
-		data = inflated
+		local inflated, eof, bytes_in, bytes_out = self:decompress(payload)
+		payload = inflated
 	end
-	self._log:trace('MQTT', topic, qos, retained, data)
+	self._log:trace('MQTT Message', topic, qos, retained, payload)
+
+	local thing_key_match = '^thing/(%w+)/attribute/toedge$'
+	local thing_key = string.match(topic, thing_key_match)
+	if thing_key then
+		--- Write output
+		local id, input, value = string.match(payload, '^([^/]+)/([^/]+)/(.+)$')
+		if id and input and value then
+			local dev_sn = telit_helper.unescape_key(thing_key)
+			input = telit_helper.unescape_key(input)
+			local device, err = self._api:get_device(dev_sn)
+			if not device then
+				self._log:error('Cannot parse payload!')
+				return self:on_toedge_result(id, dev_sn, input, -1, err)
+			end
+			local r, err = device:set_output_prop(input, 'value', value, ioe.time(), id)
+			if not r then
+				self._log:error('Set output prop failed!', err)
+				return self:on_toedge_result(id, dev_sn, input, -2, err)
+			end
+			return self:on_toedge_result(id, dev_sn, input, 0, "done")
+			-- return self:on_toedge_result(id, dev_sn, input, -2, err)
+		else
+			self._log:error('Cannot parse payload!')
+		end
+	end
+end
+
+function app:on_toedge_result(id, dev_sn, input, result, err)
+	local value = string.format("%s;%s;%d;%s", id, telit_helper.escape_key(input), result, err),
+	return self:publish_attribute(dev_sn, 'todmp', value, ioe.time())
 end
 
 --- 返回应用类对象
