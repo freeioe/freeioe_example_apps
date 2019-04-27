@@ -56,7 +56,7 @@ end
 
 function app:start()
 	self._api:set_handler({
-		on_output = function(app, sn, output, prop, value)
+		on_output = function(app, sn, output, prop, value, timestamp, priv)
 			self._log:trace('on_output', app, sn, output, prop, value)
 			if sn ~= self._dev_sn then
 				self._log:error('device sn incorrect', sn)
@@ -79,7 +79,7 @@ function app:start()
 			end
 			return true, "done"
 		end,
-		on_command = function(app, sn, command, param)
+		on_command = function(app, sn, command, param, priv)
 			if sn ~= self._dev_sn then
 				self._log:error('device sn incorrect', sn)
 				return false, 'device sn incorrect'
@@ -96,8 +96,8 @@ function app:start()
 				return false, 'device command not exists!'
 			end
 		end,
-		on_ctrl = function(app, command, param, ...)
-			self._log:trace('on_ctrl', app, command, param, ...)
+		on_ctrl = function(app, command, param, priv)
+			self._log:trace('on_ctrl', app, command, param, priv)
 		end,
 	})
 

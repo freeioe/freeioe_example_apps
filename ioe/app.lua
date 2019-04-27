@@ -27,19 +27,19 @@ end
 
 function app:start()
 	self._api:set_handler({
-		on_output = function(app, sn, output, prop, value)
+		on_output = function(app, sn, output, prop, value, timestamp, priv)
 			print('on_output', app, sn, output, prop, value)
 			return true, "done"
 		end,
-		on_command = function(app, sn, command, param)
+		on_command = function(app, sn, command, param, priv)
 			if command == 'cfg_crash_ack' then
 				return self:cfg_crash_ack()
 			end
 			print('on_command', app, sn, command, param)
 			return true, "eee"
 		end,
-		on_ctrl = function(app, command, param, ...)
-			print('on_ctrl', app, command, param, ...)
+		on_ctrl = function(app, command, param, priv)
+			print('on_ctrl', app, command, param, priv)
 		end,
 	})
 

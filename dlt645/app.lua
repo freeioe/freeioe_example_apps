@@ -33,8 +33,8 @@ end
 function app:start()
 	--- 设定回调处理函数(目前此应用只做数据采集)
 	self._api:set_handler({
-		on_output = function(app, sn, output, prop, value)
-			return self:write_output(sn, output, prop, value)
+		on_output = function(app, sn, output, prop, value, timestamp, priv)
+			return self:write_output(sn, output, prop, value, timestamp, priv)
 		end,
 		on_ctrl = function(...)
 			print(...)
@@ -129,7 +129,7 @@ function app:close(reason)
 	print(self._name, reason)
 end
 
-function app:write_output(sn, output, prop, value)
+function app:write_output(sn, output, prop, value, timestamp, priv)
 	local dev = nil
 	for _, v in ipairs(self._devs) do
 		if v.sn == sn then

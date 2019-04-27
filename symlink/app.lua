@@ -188,9 +188,9 @@ function app:start()
 
 	--- 设定接口处理函数
 	self._api:set_handler({
-		on_output = function(app, sn, output, prop, value)
+		on_output = function(app, sn, output, prop, value, timestamp, priv)
 			-- TODO: write value to symlink
-			self._log:warning("Write value to symlink", output, prop, value)
+			self._log:warning("Write value to symlink", output, prop, value, timestamp, priv)
 			for _, node in pairs(self._nodes) do
 				if node.name == output then
 					local val = nil

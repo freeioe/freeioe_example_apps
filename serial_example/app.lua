@@ -29,11 +29,11 @@ end
 --- 应用启动函数
 function app:start()
 	self._api:set_handler({
-		on_output = function(app, sn, output, prop, value)
+		on_output = function(app, sn, output, prop, value, timestamp, priv)
 		end,
-		on_command = function(app, sn, command, param)
+		on_command = function(app, sn, command, param, priv)
 		end,	
-		on_ctrl = function(app, command, param, ...)
+		on_ctrl = function(app, command, param, priv)
 		end,
 	})
 

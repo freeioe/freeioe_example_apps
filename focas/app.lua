@@ -34,8 +34,8 @@ end
 function app:start()
 	--- 设定回调处理函数(目前此应用只做数据采集)
 	self._api:set_handler({
-		on_output = function(app, sn, output, prop, value)
-			return self:write_output(sn, output, prop, value)
+		on_output = function(app, sn, output, prop, value, timestamp, priv)
+			return self:write_output(sn, output, prop, value, timestamp, priv)
 		end,
 		on_ctrl = function(...)
 			print(...)

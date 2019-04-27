@@ -61,8 +61,8 @@ local function create_handler(app)
 		--- 处理设备输入项数值变更消息
 		on_input = function(app_src, sn, input, prop, value, timestamp, quality)
 		end,
-		on_output = function(app_src, sn, output, prop, value)
-			self._log:trace('on_output', app_src, sn, output, prop, value)
+		on_output = function(app_src, sn, output, prop, value, timestamp, priv)
+			self._log:trace('on_output', app_src, sn, output, prop, value, timestamp, priv)
 			if sn ~= self._dev_sn then
 				self._log:error('device sn incorrect', sn)
 				return false, 'device sn incorrect'
