@@ -108,6 +108,11 @@ function app:start()
 			vt = "int",
 		},
 		{
+			name = "data_upload_max_dpp",
+			desc = "Data upload max data per packet",
+			vt = "int",
+		},
+		{
 			name = "data_upload_cov",
 			desc = "Data upload COV option",
 			vt = "int",
@@ -121,6 +126,32 @@ function app:start()
 		{
 			name = "data_upload_period",
 			desc = "Data upload period",
+			vt = "int",
+			unit = 'ms'
+		},
+		{
+			name = "upload_period_limit",
+			desc = "Data upload period buffer limit",
+			vt = "int",
+		},
+		{
+			name = "data_cache",
+			desc = "Data cache option",
+			vt = "int",
+		},
+		{
+			name = "data_cache_per_file",
+			desc = "Data cache count per file",
+			vt = "int",
+		},
+		{
+			name = "data_cache_limit",
+			desc = "Data cache file limit",
+			vt = "int",
+		},
+		{
+			name = "data_cache_fire_freq",
+			desc = "Data cache fire frequency",
 			vt = "int",
 			unit = 'ms'
 		},
@@ -500,9 +531,15 @@ function app:run(tms)
 	-- cloud flags
 	--
 	local enable_data_upload = datacenter.get("CLOUD", "DATA_UPLOAD")
+	local data_upload_max_dpp = datacenter.get("CLOUD", "DATA_UPLOAD_MAX_DPP") or 1024
 	local data_upload_cov = datacenter.get("CLOUD", "COV") or true
 	local data_upload_cov_ttl = datacenter.get("CLOUD", "COV_TTL") or 300
 	local data_upload_period = datacenter.get("CLOUD", "DATA_UPLOAD_PERIOD") or (enable_data_upload and 1000 or 60 * 1000)
+	local upload_period_limit = datacenter.get("CLOUD", "DATA_UPLOAD_PERIOD_LIMIT") or 10240
+	local enable_data_cache = datacenter.get("CLOUD", "DATA_CACHE")
+	local data_cache_per_file = datacenter.get("CLOUD", "DATA_CACHE_PER_FILE") or 4096
+	local data_cache_limit = datacenter.get("CLOUD", "DATA_CACHE_LIMIT") or 1024
+	local data_cache_fire_freq = datacenter.get("CLOUD", "DATA_CACHE_FIRE_FREQ") or 1000
 	local enable_stat_upload = datacenter.get("CLOUD", "STAT_UPLOAD")
 	local enable_comm_upload = datacenter.get("CLOUD", "COMM_UPLOAD")
 	local enable_log_upload = datacenter.get("CLOUD", "LOG_UPLOAD")
@@ -510,9 +547,17 @@ function app:run(tms)
 	local enable_beta = ioe.beta()
 
 	self._dev:set_input_prop('data_upload', 'value', enable_data_upload and 1 or 0)
+	self._dev:set_input_prop('data_upload_max_dpp', 'value', math.floor(tonumber(data_upload_max_dpp)))
 	self._dev:set_input_prop('data_upload_cov', 'value', data_upload_cov and 1 or 0)
-	self._dev:set_input_prop('data_upload_cov_ttl', 'value', math.floor(data_upload_cov_ttl))
-	self._dev:set_input_prop('data_upload_period', 'value', math.floor(data_upload_period))
+	self._dev:set_input_prop('data_upload_cov_ttl', 'value', math.floor(tonumber(data_upload_cov_ttl)))
+	self._dev:set_input_prop('data_upload_period', 'value', math.floor(tonumber(data_upload_period)))
+	self._dev:set_input_prop('upload_period_limit', 'value', math.floor(tonumber(upload_period_limit)))
+
+	self._dev:set_input_prop('data_cache', 'value', enable_data_cache and 1 or 0)
+	self._dev:set_input_prop('data_cache_per_file', 'value', math.floor(tonumber(data_cache_per_file)))
+	self._dev:set_input_prop('data_cache_limit', 'value', math.floor(tonumber(data_cache_limit)))
+	self._dev:set_input_prop('data_cache_fire_freq', 'value', math.floor(tonumber(data_cache_fire_freq)))
+
 	self._dev:set_input_prop('stat_upload', 'value', enable_stat_upload  and 1 or 0)
 	self._dev:set_input_prop('comm_upload', 'value', enable_comm_upload or 0)
 	self._dev:set_input_prop('log_upload', 'value', enable_log_upload or 0)
