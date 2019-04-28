@@ -390,12 +390,13 @@ function app:on_message(packet_id, topic, payload, qos, retained)
 				self._log:error('Cannot parse payload!')
 				return self:on_toedge_result(id, dev_sn, input, -1, err)
 			end
-			local r, err = device:set_output_prop(input, 'value', value, ioe.time(), id)
+			local priv = { id = id, dev_sn = dev_sn, input = input }
+			local r, err = device:set_output_prop(input, 'value', value, ioe.time(), priv)
 			if not r then
 				self._log:error('Set output prop failed!', err)
 				return self:on_toedge_result(id, dev_sn, input, -2, err)
 			end
-			return self:on_toedge_result(id, dev_sn, input, 0, "done")
+			---return self:on_toedge_result(id, dev_sn, input, 0, "done")
 			-- return self:on_toedge_result(id, dev_sn, input, -2, err)
 		else
 			self._log:error('Cannot parse payload!')
@@ -406,6 +407,14 @@ end
 function app:on_toedge_result(id, dev_sn, input, result, err)
 	local value = string.format("%s;%s;%d;%s", id, telit_helper.escape_key(input), result, err),
 	return self:publish_attribute(dev_sn, 'todmp', value, ioe.time())
+end
+
+function app:on_output_result(app_src, priv, result, err)
+	if result then
+		return self:on_toedge_result(priv.id, priv.dev_sn, priv.input, 0, "done")
+	else
+		return self:on_toedge_result(priv.id, priv.dev_sn, priv.input, -99, err)
+	end
 end
 
 --- 返回应用类对象
