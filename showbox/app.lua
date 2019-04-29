@@ -765,11 +765,10 @@ function app:handle_output(output, prop, value)
 	if output == 'ctrl_mode' then
 		value = tonumber(value) == 0 and CTRL_MODE.auto or CTRL_MODE.mannual
 
-		if value == CTRL_MODE.auto then
-			local r, err = self:set_temp_pre(35)
-			if not r then
-				return false, err
-			end
+		local temp = value == CTRL_MODE.auto and 35 or 25
+		local r, err = self:set_temp_pre(temp)
+		if not r then
+			return false, err
 		end
 
 		--[[
