@@ -654,7 +654,7 @@ function app:set_temp_pre(temp)
 		return
 	end
 
-	self._log:info("设定设置温度至:"..mode)
+	self._log:info("设定设置温度至:"..temp)
 	return device:set_output_prop('set_p', 'value', temp)
 end
 
