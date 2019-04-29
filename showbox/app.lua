@@ -397,7 +397,7 @@ function app:start_calc()
 	}, function(set_f, room_temp, work_temp) 
 
 		--- 温度超高报警
-		local alert_info = 0
+		local alert_info = ALERT_INFO.passive
 		local alert_data = {
 			critical = self._critical_policy,
 			room_temp = room_temp,
@@ -409,7 +409,6 @@ function app:start_calc()
 			info = '温度超过预设报警值'
 			self:try_fire_event('temp_critical', event.LEVEL_WARNING, info, alert_data)
 		else
-			alert_info = ALERT_INFO.passive
 			info = '温度恢复正常'
 			if self._alert_info ~= alert_info then
 				self:try_fire_event_and_clear('temp_critical', event.LEVEL_WARNING, info, alert_data)
@@ -417,6 +416,7 @@ function app:start_calc()
 		end
 
 		if self._alert_info ~= alert_info then
+			self._alert_info = alert_info
 			self._dev:set_input_prop_emergency('alert_info', 'value', self._alert_info)
 		end
 
