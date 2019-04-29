@@ -141,6 +141,8 @@ function app:start()
 		{ name = "weather_temp", desc = "从OpenWeatherMap网站获取的天气温度", unit="℃" },
 		{ name = "weather_poll_cycle", desc = "从OpenWeatherMap网站获取的的周期", vt = "int", unit="second" },
 
+		{ name = "work_temp", desc = "当前温度", unit="℃"},
+
 		{ name = "ctrl_mode", desc = "控制模式", vt="string"},
 
 		{ name = "operation_mode", desc = "工作模式", vt="string"},
@@ -196,6 +198,9 @@ function app:load_init_values()
 	self._weather_city = self._conf.weather_city or 1809858
 	self._weather_poll_cycle = tonumber(self._conf.weather_poll_cycle) or 10 * 60
 
+	-- 当前温度显示
+	self._work_temp = 0
+
 	-- 控制模式
 	self._ctrl_mode = CTRL_MODE.auto
 
@@ -238,6 +243,8 @@ function app:run(tms)
 	--self._dev:set_input_prop('weather_temp', 'value', self._weather_temp)
 	self._dev:set_input_prop('weather_poll_cycle', 'value', self._weather_poll_cycle)
 
+	self._dev:set_input_prop('work_temp', 'value', self._work_temp or 0)
+
 	self._dev:set_input_prop('ctrl_mode', 'value', self._ctrl_mode)
 
 	self._dev:set_input_prop('operation_mode', 'value', self._operation_mode)
@@ -255,6 +262,10 @@ function app:run(tms)
 	self._dev:set_input_prop('disable_alert', 'value', self._disable_alert)
 
 	return 1000 * 5
+end
+
+function app:calc_work_temp(temp)
+	return (temp * 100) * 32767
 end
 
 function app:get_fan_speed_by_temp(work_temp)
@@ -307,7 +318,14 @@ function app:start_calc()
 			self:try_fire_event('cpu_temp', event.LEVEL_WARNING, info, data)
 		end
 	end)
-	--end, 30)
+	--end, 30)	
+
+	self._calc:add('work_temp', {
+		{ sn = self._plc1200, input = 'temp', prop='value' },
+	}, function(temp)
+		self._work_temp = self:calc_work_temp(temp)
+		self._dev:set_input_prop_emergency('work_temp', 'value', self._work_temp)
+	end)
 
 	--- 手动风扇控制
 	self._fan_ctrl = self._calc:add('fan_control', {
@@ -317,6 +335,7 @@ function app:start_calc()
 		{ sn = self._t8600, input = 'fan_middle', prop='value' },
 		{ sn = self._t8600, input = 'fan_low', prop='value' },
 	}, function(temp, set_f, fsh, fsm, fsl)
+		local temp = self:calc_work_temp(temp)
 		--- 计算当前风扇状态
 		local new_speed_val = FAN_SPEED.none
 		if fsl == 1 then
@@ -395,6 +414,7 @@ function app:start_calc()
 		{ sn = self._t8600, input = 'temp', prop='value' },
 		{ sn = self._plc1200, input = 'temp', prop='value' },
 	}, function(set_f, room_temp, work_temp) 
+		local work_temp = self:calc_work_temp(work_temp)
 
 		--- 温度超高报警
 		local alert_info = ALERT_INFO.passive
@@ -459,6 +479,7 @@ function app:start_calc()
 		{ sn = self._t8600, input = 'temp', prop='value' },
 		{ sn = self._t8600, input = 'mode', prop='value' }
 	}, function(work_temp, room_temp, mode)
+		local work_temp = self:calc_work_temp(work_temp)
 
 		--- 面板模式
 		local new_mode_val = OPERATION_MODE[OPERATION_MODE_VAL[mode]]
