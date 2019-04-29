@@ -218,7 +218,7 @@ function app:load_init_values()
 
 	-- 设备关联序列号
 	self._t8600 = self._sys:id()..'.'..(self._conf.T8600 or 'T8600')
-	self._plc1200 = self._sys:id()..'.'..(self._conf.PLC120 or 'PLC1200')
+	self._plc1200 = self._sys:id()..'.'..(self._conf.PLC1200 or 'PLC1200')
 	self._spm91 = self._sys:id()..'.'..(self._conf.SPM91 or 'SPM91')
 end
 
@@ -257,7 +257,7 @@ function app:run(tms)
 	return 1000 * 5
 end
 
-function app:get_fan_speed_by_temp(temp)
+function app:get_fan_speed_by_temp(work_temp)
 	local new_speed = FAN_SPEED.auto
 
 	local temp = work_temp + self._room_temp_offset
@@ -347,10 +347,17 @@ function app:start_calc()
 			self._log:trace("Showbox in auto mode!")	
 			if set_f ~= 3 then
 				info = '错误操作，不能在自动控制模式下进行风扇速度切换'
-				self:set_fan_speed_display(FAN_SPEED.auto)
-			end
+				self:try_fire_event_and_clear('ctrl_mode', event.LEVEL_WARNING, info, alert_data)
 
-			self:try_fire_event_and_clear('ctrl_mode', event.LEVEL_WARNING, info, alert_data)
+				local r, err = self:set_fan_mode_display(FAN_MODE.auto)
+				if r then
+					self._fan_mode = FAN_MODE.auto
+					self._dev:set_input_prop_emergency('fan_speed', 'value', self._fan_speed)
+				else
+					info = '风扇模式控制失败:'..err
+					self:try_fire_event_and_clear('fan_speed', event.LEVEL_WARNING, info, data)
+				end
+			end
 		else
 			if set_f == 3 then
 				-- 当前输入自动模式，则根据设定进行风扇速度计算
@@ -364,16 +371,21 @@ function app:start_calc()
 			if not r then
 				info = '风扇速度控制失败:'..err
 				self:try_fire_event_and_clear('fan_speed', event.LEVEL_WARNING, info, data)
-			else
-				--- 控制成功
-				if set_f ~= 3 then
-					info = '风扇手动切换至:'..new_speed_val
-					self:try_fire_event_and_clear('fan_speed', event.LEVEL_WARNING, info, data)
-				end
+				return
 			end
-
+			--- 控制成功
+			if set_f ~= 3 then
+				info = '风扇手动切换至:'..new_speed_val
+				self:try_fire_event_and_clear('fan_speed', event.LEVEL_WARNING, info, data)
+			end
 			self._fan_speed = new_speed
 			self._dev:set_input_prop_emergency('fan_speed', 'value', self._fan_speed)
+
+			local new_mode = set_f == 3 and FAN_MODE.auto or FAN_MODE.mannual
+			if self._fan_mode == new_mode then
+				sef._fan_mode = new_mode 
+				self._dev:set_input_prop_emergency('fan_mode', 'value', self._fan_mode)
+			end
 		end
 	end)
 
@@ -387,12 +399,12 @@ function app:start_calc()
 		--- 温度超高报警
 		local alert_info = 0
 		local alert_data = {
-			critical = self._auto_critical,
+			critical = self._critical_policy,
 			room_temp = room_temp,
 			work_temp = work_temp,
 			fan_mode = self._fan_mode
 		}
-		if work_temp >= self._auto_critical then
+		if work_temp >= self._critical_policy then
 			alert_info = ALERT_INFO.critical
 			info = '温度超过预设报警值'
 			self:try_fire_event('temp_critical', event.LEVEL_WARNING, info, alert_data)
@@ -433,7 +445,7 @@ function app:start_calc()
 		--- 控制风扇转速
 		local r, err = self:set_fan_speed(new_speed)
 		if r then
-			self._fan_speed = value
+			self._fan_speed = new_speed
 			self._dev:set_input_prop_emergency('fan_speed', 'value', self._fan_speed)
 		else
 			info = '风扇转速切换错误:'..err
@@ -446,7 +458,7 @@ function app:start_calc()
 		{ sn = self._plc1200, input = 'temp', prop='value' },
 		{ sn = self._t8600, input = 'temp', prop='value' },
 		{ sn = self._t8600, input = 'mode', prop='value' }
-	}, function(mode)
+	}, function(work_temp, room_temp, mode)
 
 		if self._ctrl_mode ~= CTRL_MODE.auto then
 			self._log:trace("Showbox in mannual mode!")
@@ -468,7 +480,7 @@ function app:start_calc()
 end
 
 function app:set_fan_speed(speed)
-	if self._fan_mute < ioe.time() then
+	if self._fan_mute and self._fan_mute < ioe.time() then
 		return true
 	end
 
