@@ -265,7 +265,7 @@ function app:run(tms)
 end
 
 function app:calc_work_temp(temp)
-	return (temp * 100) * 32767
+	return (temp * 100) / 32767
 end
 
 function app:get_fan_speed_by_temp(work_temp)
