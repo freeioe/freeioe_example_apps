@@ -327,6 +327,24 @@ function app:start_calc()
 		self._dev:set_input_prop_emergency('work_temp', 'value', self._work_temp)
 	end)
 
+	self._calc:add('status', {
+		{ sn = self._t8600, input = 'status', prop='value' },
+	}, function(status)
+		local new_mode = status == 0 and CTRL_MODE.auto or CTRL_MODE.mannual
+		if self._ctrl_mode ~= new_mode then
+			if ioe.time() < self._swith_mode_ctrl then
+				self._log:notice('模式切换中忽略控制', status)
+				return
+			end
+
+			self._ctrl_mode = new_mode
+			self._dev:set_input_prop_emergency('ctrl_mode', 'value', value)
+
+			if self._auto_fan then self._auto_fan() end
+			if self._auto_operation then self._auto_operation() end
+		end
+	end)
+
 	--- 手动风扇控制
 	self._fan_ctrl = self._calc:add('fan_control', {
 		{ sn = self._plc1200, input = 'temp', prop='value' },
@@ -363,7 +381,8 @@ function app:start_calc()
 
 		--- 当控制模式为自动时，风机模式显示自动
 		if self._ctrl_mode == CTRL_MODE.auto then
-			self._log:trace("Showbox in auto mode!")	
+			self._log:trace("Showbox in auto mode!", temp, set_f, fsh, fsm, fsl)
+			--[[
 			if set_f ~= 3 then
 				info = '错误操作，不能在自动控制模式下进行风扇速度切换'
 				self:try_fire_event('ctrl_mode', event.LEVEL_WARNING, info, data)
@@ -377,6 +396,7 @@ function app:start_calc()
 					self:try_fire_event_and_clear('fan_speed', event.LEVEL_WARNING, info, data)
 				end
 			end
+			]]--
 		else
 			if set_f == 3 then
 				-- 当前输入自动模式，则根据设定进行风扇速度计算
@@ -606,8 +626,21 @@ function app:set_op_mode_display(mode)
 	val = mode == OPERATION_MODE.heat and 2 or val
 	val = mode == OPERATION_MODE.vent and 3 or val
 
-	device:set_output_prop('mode', 'value', val)
-	return true
+	return device:set_output_prop('mode', 'value', val)
+end
+
+function app:set_ctrl_mode_display(mode)
+	self._swith_mode_ctrl = ioe.time() + 2
+
+	local device = self._api:get_device(self._t8600)
+	if not device then
+		self._log:warning("T8600 is not ready!")
+		return nil, "找不到控制器"
+	end
+
+	self._log:info("控制模式切换至:"..mode)
+	
+	return device:set_output_prop('status', 'value', mode == CTRL_MODE.auto and 0 or 1)
 end
 
 --- 发送事件信息，次函数通过alert_cycle来控制上送平台的次数
@@ -716,8 +749,14 @@ function app:handle_output(output, prop, value)
 
 	if output == 'ctrl_mode' then
 		value = tonumber(value) == 0 and CTRL_MODE.auto or CTRL_MODE.mannual
+
+		local r, err = self:set_ctrl_mode_display(value)
+		if not r then
+			return false, "控制模式切换错误:"..err
+		end
+
+		self._ctrl_mode = value
 		self._dev:set_input_prop_emergency('ctrl_mode', 'value', value)
-		self:set_ctrl_mode_display(value)
 
 		if self._auto_fan then self._auto_fan() end
 		if self._auto_operation then self._auto_operation() end
