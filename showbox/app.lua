@@ -329,7 +329,9 @@ function app:start_calc()
 
 	self._calc:add('status', {
 		{ sn = self._t8600, input = 'status', prop='value' },
-	}, function(status)
+		{ sn = self._t8600, input = 'set_p', prop='value' },
+	}, function(status, set_p)
+		--[[
 		local new_mode = status == 0 and CTRL_MODE.auto or CTRL_MODE.mannual
 		if self._ctrl_mode ~= new_mode then
 			if self._switch_mode_ctrl and self._switch_mode_ctrl > ioe.time() then
@@ -342,6 +344,10 @@ function app:start_calc()
 
 			if self._auto_fan then self._auto_fan() end
 			if self._auto_operation then self._auto_operation() end
+		end
+		]]--
+		if set_p < 35 then
+			self:set_temp_pre(35)
 		end
 	end)
 
@@ -575,9 +581,7 @@ function app:set_fan_speed_display(speed)
 	val = speed == FAN_SPEED.middle and 1 or val
 	val = speed == FAN_SPEED.low and 2 or val
 
-	device:set_output_prop('set_f', 'value', val)
-
-	return true
+	return device:set_output_prop('set_f', 'value', val)
 end
 
 function app:set_fan_mode_display(mode)
@@ -590,12 +594,10 @@ function app:set_fan_mode_display(mode)
 
 	self._log:info("风扇模式切换至:"..mode)
 	if mode == FAN_MODE.auto then
-		device:set_output_prop('set_f', 'value', 3)
+		return device:set_output_prop('set_f', 'value', 3)
 	else
-		self:set_fan_speed_display(self._fan_speed)
+		return self:set_fan_speed_display(self._fan_speed)
 	end
-
-	return true
 end
 
 
@@ -641,6 +643,19 @@ function app:set_ctrl_mode_display(mode)
 	self._log:info("控制模式切换至:"..mode)
 	
 	return device:set_output_prop('status', 'value', mode == CTRL_MODE.auto and 0 or 1)
+end
+
+function app:set_temp_pre(temp)
+	local temp = tonumber(temp)
+
+	local device = self._api:get_device(self._t8600)
+	if not device then
+		self._log:warning("T8600 is not ready!")
+		return
+	end
+
+	self._log:info("设定设置温度至:"..mode)
+	return device:set_output_prop('set_p', 'value', temp)
 end
 
 --- 发送事件信息，次函数通过alert_cycle来控制上送平台的次数
@@ -750,10 +765,19 @@ function app:handle_output(output, prop, value)
 	if output == 'ctrl_mode' then
 		value = tonumber(value) == 0 and CTRL_MODE.auto or CTRL_MODE.mannual
 
+		if value == CTRL_MODE.auto then
+			local r, err = self:set_temp_pre(35)
+			if not r then
+				return false, err
+			end
+		end
+
+		--[[
 		local r, err = self:set_ctrl_mode_display(value)
 		if not r then
 			return false, "控制模式切换错误:"..err
 		end
+		]]--
 
 		self._ctrl_mode = value
 		self._dev:set_input_prop_emergency('ctrl_mode', 'value', value)
