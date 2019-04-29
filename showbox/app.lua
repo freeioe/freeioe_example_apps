@@ -332,7 +332,7 @@ function app:start_calc()
 	}, function(status)
 		local new_mode = status == 0 and CTRL_MODE.auto or CTRL_MODE.mannual
 		if self._ctrl_mode ~= new_mode then
-			if ioe.time() < self._swith_mode_ctrl then
+			if self._switch_mode_ctrl and self._switch_mode_ctrl > ioe.time() then
 				self._log:notice('模式切换中忽略控制', status)
 				return
 			end
@@ -630,7 +630,7 @@ function app:set_op_mode_display(mode)
 end
 
 function app:set_ctrl_mode_display(mode)
-	self._swith_mode_ctrl = ioe.time() + 2
+	self._switch_mode_ctrl = ioe.time() + 2
 
 	local device = self._api:get_device(self._t8600)
 	if not device then
