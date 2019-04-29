@@ -298,7 +298,7 @@ function app:start_calc()
 		{ sn = self._sys:id(), input = 'cpu_temp', prop='value' }
 	}, function(weather_temp, cpu_temp)
 		self._log:notice('TEMP:', weather_temp, cpu_temp)
-		if cpu_temp - weather_temp > 10 then
+		if cpu_temp > 70 and  weather_temp < 30 then
 			local info = "CPU温度过高"
 			local data = {
 				weather_temp = weather_temp,
