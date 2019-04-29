@@ -366,7 +366,7 @@ function app:start_calc()
 			self._log:trace("Showbox in auto mode!")	
 			if set_f ~= 3 then
 				info = '错误操作，不能在自动控制模式下进行风扇速度切换'
-				self:try_fire_event_and_clear('ctrl_mode', event.LEVEL_WARNING, info, data)
+				self:try_fire_event('ctrl_mode', event.LEVEL_WARNING, info, data)
 
 				local r, err = self:set_fan_mode_display(FAN_MODE.auto)
 				if r then
