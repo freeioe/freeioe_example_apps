@@ -13,7 +13,7 @@ app.API_VER = 4
 
 ALERT_INFO = {
 	passive = "工作正常",
-	critial = "温度过高",
+	critical = "温度过高",
 }
 
 CTRL_MODE = {
