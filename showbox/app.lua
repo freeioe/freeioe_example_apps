@@ -460,23 +460,31 @@ function app:start_calc()
 		{ sn = self._t8600, input = 'mode', prop='value' }
 	}, function(work_temp, room_temp, mode)
 
-		if self._ctrl_mode ~= CTRL_MODE.auto then
-			self._log:trace("Showbox in mannual mode!")
-			return
-		end
-
+		--- 面板模式
 		local new_mode_val = OPERATION_MODE[OPERATION_MODE_VAL[mode]]
 
-		local new_op_mode = self:get_op_mode_by_temp(work_temp)
-		if self._operation_mode ~= new_op_mode then
-			self._dev:set_input_prop_emergency('operation_mode', 'value', self._operation_mode)
-		end
-		--- 设定模式显示
-		if new_mode_val ~= new_op_mode then
-			self:set_op_mode_display(new_op_mode)
+		if self._ctrl_mode == CTRL_MODE.auto then
+			--- 如果是自动控制模式, 计算工作模式
+			local new_op_mode = self:get_op_mode_by_temp(work_temp)
+			if self._operation_mode ~= new_op_mode then
+				self._operation_mode = new_op_mode
+				self._dev:set_input_prop_emergency('operation_mode', 'value', self._operation_mode)
+			end
+
+			--- 设定工作模式显示
+			if new_mode_val ~= new_op_mode then
+				self:set_op_mode_display(new_op_mode)
+			end
+		else
+			self._log:trace("Showbox in mannual mode!")
+
+			--- 手动模式获取面板输入
+			if self._operation_mode ~= new_mode_val then
+				self._operation_mode = new_mode_val
+				self._dev:set_input_prop_emergency('operation_mode', 'value', self._operation_mode)
+			end
 		end
 	end)
-
 end
 
 function app:set_fan_speed(speed)
