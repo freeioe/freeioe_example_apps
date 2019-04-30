@@ -202,7 +202,7 @@ function app:load_init_values()
 	self._work_temp = 0
 
 	-- 控制模式
-	self._ctrl_mode = CTRL_MODE.auto
+	self._ctrl_mode = tonumber(self._conf.ctrl_mode) == 1 and CTRL_MODE.mannual or CTRL_MODE.auto
 
 	-- 操作控制初始值
 	self._operation_mode = OPERATION_MODE.none
