@@ -68,16 +68,16 @@ function app:initialize(name, sys, conf)
 	--- 用作缓存上次报警事件的发生时间，防止不停上送事件
 	self._events_last = {}
 
-	-- 风扇手动控制触发函数
+	-- 风机手动控制触发函数
 	self._fan_ctrl = nil
 	
-	-- 风扇自动模式触发函数，用于更新风扇自动控制参数
+	-- 风机自动模式触发函数，用于更新风机自动控制参数
 	self._auto_fan = nil
 
 	--- 工作模式控制触发函数
 	self._auto_operation = nil
 
-	-- 风扇改变模式暂停错误检测
+	-- 风机改变模式暂停错误检测
 	self._fan_mute = nil
 
 	-- 自动控制温度漂移
@@ -149,8 +149,8 @@ function app:start()
 		{ name = "cool_policy", desc = "开启制冷的温度", unit="℃"},
 		{ name = "heat_policy", desc = "开启制热的温度", unit="℃"},
 
-		{ name = "fan_mode", desc = "风扇模式", vt="string"},
-		{ name = "fan_speed", desc = "风扇转速", vt="string"},
+		{ name = "fan_mode", desc = "风机模式", vt="string"},
+		{ name = "fan_speed", desc = "风机转速", vt="string"},
 		{ name = "hot_policy", desc = "高温温度", unit="℃"},
 		{ name = "very_hot_policy", desc = "超高温温度", unit="℃"},
 		{ name = "critical_policy", desc = "临界(报警)温度", unit="℃"},
@@ -169,8 +169,8 @@ function app:start()
 		{ name = "disable_alert", desc = "禁止报警: 0-报警 1-禁止报警", vt = "int" },
 
 		{ name = "ctrl_mode", desc = "控制模式: 0-自动模式 1-手动模式", vt="int"},
-		{ name = "fan_mode", desc = "风扇模式: 0-自动模式 1-手动模式", vt="int"},
-		{ name = "fan_speed", desc = "风扇转速控制: 0-关闭 1-低 2-中 3-高 4-自动", vt="int"},
+		--{ name = "fan_mode", desc = "风机模式: 0-自动模式 1-手动模式", vt="int"},
+		{ name = "fan_speed", desc = "风机转速控制: 0-关闭 1-低 2-中 3-高 4-自动", vt="int"},
 		{ name = "operation_mode", desc = "工作模式控制: 1-制冷 2-制热 3-通风 ", vt="int"},
 	}
 
@@ -206,15 +206,15 @@ function app:load_init_values()
 
 	-- 操作控制初始值
 	self._operation_mode = OPERATION_MODE.none
-	self._cool_policy = tonumber(self._conf.cool_policy) or 60
-	self._heat_policy = tonumber(self._conf.heat_policy) or 15
+	self._cool_policy = tonumber(self._conf.cool_policy) or 35
+	self._heat_policy = tonumber(self._conf.heat_policy) or 10
 
-	-- 风扇控制初始
+	-- 风机控制初始
 	self._fan_mode = FAN_MODE.auto
 	self._fan_speed = FAN_SPEED.none
-	self._hot_policy = tonumber(self._conf.hot_policy) or 25
-	self._very_hot_policy = tonumber(self._conf.very_hot_policy) or 45
-	self._critical_policy = tonumber(self._conf.critical_policy) or 75
+	self._hot_policy = tonumber(self._conf.hot_policy) or 20
+	self._very_hot_policy = tonumber(self._conf.very_hot_policy) or 30
+	self._critical_policy = tonumber(self._conf.critical_policy) or 40
 
 	-- 报警初始
 	self._alert_info = ALERT_INFO.passive
@@ -260,6 +260,14 @@ function app:run(tms)
 	self._dev:set_input_prop('alert_info', 'value', self._alert_info)
 	self._dev:set_input_prop('alert_cycle', 'value', self._alert_cycle)
 	self._dev:set_input_prop('disable_alert', 'value', self._disable_alert)
+
+	--[[ 自动模式测试 
+	self._hot_policy = self._hot_policy + 1
+	self._very_hot_policy = self._very_hot_policy + 1
+	self._critical_policy = self._critical_policy + 1
+	self._cool_policy = self._cool_policy + 1
+	self._heat_policy = self._heat_policy + 1
+	]]--
 
 	return 1000 * 5
 end
@@ -327,31 +335,29 @@ function app:start_calc()
 		self._dev:set_input_prop_emergency('work_temp', 'value', self._work_temp)
 	end)
 
-	self._calc:add('status', {
-		{ sn = self._t8600, input = 'status', prop='value' },
+	self._calc:add('set_p_and_lock', {
 		{ sn = self._t8600, input = 'set_p', prop='value' },
-	}, function(status, set_p)
-		--[[
-		local new_mode = status == 0 and CTRL_MODE.auto or CTRL_MODE.mannual
-		if self._ctrl_mode ~= new_mode then
-			if self._switch_mode_ctrl and self._switch_mode_ctrl > ioe.time() then
-				self._log:notice('模式切换中忽略控制', status)
-				return
+		{ sn = self._t8600, input = 'lock', prop='value' },
+	}, function(set_p, lock)
+		if self._ctrl_mode == CTRL_MODE.auto then
+			if set_p < 35 then
+				self._log:notice('更改显示面板设置温度为35')
+				local r, err = self:set_temp_pre(35)
+				if not r then
+					self._log:error('更改显示面板设置温度失败', err)
+				end
 			end
-
-			self._ctrl_mode = new_mode
-			self._dev:set_input_prop_emergency('ctrl_mode', 'value', value)
-
-			if self._auto_fan then self._auto_fan() end
-			if self._auto_operation then self._auto_operation() end
-		end
-		]]--
-		if set_p < 35 then
-			self:set_temp_pre(35)
+			if lock ~= 0 then
+				self._log:notice('修改锁定')
+				local r, err = self:set_lock_display(0)
+				if not r then
+					self._log:error('更改显示面板设置温度失败', err)
+				end
+			end
 		end
 	end)
 
-	--- 手动风扇控制
+	--- 手动风机控制
 	self._fan_ctrl = self._calc:add('fan_control', {
 		{ sn = self._plc1200, input = 'temp', prop='value' },
 		{ sn = self._t8600, input = 'set_f', prop='value' },
@@ -360,7 +366,7 @@ function app:start_calc()
 		{ sn = self._t8600, input = 'fan_low', prop='value' },
 	}, function(temp, set_f, fsh, fsm, fsl)
 		local temp = self:calc_work_temp(temp)
-		--- 计算当前风扇状态
+		--- 计算当前风机状态
 		local new_speed_val = FAN_SPEED.none
 		if fsl == 1 then
 			new_speed_val = FAN_SPEED.low
@@ -372,7 +378,7 @@ function app:start_calc()
 			new_speed_val = FAN_SPEED.high
 		end
 
-		--- 获取当前风扇应该处于的状态
+		--- 获取当前风机应该处于的状态
 		local new_speed_temp = self:get_fan_speed_by_temp(temp)
 
 		--- 报警信息
@@ -388,58 +394,57 @@ function app:start_calc()
 		--- 当控制模式为自动时，风机模式显示自动
 		if self._ctrl_mode == CTRL_MODE.auto then
 			self._log:trace("Showbox in auto mode!", temp, set_f, fsh, fsm, fsl)
-			--[[
-			if set_f ~= 3 then
-				info = '错误操作，不能在自动控制模式下进行风扇速度切换'
-				self:try_fire_event('ctrl_mode', event.LEVEL_WARNING, info, data)
-
+			if self._fan_mode ~= FAN_MODE.auto then
+				self._log:trace('风机设定模式显示错误，修正显示')
 				local r, err = self:set_fan_mode_display(FAN_MODE.auto)
 				if r then
 					self._fan_mode = FAN_MODE.auto
 					self._dev:set_input_prop_emergency('fan_speed', 'value', self._fan_speed)
 				else
-					info = '风扇模式控制失败:'..err
+					info = '风机设定模式显示修正失败:'..err
 					self:try_fire_event_and_clear('fan_speed', event.LEVEL_WARNING, info, data)
 				end
 			end
-			]]--
 		else
 			if set_f == 3 then
-				-- 当前输入自动模式，则根据设定进行风扇速度计算
+				-- 当前输入自动模式，则根据设定进行风机速度计算
 				new_speed = new_speed_temp
 			else
 				-- 当前输入的非自动模式，则按照输入的模式进行风神速度控制
 				new_speed = new_speed_val
 			end
 
-			--- 风扇转速不变
+			--- 风机转速不变
 			if self._fan_speed == new_speed then
 				return
 			end
 
+			-- 控制风机速度
+			self._log:info("风机转速手动切换至:"..new_speed)
 			local r, err = self:set_fan_speed(new_speed)
 			if not r then
-				info = '风扇速度控制失败:'..err
+				info = '风机速度控制失败:'..err
 				self:try_fire_event_and_clear('fan_speed', event.LEVEL_WARNING, info, data)
 				return
 			end
+
 			--- 控制成功
-			if set_f ~= 3 then
-				info = '风扇手动切换至:'..new_speed_val
-				self:try_fire_event_and_clear('fan_speed', event.LEVEL_WARNING, info, data)
-			end
+			info = '风机转速手动切换至:'..new_speed_val
+			self:try_fire_event_and_clear('fan_speed', event.LEVEL_WARNING, info, data)
+
 			self._fan_speed = new_speed
 			self._dev:set_input_prop_emergency('fan_speed', 'value', self._fan_speed)
 
 			local new_mode = set_f == 3 and FAN_MODE.auto or FAN_MODE.mannual
-			if self._fan_mode == new_mode then
-				sef._fan_mode = new_mode 
+			if self._fan_mode ~= new_mode then
+				self._fan_mode = new_mode 
+				self:set_fan_mode_display(new_mode)
 				self._dev:set_input_prop_emergency('fan_mode', 'value', self._fan_mode)
 			end
 		end
 	end)
 
-	--- 温度报警、温度自动风扇控制
+	--- 温度报警、温度自动风机控制
 	self._auto_fan = self._calc:add('auto_fan', {
 		{ sn = self._t8600, input = 'set_f', prop='value' },
 		{ sn = self._t8600, input = 'temp', prop='value' },
@@ -476,35 +481,32 @@ function app:start_calc()
 			self._log:trace("Showbox in mannual mode!")
 			return
 		end
+		
+		--- 自动风机控制模式
+		local new_speed = self:get_fan_speed_by_temp(work_temp)
+		if self._fan_speed == new_speed then
+		    return
+		end
 
 		--- 风机模式显示切换
-		if self._fan_mode ~= FAN_MODE.auto then
-			self._fan_mode = FAN_MODE.auto
-			self._dev:set_input_prop_emergency('fan_mode', 'value', self._fan_mode)
-
-			info = '风扇切换至自动控制模式:'..self._fan_speed
-			self:try_fire_event_and_clear('fan_mode', event.LEVEL_WARNING, info, data)
-
-			if set_f ~= 3 then
-				self:set_fan_mode_display(FAN_MODE.auto)
-			end
+		local r, err = self:set_fan_speed_display(new_speed)
+		if not r then
+			self._log:errro("风机设定模式显示修正失败:"..new_speed)
 		end
-		
-		--- 自动风扇控制模式
-		local new_speed = self:get_fan_speed_by_temp(work_temp)
 
-		--- 控制风扇转速
+		--- 自动控制控制风机转速
+		self._log:info("风机转速自动切换至:"..new_speed)
 		local r, err = self:set_fan_speed(new_speed)
 		if r then
 			self._fan_speed = new_speed
 			self._dev:set_input_prop_emergency('fan_speed', 'value', self._fan_speed)
 		else
-			info = '风扇转速切换错误:'..err
+			info = '风机转速切换错误:'..err
 			self:try_fire_event_and_clear('fan_speed', event.LEVEL_WARNING, info, data)
 		end
 	end)
 
-	--- 自动模式切换
+	--- 自动操作模式切换
 	self._auto_operation = self._calc:add('operation_mode', {
 		{ sn = self._plc1200, input = 'temp', prop='value' },
 		{ sn = self._t8600, input = 'temp', prop='value' },
@@ -540,13 +542,7 @@ function app:start_calc()
 end
 
 function app:set_fan_speed(speed)
-	if self._fan_mute and self._fan_mute < ioe.time() then
-		return true
-	end
-
-	self._log:info("风扇转速切换至:"..speed)
-
-	--- 输出风扇控制
+	--- 输出风机控制
 	local device = self._api:get_device(self._plc1200)
 	if not device then
 		self._log:warning("PLC1200 is not ready!")
@@ -555,17 +551,32 @@ function app:set_fan_speed(speed)
 
 	local val = speed == FAN_SPEED.high and 1 or 0
 	if device:get_input_prop('q0_0', 'value') ~= val then
-		device:set_output_prop('q0_0', 'value', val)
+		local r, err = device:set_output_prop('q0_0', 'value', val)
+		if not r then
+		    self._log:warning("PLC 高档位输出失败!", val)
+		else
+		    self._log:warning("PLC 高档位输出成功!", val)
+	    end
 	end
 
 	val = speed == FAN_SPEED.middle and 1 or 0
 	if device:get_input_prop('q0_1', 'value') ~= val then
-		device:set_output_prop('q0_1', 'value', val)
+		local r, err = device:set_output_prop('q0_1', 'value', val)
+		if not r then
+		    self._log:warning("PLC 中档位输出失败!", val)
+		else
+		    self._log:warning("PLC 中档位输出成功!", val)
+	    end
 	end
 
 	val = speed == FAN_SPEED.low and 1 or 0
 	if device:get_input_prop('q0_2', 'value') ~= val then
-		device:set_output_prop('q0_2', 'value', val)
+		local r, err = device:set_output_prop('q0_2', 'value', val)
+		if not r then
+		    self._log:warning("PLC 低档位输出失败!", val)
+		else
+		    self._log:warning("PLC 低档位输出成功!", val)
+	    end
 	end
 
 	--- 切换转速2秒钟
@@ -597,12 +608,15 @@ function app:set_fan_mode_display(mode)
 		return nil, "找不到控制器"
 	end
 
-	self._log:info("风扇模式切换至:"..mode)
+	self._log:info("更改风机设定模式切换至:"..mode)
+
+	-- TIPS: 不写入set_f
 	if mode == FAN_MODE.auto then
 		return device:set_output_prop('set_f', 'value', 3)
 	else
 		return self:set_fan_speed_display(self._fan_speed)
 	end
+	return true
 end
 
 
@@ -637,8 +651,6 @@ function app:set_op_mode_display(mode)
 end
 
 function app:set_ctrl_mode_display(mode)
-	self._switch_mode_ctrl = ioe.time() + 2
-
 	local device = self._api:get_device(self._t8600)
 	if not device then
 		self._log:warning("T8600 is not ready!")
@@ -661,6 +673,19 @@ function app:set_temp_pre(temp)
 
 	self._log:info("设定设置温度至:"..temp)
 	return device:set_output_prop('set_p', 'value', temp)
+end
+
+function app:set_lock_display(lock)
+    local lock = lock == 1 and 1 or 0
+
+	local device = self._api:get_device(self._t8600)
+	if not device then
+		self._log:warning("T8600 is not ready!")
+		return
+	end
+
+	self._log:info("设置锁定键:"..lock)
+	return device:set_output_prop('lock', 'value', lock)
 end
 
 --- 发送事件信息，次函数通过alert_cycle来控制上送平台的次数
@@ -775,6 +800,10 @@ function app:handle_output(output, prop, value)
 		if not r then
 			return false, err
 		end
+		local r, err = self:set_lock_display(0)
+		if not r then
+			return false, err
+		end
 
 		--[[
 		local r, err = self:set_ctrl_mode_display(value)
@@ -788,27 +817,6 @@ function app:handle_output(output, prop, value)
 
 		if self._auto_fan then self._auto_fan() end
 		if self._auto_operation then self._auto_operation() end
-	end
-
-	if output == 'fan_mode' then
-		if self._ctrl_mode == CTRL_MODE.auto then
-			return false, "控制模式为自动模式，不能切换风扇模式"
-		end
-
-		local value = FAN_MODE.auto
-		if tonumber(value) == 1 then
-			value = FAN_SPEED.low
-		end
-
-		if value == FAN_MODE.auto then
-			local r, err =self:set_fan_speed(value)
-			if not r then
-				return false, "输出风扇模式错误:"..err
-			end
-		end
-
-		self._fan_mode = value
-		self._dev:set_input_prop_emergency('fan_mode', 'value', self._fan_mode)
 	end
 
 	if output == 'fan_speed' then
@@ -839,8 +847,9 @@ function app:handle_output(output, prop, value)
 			end
 		end
 		if not valid then
-			return false, "不合法的风扇模式"
+			return false, "不合法的风机转速模式"
 		end
+		self._log:info("风机转速远程切换至:"..value)
 		local r, err =self:set_fan_speed(value)
 		if not r then
 			return nil, err
@@ -851,6 +860,7 @@ function app:handle_output(output, prop, value)
 		local mode = (value == FAN_SPEED.auto) and FAN_MODE.auto or FAN_MODE.mannual
 		if self._fan_mode ~= mode then
 			self._fan_mode = mode
+			self:set_fan_mode_display(mode)
 			self._dev:set_input_prop_emergency('fan_mode', 'value', self._fan_mode)
 		end
 	end
