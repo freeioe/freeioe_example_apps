@@ -210,7 +210,7 @@ function app:load_init_values()
 	self._heat_policy = tonumber(self._conf.heat_policy) or 10
 
 	-- 风机控制初始
-	self._fan_mode = FAN_MODE.auto
+	self._fan_mode = FAN_MODE.none
 	self._fan_speed = FAN_SPEED.none
 	self._hot_policy = tonumber(self._conf.hot_policy) or 20
 	self._very_hot_policy = tonumber(self._conf.very_hot_policy) or 30
@@ -348,10 +348,18 @@ function app:start_calc()
 				end
 			end
 			if lock ~= 0 then
-				self._log:notice('修改锁定')
+				self._log:notice('修改锁定到0')
 				local r, err = self:set_lock_display(0)
 				if not r then
-					self._log:error('更改显示面板设置温度失败', err)
+					self._log:error('更改锁定失败', err)
+				end
+			end
+		else
+			if lock == 0 then
+				self._log:notice('修改锁定到1')
+				local r, err = self:set_lock_display(1)
+				if not r then
+					self._log:error('更改锁定失败', err)
 				end
 			end
 		end
