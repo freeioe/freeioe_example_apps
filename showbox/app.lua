@@ -335,11 +335,12 @@ function app:start_calc()
 		self._dev:set_input_prop_emergency('work_temp', 'value', self._work_temp)
 	end)
 
-	self._calc:add('set_p_and_lock', {
+	self._auto_mode = self._calc:add('set_p_and_lock', {
 		{ sn = self._t8600, input = 'set_p', prop='value' },
 		{ sn = self._t8600, input = 'lock', prop='value' },
 	}, function(set_p, lock)
 		if self._ctrl_mode == CTRL_MODE.auto then
+			--[[
 			if set_p < 35 then
 				self._log:notice('更改显示面板设置温度为35')
 				local r, err = self:set_temp_pre(35)
@@ -347,6 +348,7 @@ function app:start_calc()
 					self._log:error('更改显示面板设置温度失败', err)
 				end
 			end
+			]]--
 			if lock ~= 0 then
 				self._log:notice('修改锁定到0')
 				local r, err = self:set_lock_display(0)
@@ -823,6 +825,7 @@ function app:handle_output(output, prop, value)
 		self._ctrl_mode = value
 		self._dev:set_input_prop_emergency('ctrl_mode', 'value', value)
 
+		if self._auto_mode then self._auto_mode() end
 		if self._auto_fan then self._auto_fan() end
 		if self._auto_operation then self._auto_operation() end
 	end
