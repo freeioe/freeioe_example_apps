@@ -109,13 +109,13 @@ local function create_handler(app)
 		on_input = function(app_src, sn, input, prop, value, timestamp, quality)
 		end,
 		on_output = function(app_src, sn, output, prop, value, timestamp, priv)
-			self._log:trace('on_output', app_src, sn, output, prop, value, timestamp, priv)
-			if sn ~= self._dev_sn then
-				self._log:error('device sn incorrect', sn)
+			log:trace('on_output', app_src, sn, output, prop, value, timestamp, priv)
+			if sn ~= app._dev_sn then
+				log:error('device sn incorrect', sn)
 				return false, 'device sn incorrect'
 			end
-			self._log:info("Output required from:", app_src, sn, " as: ", output, prop, value)
-			return self:handle_output(input, prop, value)
+			log:info("Output required from:", app_src, sn, " as: ", output, prop, value)
+			return app:handle_output(output, prop, value)
 		end,
 		on_output_result = function(app_src, priv, result, err)
 			--- 
@@ -210,7 +210,7 @@ function app:load_init_values()
 	self._heat_policy = tonumber(self._conf.heat_policy) or 10
 
 	-- 风机控制初始
-	self._fan_mode = FAN_MODE.none
+	self._fan_mode = FAN_MODE.auto
 	self._fan_speed = FAN_SPEED.none
 	self._hot_policy = tonumber(self._conf.hot_policy) or 20
 	self._very_hot_policy = tonumber(self._conf.very_hot_policy) or 30
@@ -804,30 +804,13 @@ function app:handle_output(output, prop, value)
 
 	if output == 'ctrl_mode' then
 		value = tonumber(value) == 0 and CTRL_MODE.auto or CTRL_MODE.mannual
-
-		local temp = value == CTRL_MODE.auto and 35 or 25
-		local r, err = self:set_temp_pre(temp)
-		if not r then
-			return false, err
-		end
-		local r, err = self:set_lock_display(0)
-		if not r then
-			return false, err
-		end
-
-		--[[
-		local r, err = self:set_ctrl_mode_display(value)
-		if not r then
-			return false, "控制模式切换错误:"..err
-		end
-		]]--
-
 		self._ctrl_mode = value
 		self._dev:set_input_prop_emergency('ctrl_mode', 'value', value)
 
 		if self._auto_mode then self._auto_mode() end
 		if self._auto_fan then self._auto_fan() end
 		if self._auto_operation then self._auto_operation() end
+		return true
 	end
 
 	if output == 'fan_speed' then
