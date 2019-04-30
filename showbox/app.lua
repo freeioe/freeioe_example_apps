@@ -363,13 +363,13 @@ function app:start_calc()
 		--- 计算当前风扇状态
 		local new_speed_val = FAN_SPEED.none
 		if fsl == 1 then
-			new_speed = FAN_SPEED.low
+			new_speed_val = FAN_SPEED.low
 		end
 		if fsm == 1 then
-			new_speed = FAN_SPEED.middle
+			new_speed_val = FAN_SPEED.middle
 		end
 		if fsh == 1 then
-			new_speed = FAN_SPEED.high
+			new_speed_val = FAN_SPEED.high
 		end
 
 		--- 获取当前风扇应该处于的状态
@@ -410,6 +410,11 @@ function app:start_calc()
 			else
 				-- 当前输入的非自动模式，则按照输入的模式进行风神速度控制
 				new_speed = new_speed_val
+			end
+
+			--- 风扇转速不变
+			if self._fan_speed == new_speed then
+				return
 			end
 
 			local r, err = self:set_fan_speed(new_speed)
