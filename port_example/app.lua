@@ -1,46 +1,14 @@
 local class = require 'middleclass'
 local app_port = require 'app.port'
+local sapp = require 'app.simple'
 
 --- 注册对象(请尽量使用唯一的标识字符串)
-local app = class("PORT_EXAMPLE_APP")
---- 设定应用最小运行接口版本(目前版本为1,为了以后的接口兼容性)
-app.static.API_VER = 1
-
----
--- 应用对象初始化函数
--- @param name: 应用本地安装名称。 如modbus_com_1
--- @param sys: 系统sys接口对象。参考API文档中的sys接口说明
--- @param conf: 应用配置参数。由安装配置中的json数据转换出来的数据对象
-function app:initialize(name, sys, conf)
-	self._name = name
-	self._sys = sys
-	self._conf = conf
-	--- 获取数据接口
-	self._api = self._sys:data_api()
-	--- 获取日志接口
-	self._log = sys:logger()
-	--- 设备实例
-	self._devs = nil
-
-	self._log:debug("Port example application initlized")
-end
+local app = sapp:subclass("PORT_EXAMPLE_APP")
+--- 设定应用最小运行接口版本(目前版本为4,为了以后的接口兼容性)
+app.static.API_VER = 4
 
 --- 应用启动函数
-function app:start()
-	self._api:set_handler({
-		--[[
-		--- 处理设备输入项数值变更消息，当需要监控其他设备时才需要此接口，并在set_handler函数传入监控标识
-		on_input = function(app, sn, input, prop, value, timestamp, quality)
-		end,
-		]]
-		on_output = function(app, sn, output, prop, value, timestamp, priv)
-		end,
-		on_command = function(app, sn, command, param, priv)
-		end,	
-		on_ctrl = function(app, command, param, priv)
-		end,
-	})
-
+function app:on_start()
 	--- 生成设备唯一序列号
 	local sys_id = self._sys:id()
 	local sn = sys_id..".example"
@@ -70,7 +38,7 @@ function app:start()
 end
 
 --- 应用退出函数
-function app:close(reason)
+function app:on_close(reason)
 	if self._port then
 		self._port:close(reason)
 		self._serial:close(reason)
@@ -78,7 +46,7 @@ function app:close(reason)
 end
 
 --- 应用运行入口
-function app:run(tms)
+function app:on_run(tms)
 	local r, err = self._port:request('DDDDD', function(sock)
 		--local data, err = sock:read(4)
 		local helper = require 'app.port_helper'

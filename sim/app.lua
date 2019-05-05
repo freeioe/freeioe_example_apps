@@ -1,30 +1,15 @@
-local class = require 'middleclass'
 local sysinfo = require 'utils.sysinfo'
+local simple_app = require 'app.simple'
 
-local app = class("FREEIOE_DATA_SIM_APP")
+local app = simple_app:subclass("FREEIOE_DATA_SIM_APP")
 app.static.API_VER = 4
 
 function app:initialize(name, sys, conf)
-	self._name = name
-	self._sys = sys
-	self._conf = conf
-	self._api = self._sys:data_api()
-	self._log = sys:logger()
-
+	simple_app.initialize(self, name, sys, conf)
 	self._devs = {}
 end
 
-function app:start()
-	self._api:set_handler({
-		on_output = function(app, sn, output, prop, value, timestamp, priv)
-		end,
-		on_command = function(app, sn, command, param, priv)
-		end,
-		on_ctrl = function(app, command, param, priv)
-			self._log:trace('on_ctrl', app, command, param, priv)
-		end,
-	})
-
+function app:on_start()
 	local dev_count = self._conf.device_count or 4
 	local tag_count = self._conf.tag_count or 4
 
@@ -51,11 +36,11 @@ function app:start()
 	return true
 end
 
-function app:close(reason)
+function app:on_close(reason)
 	--print(self._name, reason)
 end
 
-function app:run(tms)
+function app:on_run(tms)
 	local tag_count = self._conf.tag_count or 4
 	local run_loop = self._conf.run_loop or 100 -- ms
 
