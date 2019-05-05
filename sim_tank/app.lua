@@ -2,7 +2,7 @@ local class = require 'middleclass'
 local sysinfo = require 'utils.sysinfo'
 
 local app = class("FREEIOE_APP_SIM_TANK_CLASS")
-app.API_VER = 1
+app.static.API_VER = 1
 
 function app:initialize(name, sys, conf)
 	self._name = name

@@ -2,7 +2,7 @@ local class = require 'middleclass'
 local opcua = require 'opcua'
 
 local app = class("FREEIOE_OPCUA_CLIENT_APP")
-app.API_VER = 1
+app.static.API_VER = 1
 
 function app:initialize(name, sys, conf)
 	self._name = name

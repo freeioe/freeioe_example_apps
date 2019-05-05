@@ -13,7 +13,7 @@ local disk = require 'disk'
 local netinfo = require 'netinfo'
 
 local app = class("FREEIOE_SYS_APP_CLASS")
-app.API_VER = 4
+app.static.API_VER = 4
 
 function app:initialize(name, sys, conf)
 	self._name = name

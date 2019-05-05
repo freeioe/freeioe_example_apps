@@ -3,7 +3,7 @@ local sysinfo = require 'utils.sysinfo'
 local cjson = require 'cjson'
 
 local app = class("FREEIOE_APP_SOCAT_CLASS")
-app.API_VER = 1
+app.static.API_VER = 1
 
 function app:initialize(name, sys, conf)
 	self._name = name

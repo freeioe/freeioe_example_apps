@@ -8,7 +8,7 @@ local frpc_http = require 'frpc_http'
 --- 注册应用对象
 local app = class("FREEIOE_EXAMPLE_TRIGGER_APP")
 --- API版本4有我们需要的app.utils.calc
-app.API_VER = 4
+app.static.API_VER = 4
 
 
 ALERT_INFO = {

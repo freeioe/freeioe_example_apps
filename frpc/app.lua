@@ -5,7 +5,7 @@ local inifile = require 'inifile'
 local cjson = require 'cjson'
 
 local app = class("FREEIOE_APP_FRP_CLASS")
-app.API_VER = 1
+app.static.API_VER = 1
 
 local function get_default_conf(sys, conf)
 	local ini_conf = {}

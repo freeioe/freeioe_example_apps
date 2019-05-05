@@ -10,7 +10,7 @@ local cjson = require 'cjson'
 --- 注册对象(请尽量使用唯一的标识字符串)
 local app = class("FANUC_FOCAS_UBUS_APP")
 --- 设定应用最小运行接口版本(目前版本为1,为了以后的接口兼容性)
-app.API_VER = 2
+app.static.API_VER = 2
 
 ---
 -- 应用对象初始化函数

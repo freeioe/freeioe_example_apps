@@ -21,7 +21,7 @@ end
 --- 注册对象(请尽量使用唯一的标识字符串)
 local app = class("HUAWEI_IOT_CLOUD")
 --- 设定应用最小运行接口版本(目前版本为1,为了以后的接口兼容性)
-app.API_VER = 1
+app.static.API_VER = 1
 
 ---
 -- 应用对象初始化函数

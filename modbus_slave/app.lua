@@ -10,7 +10,7 @@ local conf_helper = require 'app.conf_helper'
 --- 注册对象(请尽量使用唯一的标识字符串)
 local app = class("MODBUS_SLAVE_APP")
 --- 设定应用最小运行接口版本(目前版本为1,为了以后的接口兼容性)
-app.API_VER = 1
+app.static.API_VER = 1
 
 --- 设定变量的默认值
 local default_vals = {
