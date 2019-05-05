@@ -1,47 +1,31 @@
 local ioe = require 'ioe'
 local cjson = require 'cjson.safe'
-local app_mqtt = require 'app.mqtt'
+local simple_mqtt = require 'app.simple.mqtt'
 local telit_helper = require 'telit_helper'
 
 --- 创建应用（名称，最小API版本)
-local app = app_mqtt("_TELIT_CLOUD_MQTT", 4)
+local app = simple_mqtt:subclass("_TELIT_CLOUD_MQTT")
+app.static.API_VER = 4
 
-function app:app_initialize(name, sys, conf)
+function app:initialize(name, sys, conf)
+	simple_mqtt.initialize(self, name, sys, conf)
 	self._log:debug("Telit app intialize!!!")
-
-	--- difference mqtt_initalize
-	self._mqtt_id = conf.application_id or 'APPLICATION_ID'
-	self._mqtt_username = sys:id()
-	self._mqtt_password = conf.application_token or "APPLICATION_TOKEN"
-	self._mqtt_host = conf.server or "device1-api.10646.cn"
-	self._mqtt_port = conf.port or "1883"
 
 	self._def_keys = conf.def_keys or {}
 	self._def_key_default = string.lower(conf.def_key_default or 'ThingsLinkSimDevice')
 	self._key_created = {}
-	
 end
 
-function app:app_start()
-	self._log:debug("Telit app start!!!")
-	return true
-end
-
-function app:app_close(reason)
-	self._log:debug("Telit app closed!!!")
-	return true
-end
-
-function app:app_run(tms)
-	self._log:debug("Telit run")
-
-	return 10 * 1000 -- 10 seconds
-end
-
-function app:pack_devices(devices)
-	for sn, props in pairs(devices) do
-		self:on_add_device('__fake_name', sn, props)
-	end
+function app:mqtt_auth()
+	local conf = self._conf
+	return {
+		client_id = conf.application_id or 'APPLICATION_ID',
+		username = self._sys:id(),
+		password = conf.application_token or "APPLICATION_TOKEN",
+		host = conf.server or "device1-api.10646.cn",
+		port = conf.port or "1883",
+		clean_session = true
+	}
 end
 
 function app:subscribe_device(dev_sn)
@@ -55,10 +39,10 @@ function app:unsubscribe_device(dev_sn)
 end
 
 function app:on_add_device(src_app, sn, props)
-	self._log:debug("Telit on_add_device")
+	self._log:debug("Telit on_add_device", src_app, sn)
 
 	if not self:connected() then
-		return
+		return nil, "MQTT not connected!"
 	end
 
 	--[[
@@ -78,40 +62,7 @@ function app:on_add_device(src_app, sn, props)
 			def_key = self._def_keys[ssn]
 		end
 		def_key = def_key or self._def_key_default
-		--[[
-		{
-  "cmd": {
-    "command": "thing.create",
-    "params": {
-      "name": "My New Thing Name",
-      "key": "12e692ba0f62g167",
-      "defKey": "thingdefinitionkey",
-      "desc": "Description of my new thing",
-      "iccid": "123456789",
-      "esn": "123456789",
-      "tunnelActualHost": "192.168.4.241",
-      "tunnelVirtualHost": "127.10.10.10",
-      "tunnelLatencies": {
-        "router01": 110,
-        "router02": 340
-      },
-      "tags": ["tag1", "tag2"],
-      "secTags": ["secTag1", "secTag2"],
-      "attrs": {
-        "attribute1key": {
-          "value": "25",
-          "ts": "2014-04-05T02:03:04.322Z"
-        },
-        "attribute2key": {
-          "value": "Orange",
-          "ts": "2014-04-05T02:03:04.322Z"
-        }
-      },
-      "locEnabled": false
-    }
-  }
-}
-		--]]--
+		--[[ thing.create.json ]]--
 		local tags = {}
 		local tag_map = {}
 		for _, input in ipairs(props.inputs) do
@@ -143,10 +94,9 @@ function app:on_add_device(src_app, sn, props)
 
 		self._log:trace(val)
 		self._key_created[sn] = true
-		local r, err = self:mqtt_publish("api", val, 1, false)
+		local r, err = self:publish("api", val, 1, false)
 		if r then
-			self:subscribe_device(sn)
-			return true
+			return self:subscribe_device(sn)
 		end
 		return nil, err
 	end
@@ -168,28 +118,25 @@ function app:format_timestamp(timestamp)
 	return string.format("%s.%03dZ", os.date('!%FT%T', timestamp//1), ((timestamp * 1000) % 1000))
 end
 
-function app:pack_key(src_app, sn, input)
+function app:pack_key(src_app, sn, input, prop)
+	if prop ~= 'value' then
+		return nil
+	end
+
 	return telit_helper.escape_key(sn)..'/'..telit_helper.escape_key(input)
+end
+
+function app:on_publish_devices(devices)
+	for sn, props in pairs(devices) do
+		self:on_add_device('__fake_name', sn, props)
+	end
 end
 
 function app:publish_attribute(dev_sn, input, value, timestamp)
 	if not self:connected() then
 		return nil, "MQTT connection lost!"
 	end
---[[
-{
-  "cmd": {
-    "command": "attribute.publish",
-    "params": {
-      "thingKey": "mything",
-      "key": "boardid",
-      "value": "102",
-      "ts": "2016-10-20T02:03:04.322Z",
-      "republish": false
-    }
-  }
-}
-]]--
+--[[ attribute.publish.json ]]--
     local cmd = {
 		command = "attribute.publish",
 		params = {
@@ -207,11 +154,11 @@ function app:publish_attribute(dev_sn, input, value, timestamp)
 	end
 
 	self._log:trace(val)
-	return self:mqtt_publish("api", val, 1, false)
+	return self:publish("api", val, 1, false)
 
 end
 
-function app:publish_data(key, value, timestamp, quality)
+function app:on_publish_data(key, value, timestamp, quality)
 	if not self:connected() then
 		return nil, "MQTT connection lost!"
 	end
@@ -235,12 +182,11 @@ function app:publish_data(key, value, timestamp, quality)
 	end
 
 	self._log:trace(val)
-	return self:mqtt_publish("api", val, 1, false)
+	return self:publish("api", val, 1, false)
 end
 
-
 --- The implementation for publish data in list (zip compressing required)
-function app:publish_data_list(val_list)
+function app:on_publish_data_list(val_list)
 	assert(val_list)
 
 	local val_count = #val_list
@@ -251,41 +197,15 @@ function app:publish_data_list(val_list)
 	end
 
 	if not self:connected() then
+		self._log:trace('publish_data_list connection not ready!')
 		return nil, "MQTT connection lost!"
 	end
 
---[[
-{
-  "cmd": {
-    "command": "property.batch",
-    "params": {
-      "thingKey": "mything",
-      "key": "myp",
-      "ts" : "2018-04-05T02:03:04.322Z",
-      "corrId": "mycorrid",
-      "aggregate":true,
-      "data": [
-        {
-          "key": "myprop",
-          "value": 123.44,
-          "ts": "2018-04-05T02:03:04.322Z",
-          "corrId": "mycorrid"
-        },
-        {
-          "key": "myprop2",
-          "value": 42.12,
-          "ts": "2018-04-05T02:03:04.322Z",
-          "corrId": "mycorrid"
-        }
-      ]
-    }
-  }
-}
-]]--
+--[[ property.batch.json ]]--
 	local data_list = {}
 	local attr_list = {}
 	for _, v in ipairs(val_list) do
-		local sn, input = string.match(v[1], '^([^%.]+)%.(.+)$')
+		local sn, input = string.match(v[1], '^([^%.]+)/(.+)$')
 
 		if type(v[2]) ~= 'string' then
 			if not data_list[sn] then
@@ -328,7 +248,7 @@ function app:publish_data_list(val_list)
 		end
 
 		local deflated = self:compress(val)
-		local r, err = self:mqtt_publish("apiz", deflated, 1, false)
+		local r, err = self:publish("apiz", deflated, 1, false)
 
 		if not r then
 			return nil, err
@@ -354,23 +274,34 @@ function app:publish_data_list(val_list)
 		end
 
 		local deflated = self:compress(val)
-		local r, err = self:mqtt_publish("apiz", deflated, 1, false)
+		local r, err = self:publish("apiz", deflated, 1, false)
 
 		if not r then
 			return nil, err
 		end
 	end
+	self._log:trace('publish_data_list end!')
 	return true
 end
 
--- no return
-function app:on_connect_ok()
-	self._log:debug("Telit on_connect_ok")
-	self:subscribe('reply', 1)
-	self:subscribe('replyz', 1)
+function app:on_publish_cached_data_list(val_list)
+	local r, err = self:on_publish_data_list(val_list)
+	if r then
+		return #val_list
+	end
+	return nil, err
 end
 
-function app:on_message(packet_id, topic, payload, qos, retained)
+-- no return
+function app:on_mqtt_connect_ok()
+	self._log:debug("Telit on_connect_ok")
+	--[[
+	self:subscribe('reply', 1)
+	self:subscribe('replyz', 1)
+	]]--
+end
+
+function app:on_mqtt_message(packet_id, topic, payload, qos, retained)
 	if topic == 'replyz' then
 		local inflated, eof, bytes_in, bytes_out = self:decompress(payload)
 		payload = inflated
@@ -405,7 +336,7 @@ function app:on_message(packet_id, topic, payload, qos, retained)
 end
 
 function app:on_toedge_result(id, dev_sn, input, result, err)
-	local value = string.format("%s;%s;%d;%s", id, telit_helper.escape_key(input), result, err),
+	local value = string.format("%s;%s;%d;%s", id, telit_helper.escape_key(input), result, err)
 	return self:publish_attribute(dev_sn, 'todmp', value, ioe.time())
 end
 

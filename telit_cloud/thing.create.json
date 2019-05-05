@@ -1,0 +1,33 @@
+{
+  "cmd": {
+    "command": "thing.create",
+    "params": {
+      "name": "My New Thing Name",
+      "key": "12e692ba0f62g167",
+      "defKey": "thingdefinitionkey",
+      "desc": "Description of my new thing",
+      "iccid": "123456789",
+      "esn": "123456789",
+      "tunnelActualHost": "192.168.4.241",
+      "tunnelVirtualHost": "127.10.10.10",
+      "tunnelLatencies": {
+        "router01": 110,
+        "router02": 340
+      },
+      "tags": ["tag1", "tag2"],
+      "secTags": ["secTag1", "secTag2"],
+      "attrs": {
+        "attribute1key": {
+          "value": "25",
+          "ts": "2014-04-05T02:03:04.322Z"
+        },
+        "attribute2key": {
+          "value": "Orange",
+          "ts": "2014-04-05T02:03:04.322Z"
+        }
+      },
+      "locEnabled": false
+    }
+  }
+}
+

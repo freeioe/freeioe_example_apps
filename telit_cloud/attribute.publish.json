@@ -1,0 +1,12 @@
+{
+  "cmd": {
+    "command": "attribute.publish",
+    "params": {
+      "thingKey": "mything",
+      "key": "boardid",
+      "value": "102",
+      "ts": "2016-10-20T02:03:04.322Z",
+      "republish": false
+    }
+  }
+}

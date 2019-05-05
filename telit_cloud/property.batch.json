@@ -1,0 +1,26 @@
+{
+  "cmd": {
+    "command": "property.batch",
+    "params": {
+      "thingKey": "mything",
+      "key": "myp",
+      "ts" : "2018-04-05T02:03:04.322Z",
+      "corrId": "mycorrid",
+      "aggregate":true,
+      "data": [
+        {
+          "key": "myprop",
+          "value": 123.44,
+          "ts": "2018-04-05T02:03:04.322Z",
+          "corrId": "mycorrid"
+        },
+        {
+          "key": "myprop2",
+          "value": 42.12,
+          "ts": "2018-04-05T02:03:04.322Z",
+          "corrId": "mycorrid"
+        }
+      ]
+    }
+  }
+}
