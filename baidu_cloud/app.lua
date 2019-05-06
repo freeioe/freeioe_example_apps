@@ -1,5 +1,5 @@
 local cjson = require 'cjson.safe'
-local mqtt_app = require 'app.simple.mqtt'
+local mqtt_app = require 'app.base.mqtt'
 
 local sub_topics = {
 	"app/#",

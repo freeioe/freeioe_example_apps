@@ -1,11 +1,11 @@
 local sysinfo = require 'utils.sysinfo'
-local simple_app = require 'app.simple'
+local base_app = require 'app.base'
 
-local app = simple_app:subclass("FREEIOE_DATA_SIM_APP")
+local app = base_app:subclass("FREEIOE_DATA_SIM_APP")
 app.static.API_VER = 4
 
 function app:initialize(name, sys, conf)
-	simple_app.initialize(self, name, sys, conf)
+	base_app.initialize(self, name, sys, conf)
 	self._devs = {}
 end
 

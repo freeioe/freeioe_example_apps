@@ -1,6 +1,6 @@
 local huawei_http = require 'huawei_http'
 local cjson = require 'cjson.safe'
-local mqtt_app = require 'app.simple.mqtt'
+local mqtt_app = require 'app.base.mqtt'
 
 local categories = {
 	"event",

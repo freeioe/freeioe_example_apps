@@ -1,6 +1,6 @@
 local cjson = require 'cjson.safe'
 local aliyun_http = require 'aliyun_http'
-local mqtt_app = require 'app.simple.mqtt'
+local mqtt_app = require 'app.base.mqtt'
 
 
 local sub_topics = {

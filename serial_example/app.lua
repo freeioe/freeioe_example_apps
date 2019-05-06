@@ -1,6 +1,6 @@
 local serial = require 'serialdriver'
 local basexx = require 'basexx'
-local sapp = require 'app.simple'
+local sapp = require 'app.base'
 
 --- 注册对象(请尽量使用唯一的标识字符串)
 local app = sapp:subclass("SERIAL_EXAMPLE_APP")

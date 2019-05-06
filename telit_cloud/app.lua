@@ -1,14 +1,14 @@
 local ioe = require 'ioe'
 local cjson = require 'cjson.safe'
-local simple_mqtt = require 'app.simple.mqtt'
+local base_mqtt = require 'app.base.mqtt'
 local telit_helper = require 'telit_helper'
 
 --- 创建应用（名称，最小API版本)
-local app = simple_mqtt:subclass("_TELIT_CLOUD_MQTT")
+local app = base_mqtt:subclass("_TELIT_CLOUD_MQTT")
 app.static.API_VER = 4
 
 function app:initialize(name, sys, conf)
-	simple_mqtt.initialize(self, name, sys, conf)
+	base_mqtt.initialize(self, name, sys, conf)
 	self._log:debug("Telit app intialize!!!")
 
 	self._def_keys = conf.def_keys or {}

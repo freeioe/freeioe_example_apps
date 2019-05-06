@@ -1,8 +1,8 @@
-local simple_app = require 'app.simple'
+local base_app = require 'app.base'
 
 --- 创建自己应用的子类
 --- create your own application subclass
-local my_app = simple_app:subclass("THIS_IS_AN_SIMEPLE_APP_EXAMPLE")
+local my_app = base_app:subclass("THIS_IS_AN_SIMEPLE_APP_EXAMPLE")
 
 --- 设定最小适配的API版本，此示例应用最小适用版本为4。
 --- Set proper required API version to make sure your application run with correct FreeIOE core
@@ -11,7 +11,7 @@ my_app.static.API_VER = 4
 
 --- 应用初始化
 function my_app:initialize(name, sys, conf)
-	simple_app.initialize(self, name, sys, conf)
+	base_app.initialize(self, name, sys, conf)
 	self._devs = {}
 end
 
