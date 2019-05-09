@@ -54,9 +54,10 @@ end
 -- input: 输出项名称 [Device input name. e.g switch1]
 -- prop: 输出项属性 [Device input property. e.g. value]
 -- value: 输出值 [Device output property value.  e.g 1]
+-- timestamp: 触发输出的时间 
 --
 -- @return: boolean with error information
-function my_app:on_output(app, sn, output, prop, value)
+function my_app:on_output(app, sn, output, prop, value, timestamp)
 	for _, dev in ipairs(self._devs) do
 		if sn == dev:sn() then
 			self._log:debug("I am a output test!")
