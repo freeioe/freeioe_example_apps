@@ -49,7 +49,7 @@ function app:on_start()
 	}
 
 	self._test = pair_serial:new(self)
-	self._test_case = pair_ms:new(self, 10, 256)
+	self._test_case = pair_ms:new(self, self._conf.count or 1000, self._conf.max_size or 256)
 
 	self._sys:fork(function()
 		self._test:open(self._port_master, self._port_slave)
