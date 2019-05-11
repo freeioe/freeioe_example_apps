@@ -82,7 +82,7 @@ function test:_proc(port)
 
 		local r, err = port:request(msg, function(port)
 			msg_send_total = msg_send_total + #msg
-			self._send_speed =  math.floor((msg_send_total * 1000) / (self._sys:time() - begin_time))
+			self._send_speed =  math.floor((msg_send_total * 1000) / (self._sys:time() - begin_time + 1))
 			local recv_len = test.hdr_len -- first receive the hdr_len
 
 			while self._sys:time() - stime <= 3000 do
@@ -93,7 +93,7 @@ function test:_proc(port)
 				end
 				buf:append(data)
 				msg_recv_total = msg_recv_total + #data
-				self._recv_speed =  math.floor((msg_recv_total * 1000) / (self._sys:time() - begin_time))
+				self._recv_speed =  math.floor((msg_recv_total * 1000) / (self._sys:time() - begin_time + 1))
 
 				local data, len = buf:find(test.SK)
 				if data then

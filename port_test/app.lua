@@ -114,7 +114,6 @@ function app:_run_current()
 
 		self._log:trace("Start test", self._current_test)
 		local r, err = self._test:run(self._current)
-		print(r, err)
 		if not r then
 			self._log:error("RUN TEST CASE FAILED", err)
 		end
