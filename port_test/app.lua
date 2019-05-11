@@ -182,6 +182,7 @@ function app:on_run(tms)
 	if not self._info_set then
 		dev:set_input_prop('master_info', 'value', cjson.encode(self._port_master))	
 		dev:set_input_prop('slave_info', 'value', cjson.encode(self._port_slave))	
+		dev:set_input_prop('loop_info', 'value', cjson.encode(self._port_master))	
 		self._info_set = true
 	end
 
