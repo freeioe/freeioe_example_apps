@@ -25,18 +25,24 @@ function app:on_start()
 		{ name = "master_failed", desc = "master process failed", vt = "int" },
 		{ name = "master_passed", desc = "master process passed", vt = "int" },
 		{ name = "master_droped", desc = "master process droped", vt = "int" },
+		{ name = "master_send_speed", desc = "master send speed", },
+		{ name = "master_recv_speed", desc = "master recv speed", },
 
-		{ name = "slave_info", desc = "master port info", vt = "string" },
+		{ name = "slave_info", desc = "slave port info", vt = "string" },
 		{ name = "slave_count", desc = "slave process count", vt = "int" },
 		{ name = "slave_failed", desc = "slave process failed", vt = "int" },
 		{ name = "slave_passed", desc = "slave process passed", vt = "int" },
 		{ name = "slave_droped", desc = "slave process droped", vt = "int" },
+		{ name = "slave_send_speed", desc = "slave send speed", },
+		{ name = "slave_recv_speed", desc = "slave recv speed", },
 
-		{ name = "loop_info", desc = "master port info", vt = "string" },
-		{ name = "loop_count", desc = "slave process count", vt = "int" },
-		{ name = "loop_failed", desc = "slave process failed", vt = "int" },
-		{ name = "loop_passed", desc = "slave process passed", vt = "int" },
-		{ name = "loop_droped", desc = "slave process droped", vt = "int" },
+		{ name = "loop_info", desc = "loop port info", vt = "string" },
+		{ name = "loop_count", desc = "loop process count", vt = "int" },
+		{ name = "loop_failed", desc = "loop process failed", vt = "int" },
+		{ name = "loop_passed", desc = "loop process passed", vt = "int" },
+		{ name = "loop_droped", desc = "loop process droped", vt = "int" },
+		{ name = "loop_send_speed", desc = "loop send speed", },
+		{ name = "loop_recv_speed", desc = "loop recv speed", },
 	}
 
 	local commands = {
@@ -64,11 +70,11 @@ function app:on_start()
 
 	local ttyS1 = self._conf.ttyS1 or ((self._conf.ttyS or ttyS) ..'1')
 	local ttyS2 = self._conf.ttyS2 or ((self._conf.ttyS or ttyS) ..'2')
-	self._log:notice("Serial Port Test", ttyS1, ttyS2)
 	local baudrate = self._conf.baudrate or 115200
 	local count = self._conf.count or 1000
 	local max_size = self._conf.max_msg_size or 256
 	local auto_run = self._conf.auto or 'master_slave'
+	self._log:notice("Serial Port Test", ttyS1, ttyS2, auto_run)
 
 	self._port_master = {
 		port = ttyS1,
@@ -187,17 +193,23 @@ function app:on_run(tms)
 	dev:set_input_prop('master_failed', 'value', report.master.failed)
 	dev:set_input_prop('master_passed', 'value', report.master.passed)
 	dev:set_input_prop('master_droped', 'value', report.master.droped)
+	dev:set_input_prop('master_send_speed', 'value', report.master.send_speed)
+	dev:set_input_prop('master_recv_speed', 'value', report.master.recv_speed)
 
 	dev:set_input_prop('slave_count', 'value', report.slave.count)
 	dev:set_input_prop('slave_failed', 'value', report.slave.failed)
 	dev:set_input_prop('slave_passed', 'value', report.slave.passed)
 	dev:set_input_prop('slave_droped', 'value', report.slave.droped)
+	dev:set_input_prop('slave_send_speed', 'value', report.slave.send_speed)
+	dev:set_input_prop('slave_recv_speed', 'value', report.slave.recv_speed)
 
 	local report = self._loop_test:report()
 	dev:set_input_prop('loop_count', 'value', report.count)
 	dev:set_input_prop('loop_failed', 'value', report.failed)
 	dev:set_input_prop('loop_passed', 'value', report.passed)
 	dev:set_input_prop('loop_droped', 'value', report.droped)
+	dev:set_input_prop('loop_send_speed', 'value', report.send_speed)
+	dev:set_input_prop('loop_recv_speed', 'value', report.recv_speed)
 
 	return 1000 --下一采集周期为1秒
 end

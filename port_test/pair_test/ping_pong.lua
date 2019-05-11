@@ -23,6 +23,8 @@ function test:initialize(app, count, max_msg_size, is_ping)
 	self._failed = 0
 	self._passed = 0
 	self._droped = 0
+	self._send_speed = 0
+	self._recv_speed = 0
 
 	self._max_msg_size = max_msg_size or 512
 
@@ -59,8 +61,14 @@ end
 
 function test:_proc(port)
 	self._stop = nil
-	local buf = stream_buffer:new(self._max_msg_size + test.hdr_len + #test.EK)
+	self._send_speed = 0
+	self._recv_speed = 0
 
+	local msg_send_total = 0
+	local msg_recv_total = 0
+	local begin_time = self._sys:time()
+
+	local buf = stream_buffer:new(self._max_msg_size + test.hdr_len + #test.EK)
 	local msg = ''
 	while not self._stop and not self:finished() do
 		--- Clean buffer steam
@@ -73,6 +81,8 @@ function test:_proc(port)
 		local stime = self._sys:time()
 
 		local r, err = port:request(msg, function(port)
+			msg_send_total = msg_send_total + #msg
+			self._send_speed =  math.floor((msg_send_total * 1000) / (self._sys:time() - begin_time))
 			local recv_len = test.hdr_len -- first receive the hdr_len
 
 			while self._sys:time() - stime <= 1000 do
@@ -82,6 +92,8 @@ function test:_proc(port)
 					return nil, err
 				end
 				buf:append(data)
+				msg_recv_total = msg_recv_total + #data
+				self._recv_speed =  math.floor((msg_recv_total * 1000) / (self._sys:time() - begin_time))
 
 				local data, len = buf:find(test.SK)
 				if data then
@@ -152,6 +164,8 @@ function test:report()
 		failed = self._failed,
 		passed = self._passed,
 		droped = self._droped,
+		send_speed = self._send_speed,
+		recv_speed = self._recv_speed,
 	}
 end
 
