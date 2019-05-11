@@ -29,13 +29,10 @@ function serial:run(test_case)
 	end
 
 	while not self._abort and not test_case:finished() do
-		local r, err = test_case:run()
-		if not r then
-			return nil, err
-		end
-		self._sys:sleep(r, self)
+		self._sys:sleep(1000, self)
 	end
 	if self._abort then
+		test_case:stop()
 		return nil, "Aborted"
 	end
 

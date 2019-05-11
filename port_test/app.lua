@@ -1,8 +1,10 @@
+local lfs = require 'lfs'
+local cjson = require 'cjson.safe'
 local app_port = require 'app.port'
 local app_base = require 'app.base'
 local pair_serial = require 'pair_test.serial'
 local pair_ms = require 'pair_test.master_slave'
-local cjson = require 'cjson.safe'
+local pair_pp = require 'pair_test.ping_pong'
 
 --- 注册对象(请尽量使用唯一的标识字符串)
 local app = app_base:subclass("PORT_TEST_APP")
@@ -17,17 +19,30 @@ function app:on_start()
 
 	--- 增加设备实例
 	local inputs = {
-		{name="master_info", desc="master port info", vt="string"},
-		{name="master_count", desc="master process count", vt="int"},
-		{name="master_failed", desc="master process failed", vt="int"},
-		{name="master_passed", desc="master process passed", vt="int"},
-		{name="master_droped", desc="master process droped", vt="int"},
+		{ name = "current", desc = "current run test case", vt = "string" },
+		{ name = "master_info", desc = "master port info", vt = "string" },
+		{ name = "master_count", desc = "master process count", vt = "int" },
+		{ name = "master_failed", desc = "master process failed", vt = "int" },
+		{ name = "master_passed", desc = "master process passed", vt = "int" },
+		{ name = "master_droped", desc = "master process droped", vt = "int" },
 
-		{name="slave_info", desc="master port info", vt="string"},
-		{name="slave_count", desc="slave process count", vt="int"},
-		{name="slave_failed", desc="slave process failed", vt="int"},
-		{name="slave_passed", desc="slave process passed", vt="int"},
-		{name="slave_droped", desc="slave process droped", vt="int"},
+		{ name = "slave_info", desc = "master port info", vt = "string" },
+		{ name = "slave_count", desc = "slave process count", vt = "int" },
+		{ name = "slave_failed", desc = "slave process failed", vt = "int" },
+		{ name = "slave_passed", desc = "slave process passed", vt = "int" },
+		{ name = "slave_droped", desc = "slave process droped", vt = "int" },
+
+		{ name = "loop_info", desc = "master port info", vt = "string" },
+		{ name = "loop_count", desc = "slave process count", vt = "int" },
+		{ name = "loop_failed", desc = "slave process failed", vt = "int" },
+		{ name = "loop_passed", desc = "slave process passed", vt = "int" },
+		{ name = "loop_droped", desc = "slave process droped", vt = "int" },
+	}
+
+	local commands = {
+		{ name = "abort", desc = "abort current run test case" },
+		{ name = "master_slave", desc = "start master slave test" },
+		{ name = "loop", desc = "start loop test" },
 	}
 
 	local meta = self._api:default_meta()
@@ -36,27 +51,115 @@ function app:on_start()
 
 	self._dev = self._api:add_device(sn, meta, inputs)
 
+	local ttyS = nil
+	if lfs.attributes('/tmp/ttyS1', 'mode') then
+		ttyS = '/tmp/ttyS'
+	else
+		if lfs.attributes('/dev/ttymxc1', 'mode') then
+			ttyS = '/dev/ttymxc'
+		else
+			ttyS = '/dev/ttyS'
+		end
+	end
+
+	local ttyS1 = self._conf.ttyS1 or ((self._conf.ttyS or ttyS) ..'1')
+	local ttyS2 = self._conf.ttyS2 or ((self._conf.ttyS or ttyS) ..'2')
+	self._log:notice("Serial Port Test", ttyS1, ttyS2)
+	local baudrate = self._conf.baudrate or 115200
+	local count = self._conf.count or 1000
+	local max_size = self._conf.max_msg_size or 256
+	local auto_run = self._conf.auto or 'master_slave'
+
 	self._port_master = {
-		port = "/dev/ttyS1",
-		--port = "/tmp/ttyS10",
-		baudrate = 115200
+		port = ttyS1,
+		baudrate = baudrate,
 	}
 
 	self._port_slave = {
-		port = "/dev/ttyS2",
-		--port = "/tmp/ttyS11",
-		baudrate = 115200
+		port = ttyS2,
+		baudrate = baudrate,
 	}
 
 	self._test = pair_serial:new(self)
-	self._test_case = pair_ms:new(self, self._conf.count or 1000, self._conf.max_size or 256)
+	self._ms_test = pair_ms:new(self, count, max_size)
+	self._loop_test = pair_pp:new(self, count, max_size)
+	self._test:open(self._port_master, self._port_slave)
 
-	self._sys:fork(function()
-		self._test:open(self._port_master, self._port_slave)
-		self._test:run(self._test_case)
-	end)
+	if auto_run == 'master_slave' then
+		self:start_master_slave_test()
+	end
+	if auto_run == 'loop' then
+		self:start_loop_test()
+	end
+	self._current_test = auto_run
 
 	return true
+end
+
+function app:_run_current()
+	self._sys:timeout(1000, function()
+		self._log:warning("Start test", self._current_test)
+		local r, err = self._sys:cloud_post('enable_data_one_short', 3600)
+		if not r then
+			self._log:error("ENABLE_DATA_ONE_SHORT FAILED", err)
+		else
+			self._log:notice("ENABLE_DATA_ONE_SHORT DONE!")
+		end
+
+		self._log:trace("Start test", self._current_test)
+		local r, err = self._test:run(self._current)
+		print(r, err)
+		if not r then
+			self._log:error("RUN TEST CASE FAILED", err)
+		end
+
+		local r, err = self._sys:cloud_post('enable_data_one_short', 0)
+		if not r then
+			self._log:error("ENABLE_DATA_ONE_SHORT CLOSE FAILED", err)
+		else
+			self._log:notice("ENABLE_DATA_ONE_SHORT CLOSE DONE!")
+		end
+
+		self._current = nil
+	end)
+end
+
+function app:start_master_slave_test()
+	if self._current then
+		return nil, "Running"
+	end
+
+	self._current = self._ms_test
+	self._current_test = 'master_slave'
+
+	return self:_run_current()
+end
+
+function app:start_loop_test()
+	if self._current then
+		return nil, "Running"
+	end
+
+	self._current = self._ms_test
+	self._current_test = 'loop'
+	
+	return self:_run_current()
+end
+
+function app:on_command(src_app, command, params)
+	if command == 'master_slave' then
+		return self:start_master_slave_test()
+	end
+	if command == 'loop' then
+		return self:start_loop_test()
+	end
+	if command == 'abort' then
+		if not self._current then
+			return nil, "Not running"
+		end
+
+		self._test:abort()
+	end
 end
 
 --- 应用退出函数
@@ -76,7 +179,9 @@ function app:on_run(tms)
 		self._info_set = true
 	end
 
-	local report = self._test_case:report()
+	dev:set_input_prop('current', 'value', self._current_test)
+
+	local report = self._ms_test:report()
 
 	dev:set_input_prop('master_count', 'value', report.master.count)
 	dev:set_input_prop('master_failed', 'value', report.master.failed)
@@ -87,6 +192,12 @@ function app:on_run(tms)
 	dev:set_input_prop('slave_failed', 'value', report.slave.failed)
 	dev:set_input_prop('slave_passed', 'value', report.slave.passed)
 	dev:set_input_prop('slave_droped', 'value', report.slave.droped)
+
+	local report = self._loop_test:report()
+	dev:set_input_prop('loop_count', 'value', report.count)
+	dev:set_input_prop('loop_failed', 'value', report.failed)
+	dev:set_input_prop('loop_passed', 'value', report.passed)
+	dev:set_input_prop('loop_droped', 'value', report.droped)
 
 	return 1000 --下一采集周期为1秒
 end
