@@ -119,7 +119,7 @@ function app:_run_current()
 			self._log:error("RUN TEST CASE FAILED", err)
 		end
 
-		local r, err = self._sys:cloud_post('enable_data_one_short', 0)
+		local r, err = self._sys:cloud_post('enable_data_one_short', 60)
 		if not r then
 			self._log:error("ENABLE_DATA_ONE_SHORT CLOSE FAILED", err)
 		else
