@@ -146,7 +146,7 @@ function app:start_loop_test()
 		return nil, "Running"
 	end
 
-	self._current = self._ms_test
+	self._current = self._loop_test
 	self._current_test = 'loop'
 	
 	return self:_run_current()

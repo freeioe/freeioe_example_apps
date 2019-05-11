@@ -85,7 +85,7 @@ function test:_proc(port)
 			self._send_speed =  math.floor((msg_send_total * 1000) / (self._sys:time() - begin_time))
 			local recv_len = test.hdr_len -- first receive the hdr_len
 
-			while self._sys:time() - stime <= 1000 do
+			while self._sys:time() - stime <= 3000 do
 				--self._log:trace("Port Reading", recv_len, port)
 				local data, err = helper.read_serial(port, recv_len)
 				if not data then
@@ -109,7 +109,7 @@ function test:_proc(port)
 					end
 				end
 			end
-		end, false, 1000)
+		end, false, 3000)
 
 		self._count = self._count + 1
 		self._droped = buf:droped()
