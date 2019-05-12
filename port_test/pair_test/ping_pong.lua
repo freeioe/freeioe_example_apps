@@ -88,11 +88,13 @@ function test:_proc(port)
 			local recv_len = test.hdr_len -- first receive the hdr_len
 
 			while self._sys:time() - stime <= 3000 do
-				--self._log:trace("Port Reading", recv_len, port)
+				self._log:trace("Port Reading", recv_len, port)
 				local data, err = helper.read_serial(port, recv_len)
 				if not data then
+					self._log:trace("Port Reading Err", err)
 					return nil, err
 				end
+				self._log:trace("Port Reading Got", #data)
 				buf:append(data)
 				msg_recv_total = msg_recv_total + #data
 				if self._sys:time() > begin_time + 1 then
@@ -106,7 +108,7 @@ function test:_proc(port)
 					local data, dlen = buf:find(test.SK, test.EK)
 					if data then
 						buf:pop(dlen)
-						--self._log:trace("Got packet", rlen, dlen)
+						self._log:trace("Got packet", rlen, dlen)
 						return true, data, dlen
 					else
 						recv_len = rlen + test.hdr_len + #test.EK - len
@@ -118,7 +120,7 @@ function test:_proc(port)
 		self._count = self._count + 1
 		self._droped = buf:droped()
 		if r then
-			--self._log:trace("Got data")
+			self._log:trace("Got data")
 			local sk, rdata, ek = string.unpack('>c'..#test.SK..'s4c'..#test.EK, r)
 			local crc = string.sub(rdata, -4)
 			local rdata = string.sub(rdata, 1, -5)

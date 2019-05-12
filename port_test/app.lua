@@ -67,13 +67,14 @@ function app:on_start()
 			ttyS = '/dev/ttyS'
 		end
 	end
+	ttyS = '/dev/ttyUSB'
 
-	local ttyS1 = self._conf.ttyS1 or ((self._conf.ttyS or ttyS) ..'1')
-	local ttyS2 = self._conf.ttyS2 or ((self._conf.ttyS or ttyS) ..'2')
-	local baudrate = self._conf.baudrate or 115200
+	local ttyS1 = self._conf.ttyS1 or ((self._conf.ttyS or ttyS) ..'0')
+	local ttyS2 = self._conf.ttyS2 or ((self._conf.ttyS or ttyS) ..'1')
+	local baudrate = self._conf.baudrate or 9600
 	local count = self._conf.count or 1000
 	local max_size = self._conf.max_msg_size or 256
-	local auto_run = self._conf.auto or 'master_slave'
+	local auto_run = self._conf.auto or 'loop'
 	self._log:notice("Serial Port Test", ttyS1, ttyS2, auto_run)
 
 	self._port_master = {
@@ -88,7 +89,7 @@ function app:on_start()
 
 	self._test = pair_serial:new(self)
 	self._ms_test = pair_ms:new(self, count, max_size)
-	self._loop_test = pair_pp:new(self, count, max_size)
+	self._loop_test = pair_pp:new(self, count, max_size, true)
 	self._test:open(self._port_master, self._port_slave)
 
 	if auto_run == 'master_slave' then

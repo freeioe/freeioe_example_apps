@@ -1,6 +1,7 @@
 local class = require 'middleclass'
 local app_port = require 'app.port'
 local sapp = require 'app.base'
+local helper = require 'app.port.helper'
 
 --- 注册对象(请尽量使用唯一的标识字符串)
 local app = sapp:subclass("PORT_EXAMPLE_APP")
@@ -30,7 +31,8 @@ function app:on_start()
 	})
 	self._serial = app_port.new_serial({
 		--port = "/dev/ttymxc1",
-		port = "/tmp/ttyS10",
+		--port = "/tmp/ttyS10",
+		port = "/dev/ttyUSB0",
 		baudrate = 115200
 	})
 
@@ -47,18 +49,18 @@ end
 
 --- 应用运行入口
 function app:on_run(tms)
-	local r, err = self._port:request('DDDDD', function(sock)
-		--local data, err = sock:read(4)
-		local helper = require 'app.port_helper'
-		local data, err = helper.read_socket(sock, 4)
+	local r, err = self._port:request('ABCDE', function(sock)
+		--local data, err = sock:read(5)
+		local data, err = helper.read_socket(sock, 5)
+		print('SOCKET', data, err)
 		return data, err
 	end, false, 1000)
 	self._log:debug('[SOCKET] Request returns:', r, err)
 
-	local r, err = self._serial:request('EEEEE', function(serial)
-		--local data, err = serial:read(4)
-		local helper = require 'app.port_helper'
-		local data, err = helper.read_serial(serial, 4)
+	local r, err = self._serial:request('ABCDE', function(serial)
+		--local data, err = serial:read(5)
+		local data, err = helper.read_serial(serial, 5)
+		print('SERIAL', data, err)
 		return data, err
 	end, false, 1000)
 	self._log:debug('[SERIAL] Request returns:', r, err)
