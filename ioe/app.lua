@@ -452,24 +452,14 @@ function app:check_time_diff()
 	end
 
 	self._log:error("Time diff found, FreeIOE is trying to fix this. ", os_time, sys_time)
-
 	self._sys:fix_time()
 
-	if self._time_diff_event_last and (self._time_diff_event_last + 600) > os_time then
-		self._time_diff_count = self._time_diff_count + 1
-		return
-	end
-
+	--- Fire event
 	local data = {
 		os_time = os_time,
 		time=sys_time,
-		count=self._time_diff_count or 0,
 	}
-
 	self._dev:fire_event(event.LEVEL_FATAL, event.EVENT_SYS, "Time diff found!", data, os_time)
-
-	self._time_diff_event_last = os_time
-	self._time_diff_count = 0
 end
 
 --- For wan statistics
