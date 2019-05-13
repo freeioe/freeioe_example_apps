@@ -444,13 +444,32 @@ function app:first_run()
 end
 
 function app:check_time_diff()
-	if math.abs(os.time() - self._sys:time()) > 1.49 then
-		self._log:error("Time diff found, FreeIOE is trying to fix this. ", os.time(), self._sys:time())
-		self._dev:fire_event(event.LEVEL_FATAL, event.EVENT_SYS, "Time diff found!", {os_time = os.time(), time=self._sys:time()}, os.time())
-		self._sys:fix_time()
-	else
-		--print(os.time() - self._sys:time())
+	local os_time = os.time()
+	local sys_time = self._sys:time()
+
+	if math.abs(os_time - sys_time) < 1.49 then
+		return
 	end
+
+	self._log:error("Time diff found, FreeIOE is trying to fix this. ", os_time, sys_time)
+
+	self._sys:fix_time()
+
+	if self._time_diff_event_last and (self._time_diff_event_last + 600) > os_time then
+		self._time_diff_count = self._time_diff_count + 1
+		return
+	end
+
+	local data = {
+		os_time = os_time,
+		time=sys_time,
+		count=self._time_diff_count or 0,
+	}
+
+	self._dev:fire_event(event.LEVEL_FATAL, event.EVENT_SYS, "Time diff found!", data, os_time)
+
+	self._time_diff_event_last = os_time
+	self._time_diff_count = 0
 end
 
 --- For wan statistics
