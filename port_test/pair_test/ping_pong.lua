@@ -31,6 +31,20 @@ function test:initialize(app, count, max_msg_size, is_ping)
 	self._stop = nil
 end
 
+function test:out_dump(str)
+	local dev = self._app._dev
+	if dev then
+		dev:dump_comm('OUT', str)
+	end
+end
+
+function test:in_dump(str)
+	local dev = self._app._dev
+	if dev then
+		dev:dump_comm('IN', str)
+	end
+end
+
 function test:start(port)
 	self._sys:fork(function()
 		self:_proc(port)
@@ -81,6 +95,7 @@ function test:_proc(port)
 		local stime = self._sys:time()
 
 		local r, err = port:request(msg, function(port)
+			self:out_dump(msg)
 			msg_send_total = msg_send_total + #msg
 			if self._sys:time() > begin_time + 1 then
 				self._send_speed =  math.floor(msg_send_total / (self._sys:time() - begin_time))
@@ -89,7 +104,7 @@ function test:_proc(port)
 
 			while self._sys:time() - stime <= 3000 do
 				self._log:trace("Port Reading", recv_len, port)
-				local data, err = helper.read_serial(port, recv_len)
+				local data, err = helper.read_serial(port, recv_len, function(str) self:in_dump(str) end, 3000)
 				if not data then
 					self._log:trace("Port Reading Err", err)
 					return nil, err
