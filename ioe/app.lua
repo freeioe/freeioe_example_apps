@@ -355,18 +355,18 @@ function app:first_run()
 
 		--- System uptime
 		local uptime = sysinfo.uptime()
-		self._dev:set_input_prop('uptime', "value", math.floor(uptime))
+		self._dev:set_input_prop('uptime', "value", uptime)
 
 		--- System memory usage
 		local mem = sysinfo.meminfo()
-		self._dev:set_input_prop('mem_total', 'value', tonumber(mem.total))
-		self._dev:set_input_prop('mem_used', 'value', tonumber(mem.used))
-		--self._dev:set_input_prop('mem_free', 'value', tonumber(mem.free))
+		self._dev:set_input_prop('mem_total', 'value', mem.total)
+		self._dev:set_input_prop('mem_used', 'value', mem.used)
+		--self._dev:set_input_prop('mem_free', 'value', mem.free)
 
 		--- CPU temperature
 		local cpu_temp = sysinfo.cpu_temperature() or nil
 		if cpu_temp then
-			self._dev:set_input_prop('cpu_temp', "value", tonumber(cpu_temp))
+			self._dev:set_input_prop('cpu_temp', "value", cpu_temp)
 		else
 			self._dev:set_input_prop('cpu_temp', "value", 0, nil, 1)
 		end
@@ -406,7 +406,7 @@ function app:first_run()
 			end
 			local csq, err = gcom.get_csq()
 			if csq then
-				self._dev:set_input_prop('csq', "value", tonumber(csq))
+				self._dev:set_input_prop('csq', "value", csq)
 				self:lte_strength(csq)
 			end
 			local cpsi, err = gcom.get_cpsi()
@@ -535,7 +535,7 @@ function app:run(tms)
 
 	--- CPU load avg
 	local loadavg = sysinfo.loadavg()
-	self._dev:set_input_prop('cpuload', "value", tonumber(loadavg.lavg_15))
+	self._dev:set_input_prop('cpuload', "value", loadavg.lavg_15)
 
 	-- cloud flags
 	--
@@ -556,16 +556,16 @@ function app:run(tms)
 	local enable_beta = ioe.beta()
 
 	self._dev:set_input_prop('data_upload', 'value', enable_data_upload and 1 or 0)
-	self._dev:set_input_prop('data_upload_max_dpp', 'value', math.floor(tonumber(data_upload_max_dpp)))
+	self._dev:set_input_prop('data_upload_max_dpp', 'value', data_upload_max_dpp)
 	self._dev:set_input_prop('data_upload_cov', 'value', data_upload_cov and 1 or 0)
-	self._dev:set_input_prop('data_upload_cov_ttl', 'value', math.floor(tonumber(data_upload_cov_ttl)))
-	self._dev:set_input_prop('data_upload_period', 'value', math.floor(tonumber(data_upload_period)))
-	self._dev:set_input_prop('upload_period_limit', 'value', math.floor(tonumber(upload_period_limit)))
+	self._dev:set_input_prop('data_upload_cov_ttl', 'value', data_upload_cov_ttl)
+	self._dev:set_input_prop('data_upload_period', 'value', data_upload_period)
+	self._dev:set_input_prop('upload_period_limit', 'value', upload_period_limit)
 
 	self._dev:set_input_prop('data_cache', 'value', enable_data_cache and 1 or 0)
-	self._dev:set_input_prop('data_cache_per_file', 'value', math.floor(tonumber(data_cache_per_file)))
-	self._dev:set_input_prop('data_cache_limit', 'value', math.floor(tonumber(data_cache_limit)))
-	self._dev:set_input_prop('data_cache_fire_freq', 'value', math.floor(tonumber(data_cache_fire_freq)))
+	self._dev:set_input_prop('data_cache_per_file', 'value', data_cache_per_file)
+	self._dev:set_input_prop('data_cache_limit', 'value', data_cache_limit)
+	self._dev:set_input_prop('data_cache_fire_freq', 'value', data_cache_fire_freq)
 
 	self._dev:set_input_prop('stat_upload', 'value', enable_stat_upload  and 1 or 0)
 	self._dev:set_input_prop('comm_upload', 'value', enable_comm_upload or 0)
