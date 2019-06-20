@@ -138,6 +138,7 @@ function app:run(tms)
 	assert(f, err)
 	f:write(tostring(count))
 	f:close()
+	os.execute('sync')
 
 	self:write_packet(0, {func=0x05, addr=0, dt='int16', rate=1}, 0)
 
