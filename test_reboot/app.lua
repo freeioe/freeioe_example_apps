@@ -24,7 +24,7 @@ function app:initialize(name, sys, conf)
 	self._log = sys:logger()
 	self._log:debug(name.." Application initlized")
 
-	self._test = true
+	self._test = false
 
 	if self._test then
 		self._ttyport = '/tmp/ttyS10'
