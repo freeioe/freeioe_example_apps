@@ -140,10 +140,10 @@ function app:run(tms)
 	f:close()
 	os.execute('sync')
 
-	self:write_packet(0, {func=0x05, addr=0, dt='int16', rate=1}, 0)
+	self:write_packet(1, {func=0x05, addr=0, dt='int16', rate=1}, 0)
 
 	--- 返回下一次调用run之前的时间间隔
-	return 1000
+	return 5000
 end
 
 --- 返回应用对象
