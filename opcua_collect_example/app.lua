@@ -125,10 +125,17 @@ function app:connect_proc()
 	local client = self._client_obj
 
 	local ep = self._conf.endpoint or "opc.tcp://172.30.1.162:53530/OPCUA/SimulationServer"
-	local username = self._conf.username or "user1"
-	local password = self._conf.password or "password"
-	--local r, err = client:connect_username(ep, username, password)
-	local r, err = client:connect(ep)
+	self._log:info("Client connect endpoint", ep)
+
+	local r, err
+	if self._conf.username then
+		self._log:info("Client connect with username&password")
+		r, err = client:connect_username(ep, self._conf.username, self._conf.password)
+	else
+		self._log:info("Client connect without username&password")
+		r, err = client:connect(ep)
+	end
+
 	if r and r == 0 then
 		self._log:notice("OPC Client connect successfully!")
 		self._connect_retry = 2000
@@ -146,22 +153,29 @@ function app:start()
 	self._devs = {}
 
 	--- 生成OpcUa客户端对象
-	local client = opcua.Client.new() 
+	local conf = self._conf
+	local sys = self._sys
+	local client = nil
+
+	if conf.encryption then
+		local securityMode = tonumber(conf.encryption.mode or 3) -- 3: opcua.UA_MessageSecurityMode.UA_MESSAGESECURITYMODE_SIGNANDENCRYPT
+		local cert_file = sys:app_dir()..(conf.encryption.cert or "certs/cert.der")
+		local key_file = sys:app_dir()..(conf.encryption.key or "certs/key.der")
+		self._log:info("Create client with entryption", securityMode, cert_file, key_file)
+		client = opcua.Client.new(securityMode, cert_file, key_file)
+	else
+		self._log:info("Create client without entryption.")
+		client = opcua.Client.new()
+	end
+
+	local config = client.config
+	config:setTimeout(5000)
+	config:setSecureChannelLifeTime(10 * 60 * 1000)
+
+	local app_uri = conf.app_uri or "urn:freeioe:opcuaclient"
+	config:setApplicationURI(app_uri)
+
 	self._client_obj = client
-
-	--- 设定OpcUa连接配置
-	local config = client:getConfig()
-	--[[
-	local cc = config.localConnectionConfig
-	cc.protocolVersion = 0  -- 协议版本
-	cc.sendBufferSize = 65535  -- 发送缓存大小
-	cc.recvBufferSize = 65535  -- 接受缓存大小
-	cc.maxMessageSize = 0	-- 消息大小限制
-	cc.maxChunkCount = 0	--
-	]]--
-
-	config.timeout = 5000
-	config.secureChannelLifeTime = 10 * 60 * 1000
 
 	--- 发起OpcUa连接
 	self._sys:fork(function() self:connect_proc() end)

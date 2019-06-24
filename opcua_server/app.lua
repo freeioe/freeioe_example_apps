@@ -189,11 +189,33 @@ function app:start()
 	--- OpcUa has no more setLogger function
 	--opcua.setLogger(self._logger)
 
-	--- 生成OPCUA服务器实例
-	local server = opcua.Server.new()
+	local conf = self._conf
+	local sys = self._sys
 
-	--- 设定服务器地址
-	server.config:setServerURI("urn:://opcua.symid.com")
+	--- 生成OPCUA服务器实例
+	local server = nil
+	local port = tonumber(conf.port)
+	if port then
+		self._log:info("Create Server on port", port)
+	end
+	if conf.encryption then
+		local cert_file = sys:app_dir()..(conf.encryption.cert or "certs/cert.der")
+		local key_file = sys:app_dir()..(conf.encryption.key or "certs/key.der")
+		self._log:info("Create Server with entryption", securityMode, cert_file, key_file)
+		server = opcua.Server.new(port or 4840, cert_file, key_file)
+	else
+		if port then
+			server = opcua.Server.new(port)
+		else
+			self._log:info("Create Server with default settings")
+			server = opcua.Server.new()
+		end
+	end
+
+	--- 设定应用URI
+	local app_uri = conf.app_uri or "urn:freeioe:opcuaclient"
+	server.config:setApplicationURI(app_uri)
+	--server.config:setProductURI("urn:://opcua.freeioe.org")
 
 	--- 添加命名空间
 	--local id = self._sys:id()

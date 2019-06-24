@@ -168,6 +168,7 @@ function app:on_post_input(app, sn, input, prop, value, timestamp, quality)
 		log:error("Unknown sn", sn)
 		return
 	end
+	print(sn, input, prop, value)
 	local var = node.vars[input]
 	if var and prop == 'value' then
 		self._input_count_in = self._input_count_in + 1
@@ -194,9 +195,17 @@ function app:connect_proc()
 	local client = self._client_obj
 
 	local ep = self._conf.endpoint or "opc.tcp://127.0.0.1:4840"
-	local username = self._conf.username or "user1"
-	local password = self._conf.password or "password"
-	local r, err = client:connect_username(ep, username, password)
+	self._log:info("Client connect endpoint", ep)
+
+	local r, err
+
+	if self._conf.username then
+		self._log:info("Client connect with username&password")
+		r, err = client:connect_username(ep, self._conf.username, self._conf.password)
+	else
+		self._log:info("Client connect without username&password")
+		r, err = client:connect(ep)
+	end
 	if r and r == 0 then
 		self._log:notice("OPC Client connect successfully!")
 		self._client = client
@@ -230,19 +239,27 @@ end
 function app:start()
 	self._nodes = {}
 
-	local client = opcua.Client.new()
-	local config = client:getConfig()
+	local conf = self._conf
+	local sys = self._sys
+	local client = nil
 
-	--[[
-	config.localConnectionConfig.protocolVersion = 0
-	config.localConnectionConfig.sendBufferSize = 65535
-	config.localConnectionConfig.recvBufferSize = 65535
-	config.localConnectionConfig.maxMessageSize = 0
-	config.localConnectionConfig.maxChunkCount = 0
-	]]--
+	if conf.encryption then
+		local securityMode = tonumber(conf.encryption.mode or 3) -- 3: opcua.UA_MessageSecurityMode.UA_MESSAGESECURITYMODE_SIGNANDENCRYPT
+		local cert_file = sys:app_dir()..(conf.encryption.cert or "certs/cert.der")
+		local key_file = sys:app_dir()..(conf.encryption.key or "certs/key.der")
+		self._log:info("Create client with entryption", securityMode, cert_file, key_file)
+		client = opcua.Client.new(securityMode, cert_file, key_file)
+	else
+		self._log:info("Create client without entryption.")
+		client = opcua.Client.new()
+	end
 
-	config.timeout = 5000
-	config.secureChannelLifeTime = 10 * 60 * 1000
+	local config = client.config
+	config:setTimeout(5000)
+	config:setSecureChannelLifeTime(10 * 60 * 1000)
+
+	local app_uri = conf.app_uri or "urn:freeioe:opcuaclient"
+	config:setApplicationURI(app_uri)
 
 	self._client_obj = client
 
