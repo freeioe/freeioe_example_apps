@@ -1,0 +1,46 @@
+[
+	{
+		"name": "encryption_enable",
+		"desc": "加密",
+		"type": "dropdown",
+		"depends": {
+			"none": "none",
+			"encryption": "encryption_section"
+		},
+		"values": [
+			"none",
+			"encryption"
+		]
+	},
+	{
+		"name": "app_uri",
+		"desc": "应用URI",
+		"type": "string"
+	},
+	{
+		"name": "encryption_section",
+		"desc": "加密选项",
+		"type": "section",
+		"child": [
+			{
+				"name": "encryption",
+				"desc": "加密选项",
+				"type": "data_section",
+				"child": [
+					{
+						"name": "cert",
+						"desc": "UA证书(可选)",
+						"type": "string",
+						"value": "certs/cert.der"
+					},
+					{
+						"name": "key",
+						"desc": "KEY文件(可选)",
+						"type": "string",
+						"value": "certs/key.der"
+					}
+				]
+			}
+		]
+	}
+]

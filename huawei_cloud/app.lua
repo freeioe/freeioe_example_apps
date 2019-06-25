@@ -125,6 +125,13 @@ function app:on_publish_data(key, value, timestamp, quality)
 	return self:publish(".cloud.signaltrans.v2.categories.data", cjson.encode(msg), 1, false)
 end
 
+function app:on_publish_data_list(val_list)
+	for _, v in ipairs(val_list) do
+		self:on_publish_data(table.unpack(v))
+	end
+	return true
+end
+
 function app:on_event(app, sn, level, data, timestamp)
 	local msg = self:create_event_msg("event", app, sn, level, data, timestamp)
 	return self:publish(".cloud.signaltrans.v2.categories.event", cjson.encode(msg), 1, false)

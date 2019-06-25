@@ -50,6 +50,7 @@ function app:on_publish_data_list(val_list)
 	for _, v in ipairs(val_list) do
 		self:on_publish_data(table.unpack(v))
 	end
+	return true
 end
 
 
