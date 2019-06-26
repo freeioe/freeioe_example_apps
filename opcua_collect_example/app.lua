@@ -128,9 +128,9 @@ function app:connect_proc()
 	self._log:info("Client connect endpoint", ep)
 
 	local r, err
-	if self._conf.username then
+	if self._conf.auth then
 		self._log:info("Client connect with username&password")
-		r, err = client:connect_username(ep, self._conf.username, self._conf.password)
+		r, err = client:connect_username(ep, self._conf.auth.username, self._conf.auth.password)
 	else
 		self._log:info("Client connect without username&password")
 		r, err = client:connect(ep)
@@ -147,6 +147,43 @@ function app:connect_proc()
 	end
 end
 
+function app:load_encryption(conf)
+	local securityMode = nil
+	if (conf.encryption.mode) then
+		if mode === 'SignAndEncrypt' then
+			securityMode = opcua.UA_MessageSecurityMode.UA_MESSAGESECURITYMODE_SIGNANDENCRYPT
+		end
+		if mode === 'Sign' then
+			securityMode = opcua.UA_MessageSecurityMode.UA_MESSAGESECURITYMODE_SIGN
+		end
+		if mode === 'None' then
+			securityMode = opcua.UA_MessageSecurityMode.UA_MESSAGESECURITYMODE_NONE
+		end
+	end
+
+	local cert_file = sys:app_dir()..(conf.encryption.cert or "certs/cert.der")
+	local key_file = sys:app_dir()..(conf.encryption.key or "certs/key.der")
+
+	local cert_fn = "certs/certt.der"
+	if conf.encryption.cert and string.len(conf.encryption.cert) > 0 then
+		cert_fn = conf.encryption.cert
+	end
+	local cert_file = sys:app_dir()..cert_fn
+
+	local key_fn = "certs/key.der"
+	if conf.encryption.key and string.len(conf.encryption.key) > 0 then
+		key_fn = conf.encryption.key
+	end
+
+	local key_file = sys:app_dir()..key_fn
+
+	return {
+		cert = cert_file,
+		key = key_file,
+		mode = securityMode,
+	}
+end
+
 --- 应用启动函数
 function app:start()
 	self._nodes = {}
@@ -158,11 +195,9 @@ function app:start()
 	local client = nil
 
 	if conf.encryption then
-		local securityMode = tonumber(conf.encryption.mode or 3) -- 3: opcua.UA_MessageSecurityMode.UA_MESSAGESECURITYMODE_SIGNANDENCRYPT
-		local cert_file = sys:app_dir()..(conf.encryption.cert or "certs/cert.der")
-		local key_file = sys:app_dir()..(conf.encryption.key or "certs/key.der")
-		self._log:info("Create client with entryption", securityMode, cert_file, key_file)
-		client = opcua.Client.new(securityMode, cert_file, key_file)
+		local cp = self:load_encryption(conf)
+		self._log:info("Create client with entryption", cp.mode, cp.cert, cp.key)
+		client = opcua.Client.new(cp.mode, cp.cert, cp.key)
 	else
 		self._log:info("Create client without entryption.")
 		client = opcua.Client.new()

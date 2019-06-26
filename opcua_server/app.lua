@@ -164,6 +164,44 @@ local function create_handler(app)
 	}
 end
 
+function app:load_encryption(conf)
+	local securityMode = nil
+	if (conf.encryption.mode) then
+		if mode === 'SignAndEncrypt' then
+			securityMode = opcua.UA_MessageSecurityMode.UA_MESSAGESECURITYMODE_SIGNANDENCRYPT
+		end
+		if mode === 'Sign' then
+			securityMode = opcua.UA_MessageSecurityMode.UA_MESSAGESECURITYMODE_SIGN
+		end
+		if mode === 'None' then
+			securityMode = opcua.UA_MessageSecurityMode.UA_MESSAGESECURITYMODE_NONE
+		end
+	end
+
+	local cert_file = sys:app_dir()..(conf.encryption.cert or "certs/cert.der")
+	local key_file = sys:app_dir()..(conf.encryption.key or "certs/key.der")
+
+	local cert_fn = "certs/certt.der"
+	if conf.encryption.cert and string.len(conf.encryption.cert) > 0 then
+		cert_fn = conf.encryption.cert
+	end
+	local cert_file = sys:app_dir()..cert_fn
+
+	local key_fn = "certs/key.der"
+	if conf.encryption.key and string.len(conf.encryption.key) > 0 then
+		key_fn = conf.encryption.key
+	end
+
+	local key_file = sys:app_dir()..key_fn
+
+	return {
+		cert = cert_file,
+		key = key_file,
+		mode = securityMode,
+	}
+end
+
+
 --- 应用启动函数
 function app:start()
 	--- 处理OPCUA模块的日志
@@ -199,21 +237,9 @@ function app:start()
 		self._log:info("Create Server on port", port)
 	end
 	if conf.encryption then
-		local cert_fn = "certs/certt.der"
-		if conf.encryption.cert and string.len(conf.encryption.cert) > 0 then
-			cert_fn = conf.encryption.cert
-		end
-		local cert_file = sys:app_dir()..cert_fn
-
-		local key_fn = "certs/key.der"
-		if conf.encryption.key and string.len(conf.encryption.key) > 0 then
-			key_fn = conf.encryption.key
-		end
-
-		local key_file = sys:app_dir()..key_fn
-
-		self._log:info("Create Server with entryption", securityMode, cert_file, key_file)
-		server = opcua.Server.new(port or 4840, cert_file, key_file)
+		local cp = self:load_encryption(conf)
+		self._log:info("Create server with entryption", cp.cert, cp.key)
+		server = opcua.Server.new(port or 4840, cp.cert, cp.key)
 	else
 		if port then
 			server = opcua.Server.new(port)

@@ -1,0 +1,92 @@
+[
+	{
+		"name": "endpoint",
+		"desc": "连接点",
+		"type": "string",
+		"default": "opc.tcp://172.30.1.162:53530/OPCUA/SimulationServer"
+	},
+	{
+		"name": "namespace",
+		"desc": "命名空间",
+		"type": "string",
+		"default": "http://freeioe.org"
+	},
+	{
+		"name": "auth_enable",
+		"desc": "验证",
+		"type": "dropdown",
+		"depends": {
+			"disable": "none",
+			"enable": "auth"
+		},
+		"values": [
+			"disable",
+			"enable"
+		]
+	},
+	{
+		"name": "encryption_enable",
+		"desc": "加密",
+		"type": "dropdown",
+		"depends": {
+			"none": "none",
+			"encryption": "encryption"
+		},
+		"values": [
+			"none",
+			"encryption"
+		]
+	},
+	{
+		"name": "app_uri",
+		"desc": "应用URI",
+		"type": "string",
+		"default": "urn:freeioe:opcuaclient"
+	},
+	{
+		"name": "auth",
+		"desc": "用户认证",
+		"type": "section",
+		"child": [
+			{
+				"name": "username",
+				"desc": "用户名",
+				"type": "string"
+			},
+			{
+				"name": "password",
+				"desc": "密码",
+				"type": "string"
+			}
+		]
+	},
+	{
+		"name": "encryption",
+		"desc": "加密选项",
+		"type": "section",
+		"child": [
+			{
+				"name": "mode",
+				"desc": "UA证书(可选)",
+				"type": "dropdown",
+				"values": [
+					"None",
+					"Sign",
+					"SignAndEncrypt"
+				]
+			},
+			{
+				"name": "cert",
+				"desc": "UA证书(可选)",
+				"type": "string",
+				"default": "certs/cert.der"
+			},
+			{
+				"name": "key",
+				"desc": "KEY文件(可选)",
+				"type": "string",
+				"default": "certs/key.der"
+			}
+		]
+	}
+]

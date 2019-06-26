@@ -5,7 +5,7 @@
 		"type": "dropdown",
 		"depends": {
 			"none": "none",
-			"encryption": "encryption_section"
+			"encryption": "encryption"
 		},
 		"values": [
 			"none",
@@ -18,28 +18,21 @@
 		"type": "string"
 	},
 	{
-		"name": "encryption_section",
+		"name": "encryption",
 		"desc": "加密选项",
 		"type": "section",
 		"child": [
 			{
-				"name": "encryption",
-				"desc": "加密选项",
-				"type": "data_section",
-				"child": [
-					{
-						"name": "cert",
-						"desc": "UA证书(可选)",
-						"type": "string",
-						"value": "certs/cert.der"
-					},
-					{
-						"name": "key",
-						"desc": "KEY文件(可选)",
-						"type": "string",
-						"value": "certs/key.der"
-					}
-				]
+				"name": "cert",
+				"desc": "UA证书(可选)",
+				"type": "string",
+				"default": "certs/cert.der"
+			},
+			{
+				"name": "key",
+				"desc": "KEY文件(可选)",
+				"type": "string",
+				"default": "certs/key.der"
 			}
 		]
 	}
