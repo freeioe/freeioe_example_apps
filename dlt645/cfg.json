@@ -1,0 +1,52 @@
+[
+	{
+		"name": "loop_gap",
+		"desc": "采集周期(ms)",
+		"type": "number",
+		"default": 3000
+	},
+	{
+		"name": "fe_required",
+		"desc": "FE头",
+		"type": "boolean",
+		"default": false
+	},
+	{
+		"name": "opt",
+		"desc": "串口设定",
+		"type": "serial"
+	},
+	{
+		"name": "tpls",
+		"desc": "设备模板",
+		"type": "templates"
+	},
+	{
+		"name": "devs",
+		"desc": "设备列表",
+		"type": "table",
+		"cols": [
+			{
+				"name": "addr",
+				"desc": "地址",
+				"type": "string",
+				"default": "992233445566"
+			},
+			{
+				"name": "name",
+				"desc": "设备名称",
+				"type": "string"
+			},
+			{
+				"name": "sn",
+				"desc": "序列号",
+				"type": "string"
+			},
+			{
+				"name": "tpl",
+				"desc": "模板",
+				"type": "template"
+			}
+		]
+	}
+]

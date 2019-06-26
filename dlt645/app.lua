@@ -73,7 +73,7 @@ function app:start()
 		assert(v.sn and v.name and v.addr and v.tpl)
 
 		--- 生成设备的序列号
-		local dev_sn = v.sn
+		local dev_sn = sys_id ..'.'..v.sn
 
 		self._log:debug("Try to load csv tpl:", v.tpl)
 		local tpl, err = csv_tpl.load_tpl(v.tpl)
