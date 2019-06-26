@@ -15,7 +15,8 @@
 	{
 		"name": "app_uri",
 		"desc": "应用URI",
-		"type": "string"
+		"type": "string",
+		"default": "urn:freeioe:opcuaclient"
 	},
 	{
 		"name": "encryption",
