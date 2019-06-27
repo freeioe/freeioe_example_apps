@@ -165,15 +165,17 @@ local function create_handler(app)
 end
 
 function app:load_encryption(conf)
+	local sys = self._sys
+
 	local securityMode = nil
 	if (conf.encryption.mode) then
-		if mode === 'SignAndEncrypt' then
+		if mode == 'SignAndEncrypt' then
 			securityMode = opcua.UA_MessageSecurityMode.UA_MESSAGESECURITYMODE_SIGNANDENCRYPT
 		end
-		if mode === 'Sign' then
+		if mode == 'Sign' then
 			securityMode = opcua.UA_MessageSecurityMode.UA_MESSAGESECURITYMODE_SIGN
 		end
-		if mode === 'None' then
+		if mode == 'None' then
 			securityMode = opcua.UA_MessageSecurityMode.UA_MESSAGESECURITYMODE_NONE
 		end
 	end
