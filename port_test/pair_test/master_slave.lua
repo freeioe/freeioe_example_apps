@@ -10,12 +10,12 @@ function ms:initialize(app, count, max_msg_size)
 	self._log = app._log
 	self._max_count = count or 1000
 
-	self._master = ping_pong:new(app, count, max_msg_size, true)
 	self._slave = ping_pong:new(app, count, max_msg_size, false)
+	self._master = ping_pong:new(app, count, max_msg_size, true)
 end
 
 function ms:start(master, slave)
-	return self._master:start(master) and self._slave:start(slave)
+	return self._slave:start(slave) and self._master:start(master)
 end
 
 function ms:finished()

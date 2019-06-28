@@ -128,6 +128,8 @@ function test:_proc(port)
 					else
 						recv_len = rlen + test.hdr_len + #test.EK - len
 					end
+				else
+					self._log:warning("Failed to find SK", data, len)
 				end
 			end
 		end, false, 3000)
