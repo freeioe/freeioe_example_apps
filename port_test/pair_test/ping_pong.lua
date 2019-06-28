@@ -1,7 +1,7 @@
 local class = require 'middleclass'
 local helper = require 'app.port.helper'
 local stream_buffer = require 'app.utils.stream_buffer'
-local crc32 = require 'hashings.crc32'
+local crc16 = require 'pair_test.crc16'
 local basexx = require 'basexx'
 
 
@@ -62,9 +62,9 @@ function test:_gen_msg()
 		buf[#buf + 1] = string.pack('I4', math.random(1, 0xFFFF))
 	end
 	local rdata = table.concat(buf)
-	local crc = crc32:new(rdata):digest()
+	local crc = crc16(rdata)
+	self._log:trace("CRC:", basexx.to_hex(crc))
 	rdata = rdata..crc
-	--self._log:trace("CRC:", basexx.to_hex(crc))
 
 	local data = string.pack('>c'..#test.SK..'s4c'..#test.EK, test.SK, rdata, test.EK)
 
@@ -137,10 +137,10 @@ function test:_proc(port)
 		if r then
 			self._log:trace("Got data")
 			local sk, rdata, ek = string.unpack('>c'..#test.SK..'s4c'..#test.EK, r)
-			local crc = string.sub(rdata, -4)
-			local rdata = string.sub(rdata, 1, -5)
-			-- check crc32
-			if crc ~= crc32:new(rdata):digest() then
+			local crc = string.sub(rdata, -2)
+			local rdata = string.sub(rdata, 1, -3)
+			-- check crc
+			if crc ~= crc16(rdata) then
 				self._failed = self._failed + 1
 				if not self._ping then
 					msg = self:_gen_msg()
