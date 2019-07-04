@@ -63,7 +63,7 @@ function test:_gen_msg()
 	end
 	local rdata = table.concat(buf)
 	local crc = crc16(rdata)
-	self._log:trace("CRC:", basexx.to_hex(crc))
+	--self._log:trace("CRC:", basexx.to_hex(crc))
 	rdata = rdata..crc
 
 	local data = string.pack('>c'..#test.SK..'s4c'..#test.EK, test.SK, rdata, test.EK)

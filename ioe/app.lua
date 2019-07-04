@@ -51,18 +51,19 @@ function app:start()
 		{
 			name = 'cpu_temp',
 			desc = 'CPU temperature',
-			unit = '℃',
+			unit = 'Celsius',
 		},
 		{
 			name = 'mem_total',
 			desc = 'Memory total size',
 			vt = 'int';
-			unit = 'byte',
+			unit = 'KB',
 		},
 		{
 			name = 'mem_used',
 			desc = 'Memory used size',
 			vt = "int",
+			unit = 'KB',
 		},
 		--[[
 		{
@@ -211,13 +212,13 @@ function app:start()
 				name = 'wan_s',
 				desc = 'GPRS/LET send this month',
 				vt = 'int',
-				unit = 'kB'
+				unit = 'KB'
 			},
 			{
 				name = 'wan_r',
 				desc = 'GPRS/LET receive this month',
 				vt = 'int',
-				unit = 'kB'
+				unit = 'KB'
 			},
 		}
 
