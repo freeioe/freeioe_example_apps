@@ -29,6 +29,25 @@ function app:initialize(name, sys, conf)
 	end
 end
 
+function app:on_start()
+	--- 生成设备唯一序列号
+	local sys_id = self._sys:id()
+	local sn = sys_id..".test"
+
+	--- 增加设备实例
+	local inputs = {
+		{name="tag1", desc="tag1 desc"}
+	}
+
+	local meta = self._api:default_meta()
+	meta.name = "Example Device"
+	meta.description = "Example Device Meta"
+
+	self._dev = self._api:add_device(sn, meta, inputs)
+
+	return base_mqtt.on_start(self)
+end
+
 function app:mqtt_auth()
 	local conf = self._conf
 	return {
@@ -75,7 +94,7 @@ end
 function app:get_device_id(sn)
 	local devid = self._def_key_default
 	if sn ~= self._sys:id() then
-		local ssn, sub = string.match('^([^.]+)%.(.+)')
+		local ssn, sub = string.match(sn, '^([^.]+)%.(.+)')
 		if ssn == self._sys:id() then
 			devid = self._def_keys[sub]
 		else
@@ -136,7 +155,7 @@ function app:on_publish_data_list(val_list)
 --[[ property.batch.json ]]--
 	local data_list = {}
 	for _, v in ipairs(val_list) do
-		local sn, input = string.match(v[1], '^([^%.]+)/(.+)$')
+		local sn, input = string.match(v[1], '^([^/]+)/(.+)$')
 
 		local devid = self:get_device_id(sn)
 		if devid then
@@ -250,6 +269,10 @@ function app:on_run(tms)
 		self._hb_last = self._sys:time()
 		self:send_heartbeat()
 	end
+
+	self._dev:set_input_prop('tag1', 'value', math.random(1, 1000))
+
+	return 1000
 end
 
 --- 返回应用类对象
