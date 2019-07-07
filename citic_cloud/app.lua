@@ -221,7 +221,7 @@ function app:send_heartbeat()
 		local hb = {
 			deviceid = k,
 			ts = math.floor(self._sys:time() * 1000),
-			hb = 300
+			hb = 60 * 1000
 		}
 		local val, err = cjson.encode(hb)
 		if val then
