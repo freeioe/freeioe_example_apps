@@ -10,8 +10,8 @@ local app = class("FREEIOE_OPCUA_CLIENT_APP")
 --- 设定应用最小运行接口版本(目前版本为4,为了以后的接口兼容性)
 app.static.API_VER = 4
 
---local default_modal = 'UN200A5_s'
-local default_modal = 'UN200A5'
+local default_modal = 'UN200A5_s'
+--local default_modal = 'UN200A5'
 
 ---
 -- 应用对象初始化函数
@@ -286,30 +286,34 @@ function app:run(tms)
 
 	local dev = self._dev
 
+	print('Start', os.date())
+
 	--- 获取节点当前值数据
 	for _, input in pairs(self._inputs) do
 		local prop = self._input_props[input.name]
 		local node = self._nodes[input.name]
 
-		local now = self._sys:time()
 		if node then
 			local dv = node.dataValue
-			local ts = opcua.DateTime.toUnixTime(dv.sourceTimestamp or dv.serverTimestamp)
+			--local ts = opcua.DateTime.toUnixTime(dv.sourceTimestamp or dv.serverTimestamp)
 			--- 设定当前值
 			local value = tonumber(dv.value:asString()) --- The data type always String -_-!
+			local now = self._sys:time()
 			if value then
-				dev:set_input_prop(input.name, "value", value, ts or now, 0)
+				dev:set_input_prop(input.name, "value", value, now, 0)
 			else
 				self._log:warning("Read "..input.name.." failed!!")
 			end
 		else
+			local now = self._sys:time()
 			-- TODO:
 			-- dev:set_input_prop(k, "value", 0, now, 1)
 		end
 	end
 
-	local next_tms = (self._conf.loop_gap or 1000) - (self._sys:time() - begin_time)
+	print('End', os.date())
 
+	local next_tms = (self._conf.loop_gap or 1000) - ((self._sys:time() - begin_time) * 1000)
 	return next_tms > 0 and next_tms or 0
 end
 
