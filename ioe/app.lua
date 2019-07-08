@@ -625,12 +625,14 @@ function app:on_post_fire_event(msg, lvl, tp, data)
 	self._dev:fire_event(lvl, tp, msg, data)
 end
 
-function app:ext_upgrade(ext)
-	skynet.call(".ioe_ext", "lua", "upgrade_ext", '__from_ioe_app'..os.time(), {name=ext})
+function app:ext_upgrade(param)
+	local skynet = require 'skynet'
+	return skynet.call(".ioe_ext", "lua", "upgrade_ext", '__from_ioe_app'..os.time(), param)
 end
 
-function app:ext_auto_clean()
-	skynet.call(".ioe_ext", "lua", "auto_clean", '__from_ioe_app'..os.time(), {})
+function app:ext_auto_clean(param)
+	local skynet = require 'skynet'
+	return skynet.call(".ioe_ext", "lua", "auto_clean", '__from_ioe_app'..os.time(), {})
 end
 
 return app
