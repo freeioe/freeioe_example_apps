@@ -288,7 +288,11 @@ function app:run(tms)
 			local ts = opcua.DateTime.toUnixTime(dv.sourceTimestamp or dv.serverTimestamp)
 			--- 设定当前值
 			local value = tonumber(dv.value:asString()) --- The data type always String -_-!
-			dev:set_input_prop(input.name, "value", value, ts or now, 0)
+			if value then
+				dev:set_input_prop(input.name, "value", value, ts or now, 0)
+			else
+				self._log:warning("Read "..input.name.." failed!!")
+			end
 		else
 			-- TODO:
 			-- dev:set_input_prop(k, "value", 0, now, 1)

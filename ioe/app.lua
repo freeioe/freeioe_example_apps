@@ -35,6 +35,12 @@ function app:start()
 			if command == 'cfg_crash_ack' then
 				return self:cfg_crash_ack()
 			end
+			if command == 'ext_auto_clean' then
+				return self:ext_auto_clean(param)
+			end
+			if command == 'ext_upgrade' then
+				return self:ext_upgrade(param)
+			end
 			print('on_command', app, sn, command, param)
 			return true, "eee"
 		end,
@@ -259,6 +265,14 @@ function app:start()
 		{
 			name = "cfg_crash_ack",
 			desc = "Configuration file crash acknowledgement",
+		},
+		{
+			name = "ext_upgrade",
+			desc = "Upgrade extension witch specified name",
+		},
+		{
+			name = "ext_auto_clean",
+			desc = "Auto cleanup extensions",
 		},
 	}
 
@@ -609,6 +623,14 @@ function app:on_post_fire_event(msg, lvl, tp, data)
 	assert(msg and lvl and tp and data)
 	data.time = data.time or self._sys:time()
 	self._dev:fire_event(lvl, tp, msg, data)
+end
+
+function app:ext_upgrade(ext)
+	skynet.call(".ioe_ext", "lua", "upgrade_ext", '__from_ioe_app'..os.time(), {name=ext})
+end
+
+function app:ext_auto_clean()
+	skynet.call(".ioe_ext", "lua", "auto_clean", '__from_ioe_app'..os.time(), {})
 end
 
 return app

@@ -25,7 +25,7 @@
 		"name": "auth_enable",
 		"desc": "验证",
 		"type": "dropdown",
-		"default": "none",
+		"default": "disable",
 		"depends": {
 			"disable": "none",
 			"enable": "auth"
