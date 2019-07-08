@@ -3,10 +3,10 @@
 		"name": "modal",
 		"desc": "型号",
 		"type": "dropdown",
-		"default": "UA200A5",
+		"default": "UN200A5",
 		"values": [
-			"UNA200A5",
-			"UNA200A6"
+			"UN200A5",
+			"UN200A6"
 		]
 	},
 	{

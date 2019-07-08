@@ -10,7 +10,8 @@ local app = class("FREEIOE_OPCUA_CLIENT_APP")
 --- 设定应用最小运行接口版本(目前版本为4,为了以后的接口兼容性)
 app.static.API_VER = 4
 
-local default_tpl = 'UN200A5_s'
+--local default_modal = 'UN200A5_s'
+local default_modal = 'UN200A5'
 
 ---
 -- 应用对象初始化函数
@@ -26,6 +27,9 @@ function app:initialize(name, sys, conf)
 	--- 获取日志接口
 	self._log = sys:logger()
 	self._connect_retry = 1000
+
+	--- Set default
+	conf.modal = conf.modal or default_modal
 end
 
 ---
@@ -73,7 +77,7 @@ function app:save_input_desc(inputs)
 		return
 	end
 
-	local desc_file = self._sys:app_dir() ..'/'..conf.tpl..'.txt'
+	local desc_file = self._sys:app_dir() ..'/'..conf.modal..'.txt'
 	local f, err = io.open(desc_file, 'w+')
 	if not f then
 		self._log:warning("Failed to open description file", err)
@@ -85,7 +89,7 @@ end
 
 function app:load_input_desc()
 	local conf = self._conf
-	local desc_file = self._sys:app_dir() ..'/'..conf.tpl..'.txt'
+	local desc_file = self._sys:app_dir() ..'/'..conf.modal..'.txt'
 	local f, err = io.open(desc_file, 'r')
 	local input_desc = {}
 	if f then
@@ -221,8 +225,7 @@ function app:start()
 	local sys_id = self._sys:id()
 
 	csv_tpl.init(self._sys:app_dir())
-	conf.tpl = conf.tpl or default_tpl
-	local tpl = csv_tpl.load_tpl(conf.tpl)
+	local tpl = csv_tpl.load_tpl(conf.modal)
 
 	--- 创建设备对象实例
 	local sys_id = self._sys:id()
