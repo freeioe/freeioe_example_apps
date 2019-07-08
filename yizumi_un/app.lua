@@ -40,7 +40,7 @@ function app:on_connected(client)
 
 	--- 获取节点
 	local desc_changed = false
-	for _, input in pairs(self._inputs) do
+	for _, input in ipairs(self._inputs) do
 		local prop = self._input_props[input.name]
 		if not self._nodes[input.name] then
 			local id =  opcua.NodeId.new(prop.ns, prop.i)
@@ -289,7 +289,7 @@ function app:run(tms)
 	print('Start', os.date())
 
 	--- 获取节点当前值数据
-	for _, input in pairs(self._inputs) do
+	for _, input in ipairs(self._inputs) do
 		local prop = self._input_props[input.name]
 		local node = self._nodes[input.name]
 
