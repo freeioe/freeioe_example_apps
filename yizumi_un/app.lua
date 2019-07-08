@@ -39,6 +39,7 @@ function app:on_connected(client)
 	self._nodes = {}
 
 	--- 获取节点
+	local desc_changed = false
 	for _, input in pairs(self._inputs) do
 		local prop = self._input_props[input.name]
 		if not self._nodes[input.name] then
@@ -49,6 +50,8 @@ function app:on_connected(client)
 
 				if not prop.desc then
 					prop.desc = obj.displayName.text
+					input.desc = prop.desc
+					desc_changed = true
 					self._log:debug("Read displayName", prop.desc)
 				end
 			else
@@ -58,11 +61,14 @@ function app:on_connected(client)
 			self._sys:sleep(0)
 		end
 	end
+
+	if desc_changed then
+		self:save_input_desc(self._input_props)
+		self._dev:mod(self._inputs)
+	end
 	
 	-- Set client object
 	self._client = client
-
-	self:save_input_desc(self._input_props)
 end
 
 function app:save_input_desc(inputs)
@@ -249,7 +255,7 @@ function app:start()
 	end
 
 	self._inputs = inputs
-	print(cjson.encode(inputs))
+	--print(cjson.encode(inputs))
 	self._dev = self._api:add_device(sys_id..'.'..meta.name, meta, inputs)
 
 	--- 发起OpcUa连接
