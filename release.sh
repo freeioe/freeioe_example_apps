@@ -14,6 +14,7 @@ RELEASE_APP frpc
 RELEASE_APP opcua_server
 RELEASE_APP opcua_client
 RELEASE_APP opcua_collect_example
+RELEASE_APP yizumi_un
 RELEASE_APP symlink
 RELEASE_APP network
 # Cloud connectors
