@@ -1,0 +1,12 @@
+[
+	{
+		"name": "up",
+		"desc": "服务端口",
+		"type": "serial"
+	},
+	{
+		"name": "down",
+		"desc": "设备通讯端口",
+		"type": "serial"
+	}
+]

@@ -30,3 +30,4 @@ RELEASE_APP focas
 RELEASE_APP showbox 
 RELEASE_APP sim
 RELEASE_APP port_test
+RELEASE_APP oliver_355_monitor
