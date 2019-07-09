@@ -21,12 +21,13 @@ app.static.API_VER = 4
 -- @param sys: 系统sys接口对象。参考API文档中的sys接口说明
 -- @param conf: 应用配置参数。由安装配置中的json数据转换出来的数据对象
 function app:initialize(name, sys, conf)
+	--conf.period = 1
 	mqtt_app.initialize(self, name, sys, conf)
 
 	self._client_id = conf.mqtt_id or sys:id() -- using system device id
-	self._product_key = conf.product_key or "5NjhcjHuFPS"
-	self._device_name = conf.device_name or "demo1"
-	self._device_secret = conf.device_secret or "QnINbT0Oze4YHCe83lsVvM6RQH66BnLA"
+	self._product_key = conf.product_key or "a1Yl2JxcnP4"
+	self._device_name = conf.device_name or self._sys:id()
+	self._device_secret = conf.device_secret or "8xDP3dZ6ZttQjMwNrUZVtIdxSsY6ehrl"
 	self._server_host = conf.server or "iot-as-mqtt.cn-shanghai.aliyuncs.com"
 	self._server_port = conf.port or "1883"
 	self._enable_https = conf.enable_https or false
@@ -34,8 +35,9 @@ function app:initialize(name, sys, conf)
 	self._http_server = conf.http_server or "iot-auth.cn-shanghai.aliyuncs.com"
 	self._http_api = aliyun_http:new(sys, self._http_server, self._product_key)
 
-	self._mqtt_topic = string.format("/%s/%s", self._product_key, self._device_name)
+	self._mqtt_topic = string.format("/%s/%s/user", self._product_key, self._device_name)
 	--self._mqtt_topic = ""
+	self._mqtt_msg_id = 0
 end
 
 --- 
@@ -100,6 +102,24 @@ function app:mqtt_auth()
 	end
 end
 
+function app:on_publish_devices(devices)
+	--[[
+	self._mqtt_msg_id = self._mqtt_msg_id + 1
+	local param = []
+	for k, v in pairs(devices) do
+		param[#param + 1] = {
+			devicename = k,
+			productKey = self._product_keys[v.meta.name] or self._product_key
+		}
+	end
+	local data = {
+		id = self._mqtt_msg_id,
+		version = "1.0",
+		param = []
+	}
+	]]--
+end
+
 function app:on_publish_data(key, value, timestamp, quality)
 	local sn, input, prop = string.match(key, '^([^/]+)/([^/]+)/(.+)$')
 	local msg = {
@@ -110,14 +130,26 @@ function app:on_publish_data(key, value, timestamp, quality)
 		timestamp = timestamp,
 		quality = quality
 	}
+	self._log:trace(cjson.encode(msg))
 	return self:publish(self._mqtt_topic.."/data", cjson.encode(msg), 1, false)
 end
 
 function app:on_publish_data_list(val_list)
+	local msg = {}
 	for _, v in ipairs(val_list) do
-		self:on_publish_data(table.unpack(v))
+		local key, value, timestamp, quality = table.unpack(v)
+		local sn, input, prop = string.match(key, '^([^/]+)/([^/]+)/(.+)$')
+		msg[#msg + 1] = {
+			sn = sn,
+			input = input,
+			prop = prop,
+			value = value,
+			timestamp = timestamp,
+			quality = quality
+		}
 	end
-	return true
+	self._log:trace(cjson.encode(msg))
+	return self:publish(self._mqtt_topic.."/batch_data", cjson.encode(msg), 1, false)
 end
 
 
