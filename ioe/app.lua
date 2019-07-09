@@ -196,7 +196,7 @@ function app:start()
 	}
 	local sys_id = self._sys:hw_id()
 	local id = self._sys:id()
-	if string.sub(sys_id, 1, 8) == '2-30002-' then
+	if string.sub(sys_id, 1, 8) == '2-30002-' or string.sub(sys_id, 1, 8) == '2-30102-' then
 		self._gcom = true
 		local gcom_inputs = {
 			{
