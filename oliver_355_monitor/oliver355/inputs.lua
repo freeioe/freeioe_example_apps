@@ -10,7 +10,7 @@ return {
 		name = "working_frequency",
 		desc = "工作频率",
 		vt = "int",
-		unit = "khz",
+		unit = "Hz",
 		rate = 0.001,
 		cmd = "tf",
 		rp = "trigfreq",
@@ -35,7 +35,6 @@ return {
 		name = "power_setting",
 		desc = "功率设置",
 		vt = "int",
-		unit = "%",
 		rate = 0.1,
 		cmd  ="pf",
 		rp = "powerfactor",
@@ -125,9 +124,8 @@ return {
 	},
 	{
 		name = "rep_rate",
-		desc = "Burst Channel",
+		desc = "种子源频率",
 		vt = "int",
-		unit = 'Hz',
 		decode_mode = 1,
 	},
 	{
