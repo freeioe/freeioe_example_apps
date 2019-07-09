@@ -190,7 +190,62 @@ function app:on_post_stream_from_up(stream)
 				self._working_cmd_time = self._sys:time()
 			end
 		end
+
+		if not self._working_cmd then
+			if cmd == 'laser' then
+				--- 总召指令
+				self._working_cmd = {
+					cmd = 'laser',
+					rp = 'laser?',
+					parser = function(dev, data)
+						self:laser_parser(dev, data)
+					end,
+				}
+			end
+		end
 	end
+end
+
+function app:laser_parser(dev, data)
+	local laser_inputs = {
+		state = 'working_mode',
+		pf = 'power_setting',
+		op = 'output_power',
+		pe = 'pulse_energy',
+		trig = 'trigger_mode',
+		tf = 'working_frequency',
+		eaomdiv = 'scaling_down_setting',
+		burst = 'burst',
+		C = 'C',
+		D = 'D',
+		A = 'A',
+		S = 'S',
+		rr = 'rep_rate',
+		errors = 'report_errors',
+		warnings = 'report_warnings'
+	}
+	local m_str = "(%d+) (%d+) (%d+) ([%d%.]+) ([%d%.]+) (%d+) (%d+) (%d+) (%d+) (%d+) (%d+) (%d+) (%d+) (%d+) geterrors%? /([^/]+) / getwarnings%? /([^/]+) /"
+
+	self._log:debug("Laser Parser", m_str, data)
+	local xx, state, pf, op, pe, trig, tf, eaomdiv, busrt, C, D, A, S, rr, erros, warnings= string.match(data, m_str)
+	self._log:debug("Laser Parser Result", xx, state, pf, op, pe, trig, tf, eaomdiv, busrt, C, D, A, S, rr, erros, warnings)
+
+	dev:set_input_prop(laser_inputs.state, 'value', state)
+	dev:set_input_prop(laser_inputs.pf, 'value', pf)
+	dev:set_input_prop(laser_inputs.op, 'value', op)
+	dev:set_input_prop(laser_inputs.pe, 'value', pe)
+	dev:set_input_prop(laser_inputs.trig, 'value', trig)
+	dev:set_input_prop(laser_inputs.tf, 'value', tf)
+	dev:set_input_prop(laser_inputs.eaomdiv, 'value', eaomdiv)
+	dev:set_input_prop(laser_inputs.busrt, 'value', busrt)
+	dev:set_input_prop(laser_inputs.C, 'value', C)
+	dev:set_input_prop(laser_inputs.D, 'value', D)
+	dev:set_input_prop(laser_inputs.A, 'value', A)
+	dev:set_input_prop(laser_inputs.S, 'value', S)
+	dev:set_input_prop(laser_inputs.rr, 'value', rr)
+	dev:set_input_prop(laser_inputs.errors, 'value', errors)
+	dev:set_input_prop(laser_inputs.warnings, 'value', warnings)
+
 end
 
 function app:on_post_stream_from_down(stream)
@@ -214,7 +269,13 @@ function app:on_post_stream_from_down(stream)
 				if value then
 					self._log:trace("Got command result", value)
 					self._dev:dump_comm("DEV-PACKET", str)
-					self._dev:set_input_prop(cmd.name, 'value', value)
+
+					if not cmd.parser then
+						self._dev:set_input_prop(cmd.name, 'value', value)
+					else
+						cmd.parser(self._dev, value)
+					end
+
 					self._working_cmd = nil
 					self._down_stream_buffer = {}
 				end
