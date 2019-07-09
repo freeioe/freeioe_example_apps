@@ -21,7 +21,7 @@ function app:initialize(name, sys, conf)
 	self._log:debug("Port example application initlized")
 
 	conf.down = conf.down or {
-		port = "/dev/ttymcx0",
+		port = "/dev/ttymxc0",
 		--port = "/tmp/ttyS1",
 		baudrate = 19200,
 		data_bits = 8,
@@ -30,7 +30,7 @@ function app:initialize(name, sys, conf)
 		flow_control = "OFF"
 	}
 	conf.up = conf.up or {
-		port = "/dev/ttymcx1",
+		port = "/dev/ttymxc1",
 		--port = "/tmp/ttyS2",
 		baudrate = 19200,
 		data_bits = 8,
