@@ -101,7 +101,7 @@ function app:on_start()
 	down_port:start(function(data, err)
 		-- Recevied Data here
 		if data then
-			self._log:debug("DownPort Recevied data", basexx.to_hex(data))
+			--self._log:debug("DownPort Recevied data", basexx.to_hex(data))
 			self._dev:dump_comm("DEV-IN", data)
 			if self._up_port then
 				self._dev:dump_comm("PC-OUT", data)
@@ -120,7 +120,7 @@ function app:on_start()
 	up_port:start(function(data, err)
 		-- Recevied Data here
 		if data then
-			self._log:debug("UpPort Recevied data", basexx.to_hex(data))
+			--self._log:debug("UpPort Recevied data", basexx.to_hex(data))
 			self._dev:dump_comm("PC-IN", data)
 			if self._down_port then
 				self._dev:dump_comm("DEV-OUT", data)
@@ -157,7 +157,7 @@ function app:on_run(tms)
 end
 
 function app:on_post_stream_from_up(stream)
-	if self._working_cmd then
+	if self._working_cmd and self._working_cmd.name ~= 'laser' then
 		local cmd = self._working_cmd
 		local cmd_time = self._working_cmd_time
 
@@ -173,11 +173,15 @@ function app:on_post_stream_from_up(stream)
 		self._down_stream_buffer = {}
 	end
 
+	--self._log:trace("PC Sending stream",basexx.to_hex(stream))
 	table.insert(self._up_stream_buffer, stream)
 	local buf = table.concat(self._up_stream_buffer)
-	local cmd = string.match(buf, "^([^%?]+)%?[\r]*\n")
+	--self._log:trace("PC Sending xxxxxxxxxxxx",basexx.to_hex(buf))
+	
+	local cmd = string.match(buf, "([^%?]+)%?[\r]*\n")
+	--self._log:trace("PC Sending buffffffff", cmd or 'N/A', '||||', buf)
 	if cmd then
-		self._log:trace("PC Sending command", cmd)
+		--self._log:trace("PC Sending command", cmd)
 		--- Clean all buffers
 		self._up_stream_buffer = {}
 		self._down_stream_buffer = {}
@@ -185,23 +189,22 @@ function app:on_post_stream_from_up(stream)
 
 		for _, v in ipairs(self._inputs) do
 			if v.cmd == cmd then
-				self._log:trace("Finded supported command", cjson.encode(v))
+				--self._log:trace("Finded supported command", cjson.encode(v))
 				self._working_cmd = v
 				self._working_cmd_time = self._sys:time()
 			end
-		end
-
-		if not self._working_cmd then
-			if cmd == 'laser' then
-				--- 总召指令
-				self._working_cmd = {
-					cmd = 'laser',
-					rp = 'laser?',
-					parser = function(dev, data)
-						self:laser_parser(dev, data)
-					end,
-				}
-			end
+        end
+        if cmd == 'laser' then
+		    self._log:trace("PC Sending laser command")
+			self._working_cmd = {
+			    name = 'laser',
+				cmd = 'laser',
+				rp = 'laser?',
+				decode_mode = 1,
+				parser = function(dev, data)
+					self:laser_parser(dev, data)
+				end,
+			}
 		end
 	end
 end
@@ -224,27 +227,58 @@ function app:laser_parser(dev, data)
 		errors = 'report_errors',
 		warnings = 'report_warnings'
 	}
-	local m_str = "(%d+) (%d+) (%d+) ([%d%.]+) ([%d%.]+) (%d+) (%d+) (%d+) (%d+) (%d+) (%d+) (%d+) (%d+) (%d+) geterrors%? /([^/]+) / getwarnings%? /([^/]+) /"
+	-----------------xx---state--pf-----op---------pe----trig---tf--eadiv--but---C------D-----A----S-----rr-----xxxx---errrors-------warnings---
+	local m_str = "(%d+) (%d+) (%d+) ([%d%.]+) ([%d%.]+) (%d+) (%d+) (%d+) (%d+) (%d+) (%d+) (%d+) (%d+) (%d+) (.*)geterrors%? /([^/]*)/getwarnings%? /([^/]*)/"
 
-	self._log:debug("Laser Parser", m_str, data)
-	local xx, state, pf, op, pe, trig, tf, eaomdiv, busrt, C, D, A, S, rr, erros, warnings= string.match(data, m_str)
-	self._log:debug("Laser Parser Result", xx, state, pf, op, pe, trig, tf, eaomdiv, busrt, C, D, A, S, rr, erros, warnings)
+	--self._log:debug("Laser Parser", m_str, data)
+	local xx, state, pf, op, pe, trig, tf, eaomdiv, burst, C, D, A, S, rr, xxxx, errors, warnings= string.match(data, m_str)
+	self._log:debug("Laser Parser Result", xx, state, pf, op, pe, trig, tf, eaomdiv, burst, C, D, A, S, rr, errors, warnings)
 
+
+	--self._log:trace("Result(state)", laser_inputs.state, 'value', state)
 	dev:set_input_prop(laser_inputs.state, 'value', state)
+
+	--self._log:trace("Result(pf)", laser_inputs.pf, 'value', pf)
 	dev:set_input_prop(laser_inputs.pf, 'value', pf)
+
+	--self._log:trace("Result(op)", laser_inputs.op, 'value', op)
 	dev:set_input_prop(laser_inputs.op, 'value', op)
+
+	--self._log:trace("Result(pe)", laser_inputs.pe, 'value', pe)
 	dev:set_input_prop(laser_inputs.pe, 'value', pe)
+
+	--self._log:trace("Result(trig)", laser_inputs.trig, 'value', trig)
 	dev:set_input_prop(laser_inputs.trig, 'value', trig)
+
+	--self._log:trace("Result(tf)", laser_inputs.tf, 'value', tf)
 	dev:set_input_prop(laser_inputs.tf, 'value', tf)
+
+	--self._log:trace("Result(eaomdiv)", laser_inputs.eaomdiv, 'value', eaomdiv)
 	dev:set_input_prop(laser_inputs.eaomdiv, 'value', eaomdiv)
-	dev:set_input_prop(laser_inputs.busrt, 'value', busrt)
+
+	--self._log:trace("Result(burst)", laser_inputs.burst, 'value', burst)
+	dev:set_input_prop(laser_inputs.burst, 'value', burst)
+
+	--self._log:trace("Result(C)", laser_inputs.C, 'value', C)
 	dev:set_input_prop(laser_inputs.C, 'value', C)
+
+	--self._log:trace("Result(D)", laser_inputs.D, 'value', D)
 	dev:set_input_prop(laser_inputs.D, 'value', D)
+
+	--self._log:trace("Result(A)", laser_inputs.A, 'value', A)
 	dev:set_input_prop(laser_inputs.A, 'value', A)
+
+	--self._log:trace("Result(S)", laser_inputs.S, 'value', S)
 	dev:set_input_prop(laser_inputs.S, 'value', S)
+
+	--self._log:trace("Result(rr)", laser_inputs.rr, 'value', rr)
 	dev:set_input_prop(laser_inputs.rr, 'value', rr)
-	dev:set_input_prop(laser_inputs.errors, 'value', errors)
-	dev:set_input_prop(laser_inputs.warnings, 'value', warnings)
+
+	--self._log:trace("Result(errors)", laser_inputs.errors, 'value', errors)
+	dev:set_input_prop(laser_inputs.errors, 'value', errors or '')
+
+	--self._log:trace("Result(warnings)", laser_inputs.warnings, 'value', warnings)
+	dev:set_input_prop(laser_inputs.warnings, 'value', warnings or '')
 
 end
 
@@ -254,6 +288,7 @@ function app:on_post_stream_from_down(stream)
 		table.insert(self._down_stream_buffer, stream)
 		if cmd.decode_mode == 1 then
 			local str = table.concat(self._down_stream_buffer)
+	        --self._log:trace("Device receive bufffffer",str)
 
 			local rp = cmd.rp or cmd.cmd
 			if string.len(str) > string.len(rp) then
@@ -264,10 +299,10 @@ function app:on_post_stream_from_down(stream)
 					self._down_stream_buffer = {str}
 				end
 
-				self._log:trace("Finding supported command result", rp)
+				--self._log:trace("Finding supported command result", rp)
 				local value = string.match(str, "^%s(.+)[\r]*\n", string.len(rp) + 1)
 				if value then
-					self._log:trace("Got command result", value)
+					--self._log:trace("Got command result", value)
 					self._dev:dump_comm("DEV-PACKET", str)
 
 					if not cmd.parser then
