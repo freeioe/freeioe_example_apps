@@ -122,7 +122,13 @@ end
 --- 应用运行入口
 function app:run(tms)
 	if not self._client then
-		return
+		return 1000
+	end
+
+	local cloud = snax.queryservice('cloud')
+	local cloud_status, cloud_status_last = cloud.req.get_status()
+	if not cloud_status then
+		return 1000
 	end
 
 	local f, err = io.open(self._file, 'r')
