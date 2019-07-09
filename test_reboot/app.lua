@@ -1,4 +1,5 @@
 local class = require 'middleclass'
+local snax = require 'skynet.snax'
 --- 导入需要的模块
 local modbus = require 'modbus.init'
 local sm_client = require 'modbus.skynet_client'
@@ -128,6 +129,7 @@ function app:run(tms)
 	local cloud = snax.queryservice('cloud')
 	local cloud_status, cloud_status_last = cloud.req.get_status()
 	if not cloud_status then
+		self._log:warning("Cloud is not connected") 
 		return 1000
 	end
 
