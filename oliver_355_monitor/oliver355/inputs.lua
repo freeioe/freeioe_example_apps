@@ -61,6 +61,7 @@ return {
 -- 		cmd = "display\n",
 -- 		decode_mode = 0,
 -- 	},
+--[[
 	{
 		name = "run_status",
 		desc = "运行状态",
@@ -103,6 +104,7 @@ return {
 		cmd = "powerontime",
 		decode_mode = 1,
 	},
+	]]--
 	{
 		name = "output_power",
 		desc = "输出功率",
