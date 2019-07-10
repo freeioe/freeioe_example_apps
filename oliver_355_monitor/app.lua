@@ -18,7 +18,7 @@ app.static.API_VER = 4
 function app:initialize(name, sys, conf)
 	sapp.initialize(self, name, sys, conf)
 
-	self._log:debug("Port example application initlized")
+	self._log:debug("Oliver 355 monitor application initlized")
 
 	conf.down = conf.down or {
 		port = "/dev/ttymxc0",

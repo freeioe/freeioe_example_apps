@@ -58,18 +58,20 @@ function app:on_start()
 	self._dev = self._api:add_device(sn, meta, inputs)
 
 	local ttyS = nil
+	local ttyS_index = 1
 	if lfs.attributes('/tmp/ttyS1', 'mode') then
 		ttyS = '/tmp/ttyS'
 	else
-		if lfs.attributes('/dev/ttymxc1', 'mode') then
+		if lfs.attributes('/dev/ttymxc0', 'mode') then
 			ttyS = '/dev/ttymxc'
+			ttyS_index = 0
 		else
 			ttyS = '/dev/ttyS'
 		end
 	end
 
-	local ttyS1 = self._conf.ttyS1 or ((self._conf.ttyS or ttyS) ..'1')
-	local ttyS2 = self._conf.ttyS2 or ((self._conf.ttyS or ttyS) ..'2')
+	local ttyS1 = self._conf.ttyS1 or ((self._conf.ttyS or ttyS) ..ttyS_index)
+	local ttyS2 = self._conf.ttyS2 or ((self._conf.ttyS or ttyS) ..(ttyS_index + 1))
 	local baudrate = self._conf.baudrate or 115200
 	local count = self._conf.count or 1000
 	local max_size = self._conf.max_msg_size or 256
