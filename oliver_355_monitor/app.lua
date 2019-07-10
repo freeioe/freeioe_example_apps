@@ -211,28 +211,29 @@ end
 
 function app:laser_parser(dev, data)
 	local laser_inputs = {
-		state = 'working_mode',
-		pf = 'power_setting',
+		state = 'state',
+		pf = 'power_factor',
 		op = 'output_power',
 		pe = 'pulse_energy',
-		trig = 'trigger_mode',
-		tf = 'working_frequency',
-		eaomdiv = 'scaling_down_setting',
-		burst = 'burst',
+		trig = 'trigger',
+		tf = 'rep_rate',
+		eaomdiv = 'divisor',
+		burst = 'burst_channel',
 		C = 'C',
 		D = 'D',
 		A = 'A',
 		S = 'S',
-		rr = 'rep_rate',
-		errors = 'report_errors',
-		warnings = 'report_warnings'
+		sr = 'rep_rate',
+		am = 'ana_mod',
+		errors = 'get_errors',
+		warnings = 'get_warnings'
 	}
-	-----------------xx---state--pf-----op---------pe----trig---tf--eadiv--but---C------D-----A----S-----rr-----xxxx---errrors-------warnings---
-	local m_str = "(%d+) (%d+) (%d+) ([%d%.]+) ([%d%.]+) (%d+) (%d+) (%d+) (%d+) (%d+) (%d+) (%d+) (%d+) (%d+) (.*)geterrors%? /([^/]*)/getwarnings%? /([^/]*)/"
+	-----------------xx---state--pf-----op---------pe----trig---tf--eadiv--but---C------D-----A----S-----sr-----am-----xxxx---errrors-------warnings---
+	local m_str = "(%d+) (%d+) (%d+) ([%d%.]+) ([%d%.]+) (%d+) (%d+) (%d+) (%d+) (%d+) (%d+) (%d+) (%d+) (%d+) (%d+) (.*)geterrors%? /([^/]*)/getwarnings%? /([^/]*)/"
 
 	--self._log:debug("Laser Parser", m_str, data)
-	local xx, state, pf, op, pe, trig, tf, eaomdiv, burst, C, D, A, S, rr, xxxx, errors, warnings= string.match(data, m_str)
-	self._log:debug("Laser Parser Result", xx, state, pf, op, pe, trig, tf, eaomdiv, burst, C, D, A, S, rr, errors, warnings)
+	local xx, state, pf, op, pe, trig, tf, eaomdiv, burst, C, D, A, S, sr, am, xxxx, errors, warnings= string.match(data, m_str)
+	self._log:debug("Laser Parser Result", xx, state, pf, op, pe, trig, tf, eaomdiv, burst, C, D, A, S, sr, am, errors, warnings)
 
 
 	--self._log:trace("Result(state)", laser_inputs.state, 'value', state)
@@ -271,8 +272,11 @@ function app:laser_parser(dev, data)
 	--self._log:trace("Result(S)", laser_inputs.S, 'value', S)
 	dev:set_input_prop(laser_inputs.S, 'value', S)
 
-	--self._log:trace("Result(rr)", laser_inputs.rr, 'value', rr)
-	dev:set_input_prop(laser_inputs.rr, 'value', rr)
+	--self._log:trace("Result(sr)", laser_inputs.sr, 'value', sr)
+	dev:set_input_prop(laser_inputs.sr, 'value', sr)
+
+	--self._log:trace("Result(am)", laser_inputs.am, 'value', am)
+	dev:set_input_prop(laser_inputs.am, 'value', am)
 
 	--self._log:trace("Result(errors)", laser_inputs.errors, 'value', errors)
 	dev:set_input_prop(laser_inputs.errors, 'value', errors or '')
