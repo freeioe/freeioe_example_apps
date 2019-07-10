@@ -223,7 +223,7 @@ function app:laser_parser(dev, data)
 		D = 'D',
 		A = 'A',
 		S = 'S',
-		sr = 'rep_rate',
+		sr = 'seed_rate',
 		am = 'ana_mod',
 		errors = 'get_errors',
 		warnings = 'get_warnings'
