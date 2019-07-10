@@ -40,6 +40,7 @@ function app:initialize(name, sys, conf)
 	}
 	self._up_stream_buffer = {}
 	self._down_stream_buffer = {}
+	self._skip_up = false
 end
 
 --- 应用启动函数
@@ -55,6 +56,12 @@ function app:on_start()
 
 	local inputs = {}
 	local outputs = {}
+	local command = {
+		{
+			name = "force_read",
+			desc = "屏蔽HMI，并发起读取指令"
+		}
+	}
 
 	for _, v in ipairs(device_inputs) do
 		inputs[#inputs + 1] = {
@@ -122,6 +129,10 @@ function app:on_start()
 		if data then
 			--self._log:debug("UpPort Recevied data", basexx.to_hex(data))
 			self._dev:dump_comm("PC-IN", data)
+			if self._skip_up then
+				self._log:warning("Commands from PC skipped as requested")
+				return
+			end
 			if self._down_port then
 				self._dev:dump_comm("DEV-OUT", data)
 				self._down_port:write(data)
@@ -195,7 +206,7 @@ function app:on_post_stream_from_up(stream)
 			end
         end
         if cmd == 'laser' then
-		    self._log:trace("PC Sending laser command")
+		    self._log:trace("PC sending laser command")
 			self._working_cmd = {
 			    name = 'laser',
 				cmd = 'laser',
@@ -203,10 +214,46 @@ function app:on_post_stream_from_up(stream)
 				decode_mode = 1,
 				parser = function(dev, data)
 					self:laser_parser(dev, data)
+					if self._laser_req_cancel then
+						self._laser_req_cancel()
+						self._laser_req_cancel = nil
+					end
 				end,
 			}
 		end
 	end
+end
+
+function app:on_command(app_src, sn, command, param, priv)
+	if command == 'force_read' then
+		return self:fire_laser_cmd()
+	end
+	return false, "unknown command"
+end
+
+function app:fire_laser_cmd()
+	self._log:trace("FreeIOE sending laser command")
+	self._skip_up = true
+	--- Sleep 5 seconds to make sure there is no data on serial
+	self._sys:sleep(5000)
+
+	-- Request
+	self._down_port:write('laser?\n')
+
+	--- Set proper command
+	self._working_cmd = {
+		name = 'laser',
+		cmd = 'laser',
+		rp = 'laser?',
+		decode_mode = 1,
+		parser = function(dev, data)
+			self:laser_parser(dev, data)
+		end,
+	}
+
+	self._laser_req_cancel = self._sys:cancelable_timeout(5000, function()
+		self._skip_up = false
+	end)
 end
 
 function app:laser_parser(dev, data)
