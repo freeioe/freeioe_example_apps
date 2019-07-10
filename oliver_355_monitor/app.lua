@@ -38,8 +38,8 @@ function app:initialize(name, sys, conf)
 		stop_bits = 1,
 		flow_control = "OFF"
 	}
-	self._up_stream_buffer = {}
-	self._down_stream_buffer = {}
+	self._up_stream_buffer = ''
+	self._down_stream_buffer = ''
 	self._skip_up = false
 end
 
@@ -173,7 +173,7 @@ function app:on_post_stream_from_up(stream)
 		local cmd_time = self._working_cmd_time
 
 		if cmd.decode_mode == 0 then
-			local content = table.concat(self._down_stream_buffer)
+			local content = self._down_stream_buffer
 			self._dev:dump_comm("DEV-PACKET", content)
 			self._dev:set_input_prop(cmd.name, 'value', conent, cmd_time, 0)
 		else
@@ -181,12 +181,12 @@ function app:on_post_stream_from_up(stream)
 		end
 
 		self._working_cmd = nil
-		self._down_stream_buffer = {}
+		self._down_stream_buffer = ''
 	end
 
 	--self._log:trace("PC Sending stream",basexx.to_hex(stream))
-	table.insert(self._up_stream_buffer, stream)
-	local buf = table.concat(self._up_stream_buffer)
+	self._up_stream_buffer = self._up_stream_buffer..stream
+	local buf = self._up_stream_buffer
 	--self._log:trace("PC Sending xxxxxxxxxxxx",basexx.to_hex(buf))
 	
 	local cmd = string.match(buf, "([^%?]+)%?[\r]*\n")
@@ -194,8 +194,8 @@ function app:on_post_stream_from_up(stream)
 	if cmd then
 		--self._log:trace("PC Sending command", cmd)
 		--- Clean all buffers
-		self._up_stream_buffer = {}
-		self._down_stream_buffer = {}
+		self._up_stream_buffer = ''
+		self._down_stream_buffer = ''
 		self._working_cmd = nil
 
 		for _, v in ipairs(self._inputs) do
@@ -221,6 +221,9 @@ function app:on_post_stream_from_up(stream)
 				end,
 			}
 		end
+	end
+	if string.len(self._up_stream_buffer) > 256 then
+		self._up_stream_buffer = ''
 	end
 end
 
@@ -335,10 +338,15 @@ end
 
 function app:on_post_stream_from_down(stream)
 	local cmd = self._working_cmd
-	if cmd then
+	if cmd and stream then
+		self._down_stream_buffer = self._down_stream_buffer .. stream
 		table.insert(self._down_stream_buffer, stream)
+		if #self._down_stream_buffer > 16 then
+			self._down_stream_buffer = {}
+		end
+
 		if cmd.decode_mode == 1 then
-			local str = table.concat(self._down_stream_buffer)
+			local str = self._down_stream_buffer
 	        --self._log:trace("Device receive bufffffer",str)
 
 			local rp = cmd.rp or cmd.cmd
@@ -347,7 +355,7 @@ function app:on_post_stream_from_down(stream)
 				if index > 1 then
 					self._log:trace("Drop stream prefix", index)
 					str = string.sub(str, index )
-					self._down_stream_buffer = {str}
+					self._down_stream_buffer = str
 				end
 
 				--self._log:trace("Finding supported command result", rp)
@@ -363,11 +371,15 @@ function app:on_post_stream_from_down(stream)
 					end
 
 					self._working_cmd = nil
-					self._down_stream_buffer = {}
+					self._down_stream_buffer = ''
 				end
 			end
 		else
 			--- Wait for next command is comming
+		end
+
+		if string.len(self._down_stream_buffer) > 256 then
+			self._down_stream_buffer = ''
 		end
 	end
 end
