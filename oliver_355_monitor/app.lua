@@ -240,8 +240,14 @@ function app:fire_laser_cmd()
 	--- Sleep 5 seconds to make sure there is no data on serial
 	self._sys:sleep(5000)
 
+	if not self._down_port then
+		return false, "Device connection port not opened!"
+	end
+
 	-- Request
-	self._down_port:write('laser?\n')
+	local laser_cmd = 'laser?\n'
+	self._dev:dump_comm("DEV-OUT", laser_cmd)
+	self._down_port:write(laser_cmd)
 
 	--- Set proper command
 	self._working_cmd = {
@@ -257,6 +263,7 @@ function app:fire_laser_cmd()
 	self._laser_req_cancel = self._sys:cancelable_timeout(5000, function()
 		self._skip_up = false
 	end)
+	return true
 end
 
 function app:laser_parser(dev, data)
