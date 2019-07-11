@@ -56,7 +56,7 @@ function app:on_start()
 
 	local inputs = {}
 	local outputs = {}
-	local command = {
+	local commands = {
 		{
 			name = "force_read",
 			desc = "屏蔽HMI，并发起读取指令"
@@ -72,7 +72,7 @@ function app:on_start()
 		}
 	end
 
-	self._dev = self._api:add_device(sn, meta, inputs)
+	self._dev = self._api:add_device(sn, meta, inputs, {}, commands)
 	self._inputs = device_inputs
 
 	local down_conf = self._conf.down
