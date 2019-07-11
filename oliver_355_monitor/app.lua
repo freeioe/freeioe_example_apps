@@ -347,10 +347,6 @@ function app:on_post_stream_from_down(stream)
 	local cmd = self._working_cmd
 	if cmd and stream then
 		self._down_stream_buffer = self._down_stream_buffer .. stream
-		table.insert(self._down_stream_buffer, stream)
-		if #self._down_stream_buffer > 16 then
-			self._down_stream_buffer = {}
-		end
 
 		if cmd.decode_mode == 1 then
 			local str = self._down_stream_buffer
