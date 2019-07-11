@@ -83,32 +83,43 @@ function app:on_start()
 end
 
 function app:connect_proc()
+	self._log:info("Start socket connection", err)
+
 	local connect_gap = 1000
 	while true do
 		self._sys:sleep(connect_gap)
-		local r, err = self:start_socket()
+		local r, err = self:start_connect()
 		if r then
 			break
 		end
-		self._log:error(err)
 
 		connect_gap = connect_gap * 2
 		if connect_gap > 60 * 1000 then
 			connect_gap = 1000
 		end
+		self._log:debug("Wait for retart connection", connect_gap)
 	end
 
-	self:watch_socket()
+	if self._server_socket then
+		self:watch_server_socket()
+	else
+		self:watch_client_socket()
+	end
 end
 
-function app:watch_socket()
-	while self._socket or self._server_socket do
-		if not self._socket then
-			self._log:trace("Waiting for connection coming")
-			self._sys:sleep(100)
-		else
+function app:watch_server_socket()
+	while self._server_socket do
+		while self._server_socket and not self._socket do
+			self._sys:sleep(50)
+		end
+		if not self._server_socket then
+			break
+		end
+
+		while self._socket do
 			local data, err = socket.read(self._socket)	
 			if not data then
+				self._log:info("Client socket disconnected", err)
 				break
 			end
 			self._dev:dump_comm('SOCKET-IN', data)
@@ -120,6 +131,40 @@ function app:watch_socket()
 				self._port:write(data)
 			end
 		end
+
+		if self._socket then
+			local to_close = self._socket
+			self._socket = nil
+			self._socket_sent = 0
+			self._socket_recv = 0
+			self._socket_peer = ''
+			socket.close(to_close)
+			--- 
+		end
+	end
+
+	if not self._server_socket then
+		self._sys:timeout(100, function()
+			self:connect_proc()
+		end)
+	end
+end
+
+function app:watch_client_socket()
+	while self._socket do
+		local data, err = socket.read(self._socket)	
+		if not data then
+			self._log:info("Socket disconnected", err)
+			break
+		end
+		self._dev:dump_comm('SOCKET-IN', data)
+		self._socket_recv = self._socket_recv + string.len(data)
+
+		if self._port then
+			self._serial_sent = self._serial_sent + string.len(data)
+			self._dev:dump_comm('SERIAL-OUT', data)
+			self._port:write(data)
+		end
 	end
 
 	if self._socket then
@@ -130,32 +175,26 @@ function app:watch_socket()
 		self._socket_peer = ''
 		socket.close(to_close)
 		--- 
-		self:start_reconnect()
 	end
+
+	--- reconnection
+	self._sys:timeout(100, function()
+		self:connect_proc()
+	end)
 end
 
-function app:start_reconnect()
-	if self._socket then
-		local to_close = self._socket
-		self._socket = nil
-		socket.close(to_close)
-	end
-	--- only reconnect if tcp_client mode
-	if socket_type == 'tcp_client' then
-		self._sys:timeout(100, function()
-			self:connect_proc()
-		end)
-	end
-end
-
-function app:start_socket()
+function app:start_connect()
 	local socket_type = self._conf.socket_type
 	if socket_type == 'tcp_client' then
 		local conf = self._conf.tcp_client
+		self._log:info(string.format("Connecting to %s:%d", conf.host, conf.port))
 		local sock, err = socket.open(conf.host, conf.port)
 		if not sock then
-			return nil, string.format("Cannot connect to %s:%d. err: %s", conf.host, conf.port, err or "")
+			local err = string.format("Cannot connect to %s:%d. err: %s", conf.host, conf.port, err or "")
+			self._log:error(err)
+			return nil, err
 		end
+		self._log:info(string.format("Connected to %s:%d", conf.host, conf.port))
 
 		if conf.nodelay then
 			socketdriver.nodelay(sock)
@@ -170,6 +209,7 @@ function app:start_socket()
 	end
 	if socket_type == 'tcp_server' then
 		local conf = self._conf.tcp_server
+		self._log:info(string.format("Listen on %s:%d", conf.host, conf.port))
 		local sock, err = socket.listen(conf.host, conf.port)
 		if not sock then
 			return nil, string.format("Cannot listen on %s:%d. err: %s", conf.host, conf.port, err or "")
@@ -177,6 +217,8 @@ function app:start_socket()
 		self._server_socket = sock
 		socket.start(sock, function(fd, addr)
 			self._log:info(string.format("New connection (fd = %d, %s)",fd, addr))
+			--- TODO: Limit client ip/host
+
 			if conf.nodelay then
 				socketdriver.nodelay(fd)
 			end
@@ -184,10 +226,16 @@ function app:start_socket()
 			local to_close = self._socket
 			socket.start(fd)
 			self._socket = fd
-			self._socket_peer = cjson.encode({
-				host = conf.host,
-				port = conf.port,
-			})
+
+			local host, port = string.match(addr, "^(.+):(%d+)$")
+			if host and port then
+				self._socket_peer = cjson.encode({
+					host = host,
+					port = port,
+				})
+			else
+				self._socket_peer = addr
+			end
 			if to_close then
 				self._log:warning(string.format("Previous socket closing, fd = %d", to_close))
 				socket.close(to_close)
@@ -228,7 +276,7 @@ function app:on_run(tms)
 	self._dev:set_input_prop('serial_recv', 'value', self._serial_recv)
 	self._dev:set_input_prop('socket_sent', 'value', self._socket_sent)
 	self._dev:set_input_prop('socket_recv', 'value', self._socket_recv)
-	self._dev:set_input_prop('serial_peer', 'value', self._socket and self._socket_peer or '')
+	self._dev:set_input_prop('socket_peer', 'value', self._socket and self._socket_peer or '')
 	return 1000 --下一采集周期为1秒
 end
 
