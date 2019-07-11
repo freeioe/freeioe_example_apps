@@ -28,6 +28,7 @@ RELEASE_APP dlt645
 RELEASE_APP sim_tank
 RELEASE_APP focas
 RELEASE_APP showbox 
+RELEASE_APP rtu 
 RELEASE_APP sim
 RELEASE_APP port_test
 RELEASE_APP oliver_355_monitor

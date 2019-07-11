@@ -1,0 +1,31 @@
+[
+	{
+		"name": "serial",
+		"desc": "串口",
+		"type": "serial"
+	},
+	{
+		"name": "socket_type",
+		"desc": "TCP模式",
+		"type": "dropdown",
+		"default": "tcp_server",
+        "depends": {
+            "tcp_client": "tcp_client",
+            "tcp_server": "tcp_server"
+        },
+        "values": [
+            "tcp_client",
+            "tcp_server"
+        ]
+    },
+    {
+        "name": "tcp_client",
+        "desc": "TCP客户端设定",
+        "type": "tcp_client"
+    },
+    {
+        "name": "tcp_server",
+        "desc": "TCP服务器设定",
+        "type": "tcp_client"
+    }
+]

@@ -137,7 +137,7 @@ end
 function app:start_socket()
 	local socket_type = self._conf.socket_type
 	if socket_type == 'tcp_client' then
-		local conf = self._conf._tcp_client
+		local conf = self._conf.tcp_client
 		local sock, err = socket.open(conf.host, conf.port)
 		if not sock then
 			return nil, string.format("Cannot connect to %s:%d. err: %s", conf.host, conf.port, err or "")
@@ -155,7 +155,7 @@ function app:start_socket()
 		return true
 	end
 	if socket_type == 'tcp_server' then
-		local conf = self._conf._tcp_server
+		local conf = self._conf.tcp_server
 		local sock, err = socket.listen(conf.host, conf.port)
 		if not sock then
 			return nil, string.format("Cannot listen on %s:%d. err: %s", conf.host, conf.port, err or "")
