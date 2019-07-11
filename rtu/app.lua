@@ -2,6 +2,7 @@ local socket = require 'skynet.socket'
 local socketdriver = require 'skynet.socketdriver'
 local serial = require 'serialdriver'
 local basexx = require 'basexx'
+local cjson = require 'cjson.safe'
 local sapp = require 'app.base'
 
 --- 注册对象(请尽量使用唯一的标识字符串)
@@ -34,10 +35,10 @@ function app:on_start()
 
 	--- 增加设备实例
 	local inputs = {
-		{name="serial_sent", desc="Serial sent bytes", vt="int", unit="bytes"}
-		{name="serial_recv", desc="Serial received bytes", vt="int", unit="bytes"}
-		{name="socket_sent", desc="Socket sent bytes", vt="int", unit="bytes"}
-		{name="socket_recv", desc="Socket received bytes", vt="int", unit="bytes"}
+		{name="serial_sent", desc="Serial sent bytes", vt="int", unit="bytes"},
+		{name="serial_recv", desc="Serial received bytes", vt="int", unit="bytes"},
+		{name="socket_sent", desc="Socket sent bytes", vt="int", unit="bytes"},
+		{name="socket_recv", desc="Socket received bytes", vt="int", unit="bytes"},
 		{name="socket_peer", desc="Socket peer information", vt="string"}
 	}
 
@@ -59,11 +60,13 @@ function app:on_start()
 	port:start(function(data, err)
 		-- Recevied Data here
 		if data then
-			self._dev:comm('SERIAL-IN', data)
+			self._dev:dump_comm('SERIAL-IN', data)
 			self._serial_recv = self._serial_recv + string.len(data)
+
 			--self._log:debug("Recevied data", basexx.to_hex(data))
 			if self._socket then
 				self._socket_sent = self._socket_sent + string.len(data)
+				self._dev:dump_comm('SOCKET-OUT', data)
 				socket.write(self._socket, data)
 			end
 		else
@@ -94,20 +97,31 @@ function app:connect_proc()
 			connect_gap = 1000
 		end
 	end
+
+	self:watch_socket()
 end
 
 function app:watch_socket()
-	while self._socket do
-		local data, err = socket.read(self._socket)	
-		if not data then
-			break
-		end
-		self._socket_recv = self._socket_recv + string.len(data)
-		if self._port then
-			self._serial_sent = self._serial_sent + string.len(data)
-			self._port:write(data)
+	while self._socket or self._server_socket do
+		if not self._socket then
+			self._log:trace("Waiting for connection coming")
+			self._sys:sleep(100)
+		else
+			local data, err = socket.read(self._socket)	
+			if not data then
+				break
+			end
+			self._dev:dump_comm('SOCKET-IN', data)
+			self._socket_recv = self._socket_recv + string.len(data)
+
+			if self._port then
+				self._serial_sent = self._serial_sent + string.len(data)
+				self._dev:dump_comm('SERIAL-OUT', data)
+				self._port:write(data)
+			end
 		end
 	end
+
 	if self._socket then
 		local to_close = self._socket
 		self._socket = nil
@@ -162,18 +176,20 @@ function app:start_socket()
 		end
 		self._server_socket = sock
 		socket.start(sock, function(fd, addr)
-			skynet.error(string.format("New connection (fd = %d, %s)",fd, addr))
+			self._log:info(string.format("New connection (fd = %d, %s)",fd, addr))
 			if conf.nodelay then
 				socketdriver.nodelay(fd)
 			end
 
 			local to_close = self._socket
+			socket.start(fd)
 			self._socket = fd
 			self._socket_peer = cjson.encode({
 				host = conf.host,
 				port = conf.port,
 			})
 			if to_close then
+				self._log:warning(string.format("Previous socket closing, fd = %d", to_close))
 				socket.close(to_close)
 			end
 		end)
@@ -184,7 +200,7 @@ function app:start_socket()
 	end
 	if socket_type == 'udp_client' then
 	end
-	return false
+	return false, "Unknown Socket Type"
 end
 
 --- 应用退出函数
@@ -218,3 +234,4 @@ end
 
 --- 返回应用对象
 return app
+
