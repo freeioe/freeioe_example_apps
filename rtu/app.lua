@@ -94,7 +94,7 @@ function app:connect_proc()
 		end
 
 		connect_gap = connect_gap * 2
-		if connect_gap > 60 * 1000 then
+		if connect_gap > 64 * 1000 then
 			connect_gap = 1000
 		end
 		self._log:debug("Wait for retart connection", connect_gap)
@@ -116,7 +116,7 @@ function app:watch_server_socket()
 			break
 		end
 
-		while self._socket do
+		while self._socket and self._server_socket do
 			local data, err = socket.read(self._socket)	
 			if not data then
 				self._log:info("Client socket disconnected", err)
