@@ -1,36 +1,17 @@
 --- 导入需求的模块
-local class = require 'middleclass'
+local app_base = require 'app.base'
 local opcua = require 'opcua'
 local conf_helper = require 'app.conf_helper'
 local csv_tpl = require 'csv_tpl'
 local cjson = require 'cjson.safe'
 
 --- 注册对象(请尽量使用唯一的标识字符串)
-local app = class("FREEIOE_OPCUA_CLIENT_APP")
+local app = app_base:subclass("FREEIOE_OPCUA_CLIENT_APP")
 --- 设定应用最小运行接口版本(目前版本为4,为了以后的接口兼容性)
 app.static.API_VER = 4
 
 local default_modal = 'MengLiA'
 --local default_modal = 'UN200A5'
-
----
--- 应用对象初始化函数
--- @param name: 应用本地安装名称。 如app1
--- @param sys: 系统sys接口对象。参考API文档中的sys接口说明
--- @param conf: 应用配置参数。由安装配置中的json数据转换出来的数据对象
-function app:initialize(name, sys, conf)
-	self._name = name
-	self._sys = sys
-	self._conf = conf
-	--- 获取数据接口
-	self._api = sys:data_api()
-	--- 获取日志接口
-	self._log = sys:logger()
-	self._connect_retry = 1000
-
-	--- Set default
-	conf.modal = conf.modal or default_modal
-end
 
 ---
 -- 连接成功后的处理函数
@@ -160,20 +141,13 @@ function app:load_encryption(conf)
 end
 
 --- 应用启动函数
-function app:start()
-	--- 设定接口处理函数
-	self._api:set_handler({
-		on_output = function(...)
-			print(...)
-		end,
-		on_ctrl = function(...)
-			print(...)
-		end
-	})
+function app:on_start()
+	local sys = self._sys
+	local conf = self._conf
+	conf.modal = conf.modal or default_modal
+	self._connect_retry = 1000
 
 	--- 生成OpcUa客户端对象
-	local conf = self._conf
-	local sys = self._sys
 	local client = nil
 
 	if conf.encryption then
@@ -245,7 +219,7 @@ function app:start()
 end
 
 --- 应用退出函数
-function app:close(reason)
+function app:on_close(reason)
 	self._log:warning('Application closing', reason)
 	--- 清理OpcUa客户端连接
 	self._client = nil
@@ -256,7 +230,7 @@ function app:close(reason)
 end
 
 --- 应用运行入口
-function app:run(tms)
+function app:on_run(tms)
 	local begin_time = self._sys:time()
 
 	if not self._client then
