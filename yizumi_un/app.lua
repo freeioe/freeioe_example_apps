@@ -10,7 +10,7 @@ local app = class("FREEIOE_OPCUA_CLIENT_APP")
 --- 设定应用最小运行接口版本(目前版本为4,为了以后的接口兼容性)
 app.static.API_VER = 4
 
-local default_modal = 'UN200A5_s'
+local default_modal = 'MengLiA'
 --local default_modal = 'UN200A5'
 
 ---
@@ -35,84 +35,53 @@ end
 ---
 -- 连接成功后的处理函数
 function app:on_connected(client)
-	-- Cleanup nodes buffer
-	self._nodes = {}
+	local client = client
+
+	local function load_opcua_node(ns, i)
+		if not client then
+			return nil
+		end
+
+		local id = opcua.NodeId.new(ns, i)
+		local obj, err = client:getNode(id)
+		if not obj then
+			self._log:warning("Cannot get OPCUA node", id)
+		end
+		return obj, err
+	end
+
 
 	--- 获取节点
-	local desc_changed = false
-	for _, input in ipairs(self._inputs) do
-		local prop = self._input_props[input.name]
-		if not self._nodes[input.name] then
-			local id =  opcua.NodeId.new(prop.ns, prop.i)
-			local obj, err = client:getNode(id)
-			if obj then
-				self._nodes[input.name] = obj
+	for _, input in ipairs(self._tpl.inputs) do
+		input.node = input.node or load_opcua_node(input.ns, input.i)
+		self._sys:sleep(0)
+	end
 
-				if not prop.desc then
-					prop.desc = obj.displayName.text
-					input.desc = prop.desc
-					desc_changed = true
-					self._log:debug("Read displayName", prop.desc)
-				end
-			else
-				self._log:warning("Cannot get OPCUA node", id)
-			end
-
+	for _, minput in ipairs(self._tpl.map_inputs) do
+		for _, input in ipairs(minput.values) do
+			input.node = input.node or load_opcua_node(input.ns, input.i)
 			self._sys:sleep(0)
 		end
 	end
 
-	if desc_changed then
-		self:save_input_desc(self._input_props)
-		self._dev:mod(self._inputs)
+	for _, alarm in ipairs(self._tpl.alarms) do
+		alarm.node = alarm.node or load_opcua_node(alarm.ns, alarm.i)
+		self._sys:sleep(0)
 	end
-	
+
+	for _, input in ipairs(self._tpl.calc_inputs) do
+		local m = require 'calc_func.'..input.func
+		input.calc_func = m:new(self, input, load_opcua_node)
+		self._sys:sleep(0)
+	end
+
 	-- Set client object
 	self._client = client
-end
-
-function app:save_input_desc(inputs)
-	local conf = self._conf
-	local desc_map = {}
-	for k, v in pairs(inputs) do
-		desc_map[k] = v.desc
-	end
-	local str, err = cjson.encode(desc_map)
-	if not str then
-		self._log:warning("JSON Encode error", err)
-		return
-	end
-
-	local desc_file = self._sys:app_dir() ..'/'..conf.modal..'.txt'
-	local f, err = io.open(desc_file, 'w+')
-	if not f then
-		self._log:warning("Failed to open description file", err)
-		return
-	end
-	f:write(str)
-	f:close()
-end
-
-function app:load_input_desc()
-	local conf = self._conf
-	local desc_file = self._sys:app_dir() ..'/'..conf.modal..'.txt'
-	local f, err = io.open(desc_file, 'r')
-	local input_desc = {}
-	if f then
-		local str = f:read('*a')
-		local desc_map, err = cjson.decode(str)
-		if desc_map then
-			input_desc = desc_map
-		end
-		f:close()
-	end
-	return input_desc
 end
 
 ---
 -- 连接断开后的处理函数
 function app:on_disconnect()
-	self._nodes = {}
 	self._client = nil
 	self._sys:timeout(self._connect_retry, function() self:connect_proc() end)
 	self._connect_retry = self._connect_retry * 2
@@ -202,8 +171,6 @@ function app:start()
 		end
 	})
 
-	self._nodes = {}
-
 	--- 生成OpcUa客户端对象
 	local conf = self._conf
 	local sys = self._sys
@@ -241,21 +208,34 @@ function app:start()
 	meta.description = tpl.meta.desc
 	meta.series = tpl.meta.series
 
-	local input_desc = self:load_input_desc()
 	local inputs = {}
-	self._input_props = {}
 	for _, v in ipairs(tpl.inputs) do
-		v.desc = v.desc or input_desc[v.name]
 		inputs[#inputs + 1] = {
 			name = v.name,
 			desc = v.desc or v.name,
 			vt = v.vt
 		}
-		self._input_props[v.name] = v 
 	end
 
-	self._inputs = inputs
+	for _, v in ipairs(tpl.map_inputs) do
+		inputs[#inputs + 1] = {
+			name = v.name,
+			desc = v.desc or v.name,
+			vt = v.vt
+		}
+	end
+
+	for _, v in ipairs(tpl.calc_inputs) do
+		inputs[#inputs + 1] = {
+			name = v.name,
+			desc = v.desc or v.name,
+			vt = v.vt
+		}
+	end
+
+	self._tpl = tpl
 	--print(cjson.encode(inputs))
+
 	self._dev = self._api:add_device(sys_id..'.'..meta.name, meta, inputs)
 
 	--- 发起OpcUa连接
@@ -266,11 +246,10 @@ end
 
 --- 应用退出函数
 function app:close(reason)
-	print('close', self._name, reason)
+	self._log:warning('Application closing', reason)
 	--- 清理OpcUa客户端连接
 	self._client = nil
 	if self._client_obj then
-		self._nodes = {}
 		self._client_obj:disconnect()
 		self._client_obj = nil
 	end
@@ -288,10 +267,61 @@ function app:run(tms)
 
 	print('Start', os.date())
 
+	local read_val = function(node, vt)
+		local dv = node.dataValue
+		local value = tonumber(dv.value:asString())
+		if vt == 'int' then
+			return math.floor(value)
+		end
+		return value
+	end
+	for _, alarm in ipairs(self._tpl.alarms) do
+		local alarms = {}
+		local val = read_val(alarm.node, alarm.vt)
+		if val > 0 then
+			table.insert(alarms, {
+				desc = alarm.desc,
+				val = val,
+				errno = alarm.errno,
+			})
+		end
+		if #alarms > 0 then
+			--- TODO: Fire alarm
+			local state = 2
+			for _, alarm in ipairs(alarms) do
+				if alarm.is_error then
+					state = 3
+				end
+			end
+			self._err_state = state
+		else
+			-- TODO: Fire alaram clear
+			self._err_state = nil
+		end
+	end
+
+	for _, minput in ipairs(self._tpl.map_inputs) do
+		local val = nil
+		for _, input in ipairs(minput.values) do
+			if input.node then
+				local v = read_val(input.node, 'int')
+				if v == 1 and (not val or val < v) then
+					val = v
+				end
+			end
+		end
+
+		local now = self._sys:time()
+		if val then
+			dev:set_input_prop(minput.name, "value", val, now, 0)
+		else
+			dev:set_input_prop(minput.name, "value", 0, now, 1)
+		end
+	end
+
 	--- 获取节点当前值数据
-	for _, input in ipairs(self._inputs) do
-		local prop = self._input_props[input.name]
-		local node = self._nodes[input.name]
+	for _, input in ipairs(self._tpl.inputs) do
+		local node = input.node
 
 		if node then
 			local dv = node.dataValue
@@ -303,12 +333,17 @@ function app:run(tms)
 				dev:set_input_prop(input.name, "value", value, now, 0)
 			else
 				self._log:warning("Read "..input.name.." failed!!")
+				dev:set_input_prop(input.name, "value", 0, now, 1)
 			end
 		else
 			local now = self._sys:time()
 			-- TODO:
 			-- dev:set_input_prop(k, "value", 0, now, 1)
 		end
+	end
+
+	for _, input in ipairs(self._tpl.calc_inputs) do
+		input.calc_func:run(dev)
 	end
 
 	print('End', os.date())

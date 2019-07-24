@@ -5,7 +5,7 @@ local sysinfo = require 'utils.sysinfo'
 local gcom = require 'utils.gcom'
 local leds = require 'utils.leds'
 local event = require 'app.event'
-local sum = require 'summation'
+local lte_wan = require 'lte_wan'
 local ioe = require 'ioe'
 local lfs = require 'lfs'
 -- own libs
@@ -23,6 +23,7 @@ function app:initialize(name, sys, conf)
 	self._log = sys:logger()
 	self._cancel_timers = {}
 	self._apps_cache = {}
+	self._lte_wan = lte_wan:new(self, sys)
 end
 
 function app:start()
@@ -194,50 +195,10 @@ function app:start()
 		}
 		]]--
 	}
-	local sys_id = self._sys:hw_id()
-	local id = self._sys:id()
-	if string.sub(sys_id, 1, 8) == '2-30002-' or string.sub(sys_id, 1, 8) == '2-30102-' then
-		self._gcom = true
-		local gcom_inputs = {
-			{
-				name = 'ccid',
-				desc = 'SIM card ID',
-				vt = "string",
-			},
-			{
-				name = 'csq',
-				desc = 'GPRS/LTE sginal strength',
-				vt = "int",
-			},
-			{
-				name = 'cpsi',
-				desc = 'GPRS/LTE work mode',
-				vt = "string",
-			},
-			{
-				name = 'wan_s',
-				desc = 'GPRS/LET send this month',
-				vt = 'int',
-				unit = 'KB'
-			},
-			{
-				name = 'wan_r',
-				desc = 'GPRS/LET receive this month',
-				vt = 'int',
-				unit = 'KB'
-			},
-		}
 
-		for _,v in ipairs(gcom_inputs) do
-			inputs[#inputs + 1] = v
-		end
-		self._wan_sum = sum:new({
-			file = true,
-			save_span = 60 * 5, -- five minutes
-			key = 'wan',
-			span = 'month',
-			path = '/root', -- Q102's data/cache partition
-		})
+	local wan_inputs = self._lte_wan:inputs()
+	for _,v in ipairs(wan_inputs) do
+		inputs[#inputs + 1] = v
 	end
 
 	-- for apps
@@ -286,7 +247,8 @@ function app:start()
 	meta.version = sysinfo.version()
 	meta.skynet = sysinfo.skynet_version()
 
-	self._dev = self._api:add_device(id, meta, inputs, nil, cmds)
+	local sys_id = self._sys:id()
+	self._dev = self._api:add_device(sys_id, meta, inputs, nil, cmds)
 	self._dev:cov({ttl=60})
 
 	if leds.cloud then
@@ -407,36 +369,7 @@ function app:first_run()
 	end
 	calc_tmp_disk()
 
-	if self._gcom then
-		self:read_wan_sr()
-		local calc_gcom = nil
-		local gcom_freq = self._conf.gcom_freq or (1000 * 60)
-		calc_gcom = function()
-			-- Reset timer
-			self._cancel_timers['gcom'] = self._sys:cancelable_timeout(gcom_freq, calc_gcom)
-
-			local ccid, err = gcom.get_ccid()
-			if ccid then
-				self._dev:set_input_prop('ccid', "value", ccid)
-			end
-			local csq, err = gcom.get_csq()
-			if csq then
-				self._dev:set_input_prop('csq', "value", csq)
-				self:lte_strength(csq)
-			end
-			local cpsi, err = gcom.get_cpsi()
-			if cpsi then
-				self._dev:set_input_prop('cpsi', "value", cpsi)
-			end
-
-			self._dev:set_input_prop('wan_r', "value", self._wan_sum:get('recv'))
-			self._dev:set_input_prop('wan_s', "value", self._wan_sum:get('send'))
-			--- GCOM core dump file removal hacks
-			os.execute("rm -rf /tmp/gcom*.core")
-		end
-		--- GCOM takes too much time which may blocks the first run too long
-		self._sys:timeout(1000, function() calc_gcom() end)
-	end
+	self._lte_wan:start()
 
 	self._sys:timeout(100, function()
 		self._log:debug("Fire system started event")
@@ -475,17 +408,6 @@ function app:check_time_diff()
 		time=sys_time,
 	}
 	self._dev:fire_event(event.LEVEL_FATAL, event.EVENT_SYS, "Time diff found!", data, os_time)
-end
-
---- For wan statistics
-function app:read_wan_sr()
-	if self._gcom then
-		local info, err = netinfo.proc_net_dev('3g-wan')
-		if info and #info == 16 then
-			self._wan_sum:set('recv', math.floor(info[1] / 1000))
-			self._wan_sum:set('send', math.floor(info[9] / 1000))
-		end
-	end
 end
 
 function app:check_symlink()
@@ -537,7 +459,8 @@ function app:run(tms)
 		--self._log:debug("System started!!!")
 	end
 	self:check_time_diff()
-	self:read_wan_sr()
+	--- LTE WAN
+	self._lte_wan:run()
 
 	self._dev:set_input_prop('starttime', "value", self._start_time)
 	self._dev:set_input_prop('version', "value", self._version)
