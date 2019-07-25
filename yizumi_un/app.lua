@@ -13,6 +13,10 @@ app.static.API_VER = 4
 local default_modal = 'MengLiA'
 --local default_modal = 'UN200A5'
 
+function app:connected()
+	return self._client ~= nil
+end
+
 ---
 -- 连接成功后的处理函数
 function app:on_connected(client)
@@ -26,7 +30,7 @@ function app:on_connected(client)
 		local id = opcua.NodeId.new(ns, i)
 		local obj, err = client:getNode(id)
 		if not obj then
-			self._log:warning("Cannot get OPCUA node", id)
+			self._log:warning("Cannot get OPCUA node", ns, i, id)
 		end
 		return obj, err
 	end
@@ -51,7 +55,7 @@ function app:on_connected(client)
 	end
 
 	for _, input in ipairs(self._tpl.calc_inputs) do
-		local m = require 'calc_func.'..input.func
+		local m = require('calc_func.'..input.func)
 		input.calc_func = m:new(self, input, load_opcua_node)
 		self._sys:sleep(0)
 	end
@@ -78,7 +82,7 @@ function app:connect_proc()
 	local client = self._client_obj
 	local conf = self._conf
 
-	local ep = conf.endpoint or "opc.tcp://172.30.0.187:4840"
+	local ep = conf.endpoint or "opc.tcp://127.0.0.1:4840"
 	self._log:info("Client connect endpoint", ep)
 
 	local r, err
@@ -242,6 +246,9 @@ function app:on_run(tms)
 	print('Start', os.date())
 
 	local read_val = function(node, vt)
+		if not node then
+			return nil
+		end
 		local dv = node.dataValue
 		local value = tonumber(dv.value:asString())
 		if vt == 'int' then
@@ -252,7 +259,7 @@ function app:on_run(tms)
 	for _, alarm in ipairs(self._tpl.alarms) do
 		local alarms = {}
 		local val = read_val(alarm.node, alarm.vt)
-		if val > 0 then
+		if val and val > 0 then
 			table.insert(alarms, {
 				desc = alarm.desc,
 				val = val,

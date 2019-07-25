@@ -1,5 +1,5 @@
 COMMENT,manufacture,name,description,series,,
-META,伊之密,UN200A5,伊之密注塑机,UN200A5,,
+META,伊之密,UN200A5,伊之密盟立成型机,UN200A5,,
 ,,,,,,
 COMMENT,name,description,vt,namespace,opcua_id,value_map
 MAP_INPUT,OperateMode,操作状态,int,1,1534,2
