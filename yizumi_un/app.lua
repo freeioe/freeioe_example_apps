@@ -257,6 +257,8 @@ function app:on_run(tms)
 	self._log:debug('Start', os.date())
 
 	local function load_opcua_node(ns, i)
+		self._sys:sleep(0)
+
 		local client = self._client
 		if not client then
 			self._log:warning('no client', ns, i)
@@ -268,17 +270,16 @@ function app:on_run(tms)
 		if not obj then
 			self._log:warning("Cannot get OPCUA node", ns, i, id)
 		end
-		self._sys:sleep(0)
 		self._log:debug('got input node', obj, ns, i)
 		return obj, err
 	end
 
 	local read_val = function(node, vt)
 		self._log:debug('reading node', node, vt, node.id)
+		self._sys:sleep(0)
 		if not node then
 			return nil
 		end
-		self._sys:sleep(0)
 		local dv = node.dataValue
 		local value = tonumber(dv.value:asString())
 		if vt == 'int' then
