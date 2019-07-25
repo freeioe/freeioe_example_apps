@@ -3,7 +3,7 @@
 		"name": "modal",
 		"desc": "型号",
 		"type": "dropdown",
-		"default": "UN200A5",
+		"default": "MengLiA",
 		"values": [
 			"UN200A5",
 			"MengLiA"

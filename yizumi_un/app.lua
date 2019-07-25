@@ -22,8 +22,10 @@ end
 function app:on_connected(client)
 	local client = client
 
+	--[[
 	local function load_opcua_node(ns, i)
 		if not client then
+			self._log:warning('no client', ns, i)
 			return nil
 		end
 
@@ -32,6 +34,8 @@ function app:on_connected(client)
 		if not obj then
 			self._log:warning("Cannot get OPCUA node", ns, i, id)
 		end
+		self._sys:sleep(0)
+		self._log:debug('got input node', obj, ns, i)
 		return obj, err
 	end
 
@@ -39,25 +43,22 @@ function app:on_connected(client)
 	--- 获取节点
 	for _, input in ipairs(self._tpl.inputs) do
 		input.node = input.node or load_opcua_node(input.ns, input.i)
-		self._sys:sleep(0)
 	end
 
 	for _, minput in ipairs(self._tpl.map_inputs) do
 		for _, input in ipairs(minput.values) do
 			input.node = input.node or load_opcua_node(input.ns, input.i)
-			self._sys:sleep(0)
 		end
 	end
 
 	for _, alarm in ipairs(self._tpl.alarms) do
 		alarm.node = alarm.node or load_opcua_node(alarm.ns, alarm.i)
-		self._sys:sleep(0)
 	end
+	]]--
 
 	for _, input in ipairs(self._tpl.calc_inputs) do
 		local m = require('calc_func.'..input.func)
 		input.calc_func = m:new(self, input, load_opcua_node)
-		self._sys:sleep(0)
 	end
 
 	-- Set client object
@@ -82,7 +83,8 @@ function app:connect_proc()
 	local client = self._client_obj
 	local conf = self._conf
 
-	local ep = conf.endpoint or "opc.tcp://127.0.0.1:4840"
+	--local ep = conf.endpoint or "opc.tcp://127.0.0.1:4840"
+	local ep = conf.endpoint or "opc.tcp://172.30.0.187:55623"
 	self._log:info("Client connect endpoint", ep)
 
 	local r, err
@@ -243,12 +245,31 @@ function app:on_run(tms)
 
 	local dev = self._dev
 
-	print('Start', os.date())
+	self._log:debug('Start', os.date())
+
+	local function load_opcua_node(ns, i)
+		local client = self._client
+		if not client then
+			self._log:warning('no client', ns, i)
+			return nil
+		end
+
+		local id = opcua.NodeId.new(ns, i)
+		local obj, err = client:getNode(id)
+		if not obj then
+			self._log:warning("Cannot get OPCUA node", ns, i, id)
+		end
+		self._sys:sleep(0)
+		self._log:debug('got input node', obj, ns, i)
+		return obj, err
+	end
 
 	local read_val = function(node, vt)
+		self._log:debug('reading node', node, vt, node.id)
 		if not node then
 			return nil
 		end
+		self._sys:sleep(0)
 		local dv = node.dataValue
 		local value = tonumber(dv.value:asString())
 		if vt == 'int' then
@@ -256,8 +277,33 @@ function app:on_run(tms)
 		end
 		return value
 	end
+
+	--- 获取节点当前值数据
+	for _, input in ipairs(self._tpl.inputs) do
+		input.node = input.node or load_opcua_node(input.ns, input.i)
+		local node = input.node
+		if node then
+			local dv = node.dataValue
+			--local ts = opcua.DateTime.toUnixTime(dv.sourceTimestamp or dv.serverTimestamp)
+			--- 设定当前值
+			local value = tonumber(dv.value:asString()) --- The data type always String -_-!
+			local now = self._sys:time()
+			if value then
+				dev:set_input_prop(input.name, "value", value, now, 0)
+			else
+				self._log:warning("Read "..input.name.." failed!!")
+				dev:set_input_prop(input.name, "value", 0, now, 1)
+			end
+		else
+			local now = self._sys:time()
+			-- TODO:
+			-- dev:set_input_prop(k, "value", 0, now, 1)
+		end
+	end
+
 	for _, alarm in ipairs(self._tpl.alarms) do
 		local alarms = {}
+		alarm.node = alarm.node or load_opcua_node(alarm.ns, alarm.i)
 		local val = read_val(alarm.node, alarm.vt)
 		if val and val > 0 then
 			table.insert(alarms, {
@@ -284,6 +330,7 @@ function app:on_run(tms)
 	for _, minput in ipairs(self._tpl.map_inputs) do
 		local val = nil
 		for _, input in ipairs(minput.values) do
+			intput.node = input.node or load_opcua_node(input.ns, input.i)
 			if input.node then
 				local v = read_val(input.node, 'int')
 				if v == 1 and (not val or val < v) then
@@ -300,34 +347,11 @@ function app:on_run(tms)
 		end
 	end
 
-	--- 获取节点当前值数据
-	for _, input in ipairs(self._tpl.inputs) do
-		local node = input.node
-
-		if node then
-			local dv = node.dataValue
-			--local ts = opcua.DateTime.toUnixTime(dv.sourceTimestamp or dv.serverTimestamp)
-			--- 设定当前值
-			local value = tonumber(dv.value:asString()) --- The data type always String -_-!
-			local now = self._sys:time()
-			if value then
-				dev:set_input_prop(input.name, "value", value, now, 0)
-			else
-				self._log:warning("Read "..input.name.." failed!!")
-				dev:set_input_prop(input.name, "value", 0, now, 1)
-			end
-		else
-			local now = self._sys:time()
-			-- TODO:
-			-- dev:set_input_prop(k, "value", 0, now, 1)
-		end
-	end
-
 	for _, input in ipairs(self._tpl.calc_inputs) do
 		input.calc_func:run(dev)
 	end
 
-	print('End', os.date())
+	self._log:debug('End', os.date())
 
 	local next_tms = (self._conf.loop_gap or 1000) - ((self._sys:time() - begin_time) * 1000)
 	return next_tms > 0 and next_tms or 0
