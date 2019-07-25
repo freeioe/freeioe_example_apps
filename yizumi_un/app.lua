@@ -1,7 +1,6 @@
 --- 导入需求的模块
 local app_base = require 'app.base'
 local opcua = require 'opcua'
-local conf_helper = require 'app.conf_helper'
 local csv_tpl = require 'csv_tpl'
 local cjson = require 'cjson.safe'
 
@@ -150,8 +149,18 @@ end
 function app:on_start()
 	local sys = self._sys
 	local conf = self._conf
-	conf.modal = conf.modal or default_modal
+	--conf.modal = conf.modal or default_modal
 	self._connect_retry = 1000
+
+	local tpl_id = conf.tpl or 'TPL000000178'
+	local tpl_ver = conf.ver or '3'
+
+	local capi = sys:conf_api(tpl_id)
+	local data, err = capi:data(tpl_ver)
+	if not data then
+		self._log:error("Failed loading template from cloud!!!", err)
+		return false
+	end
 
 	--- 生成OpcUa客户端对象
 	local client = nil
@@ -178,7 +187,7 @@ function app:on_start()
 	local sys_id = self._sys:id()
 
 	csv_tpl.init(self._sys:app_dir())
-	local tpl = csv_tpl.load_tpl(conf.modal)
+	local tpl = csv_tpl.load_tpl(tpl_id..'_'..tpl_ver)
 
 	--- 创建设备对象实例
 	local sys_id = self._sys:id()

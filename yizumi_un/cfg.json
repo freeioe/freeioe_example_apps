@@ -1,13 +1,15 @@
 [
 	{
-		"name": "modal",
-		"desc": "型号",
-		"type": "dropdown",
-		"default": "MengLiA",
-		"values": [
-			"UN200A5",
-			"MengLiA"
-		]
+		"name": "tpl",
+		"desc": "模板ID",
+		"type": "string",
+		"default": "TPL000000178"
+	},
+	{
+		"name": "ver",
+		"desc": "模板版本",
+		"type": "number",
+		"default": 3
 	},
 	{
 		"name": "loop_gap",
