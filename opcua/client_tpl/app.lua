@@ -112,14 +112,18 @@ function app:on_start()
 	--conf.modal = conf.modal or default_modal
 	self._connect_retry = 1000
 
-	local tpl_id = conf.tpl or 'TPL000000178'
-	local tpl_ver = conf.ver or '3'
+	local tpl_id = conf.tpl
+	local tpl_ver = conf.ver
+	local tpl_file = 'example'
 
-	local capi = sys:conf_api(tpl_id)
-	local data, err = capi:data(tpl_ver)
-	if not data then
-		self._log:error("Failed loading template from cloud!!!", err)
-		return false
+	if tpl_id and tpl_ver then
+		tpl_file = tpl_id..'_'..tpl_ver
+		local capi = sys:conf_api(tpl_id)
+		local data, err = capi:data(tpl_ver)
+		if not data then
+			self._log:error("Failed loading template from cloud!!!", err)
+			return false
+		end
 	end
 
 	--- 生成OpcUa客户端对象
@@ -147,7 +151,7 @@ function app:on_start()
 	local sys_id = self._sys:id()
 
 	csv_tpl.init(self._sys:app_dir())
-	local tpl = csv_tpl.load_tpl(tpl_id..'_'..tpl_ver)
+	local tpl = csv_tpl.load_tpl(tpl_file)
 
 	--- 创建设备对象实例
 	local sys_id = self._sys:id()
