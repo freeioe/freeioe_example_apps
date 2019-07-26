@@ -19,47 +19,6 @@ end
 ---
 -- 连接成功后的处理函数
 function app:on_connected(client)
-	local client = client
-
-	--[[
-	local function load_opcua_node(ns, i)
-		if not client then
-			self._log:warning('no client', ns, i)
-			return nil
-		end
-
-		local id = opcua.NodeId.new(ns, i)
-		local obj, err = client:getNode(id)
-		if not obj then
-			self._log:warning("Cannot get OPCUA node", ns, i, id)
-		end
-		self._sys:sleep(0)
-		self._log:debug('got input node', obj, ns, i)
-		return obj, err
-	end
-
-
-	--- 获取节点
-	for _, input in ipairs(self._tpl.inputs) do
-		input.node = input.node or load_opcua_node(input.ns, input.i)
-	end
-
-	for _, minput in ipairs(self._tpl.map_inputs) do
-		for _, input in ipairs(minput.values) do
-			input.node = input.node or load_opcua_node(input.ns, input.i)
-		end
-	end
-
-	for _, alarm in ipairs(self._tpl.alarms) do
-		alarm.node = alarm.node or load_opcua_node(alarm.ns, alarm.i)
-	end
-	]]--
-
-	for _, input in ipairs(self._tpl.calc_inputs) do
-		local m = require('calc_func.'..input.func)
-		input.calc_func = m:new(self, input, load_opcua_node)
-	end
-
 	-- Set client object
 	self._client = client
 end
@@ -83,7 +42,8 @@ function app:connect_proc()
 	local conf = self._conf
 
 	--local ep = conf.endpoint or "opc.tcp://127.0.0.1:4840"
-	local ep = conf.endpoint or "opc.tcp://172.30.0.187:55623"
+	--local ep = conf.endpoint or "opc.tcp://172.30.0.187:55623"
+	local ep = conf.endpoint or "opc.tcp://192.168.0.100:4840"
 	self._log:info("Client connect endpoint", ep)
 
 	local r, err
@@ -206,22 +166,6 @@ function app:on_start()
 		}
 	end
 
-	for _, v in ipairs(tpl.map_inputs) do
-		inputs[#inputs + 1] = {
-			name = v.name,
-			desc = v.desc or v.name,
-			vt = v.vt
-		}
-	end
-
-	for _, v in ipairs(tpl.calc_inputs) do
-		inputs[#inputs + 1] = {
-			name = v.name,
-			desc = v.desc or v.name,
-			vt = v.vt
-		}
-	end
-
 	self._tpl = tpl
 	--print(cjson.encode(inputs))
 
@@ -254,7 +198,7 @@ function app:on_run(tms)
 
 	local dev = self._dev
 
-	self._log:debug('Start', os.date())
+	--self._log:debug('Start', os.date())
 
 	local function load_opcua_node(ns, i)
 		self._sys:sleep(0)
@@ -311,57 +255,7 @@ function app:on_run(tms)
 		end
 	end
 
-	for _, alarm in ipairs(self._tpl.alarms) do
-		local alarms = {}
-		alarm.node = alarm.node or load_opcua_node(alarm.ns, alarm.i)
-		local val = read_val(alarm.node, alarm.vt)
-		if val and val > 0 then
-			table.insert(alarms, {
-				desc = alarm.desc,
-				val = val,
-				errno = alarm.errno,
-			})
-		end
-		if #alarms > 0 then
-			--- TODO: Fire alarm
-			local state = 2
-			for _, alarm in ipairs(alarms) do
-				if alarm.is_error then
-					state = 3
-				end
-			end
-			self._err_state = state
-		else
-			-- TODO: Fire alaram clear
-			self._err_state = nil
-		end
-	end
-
-	for _, minput in ipairs(self._tpl.map_inputs) do
-		local val = nil
-		for _, input in ipairs(minput.values) do
-			intput.node = input.node or load_opcua_node(input.ns, input.i)
-			if input.node then
-				local v = read_val(input.node, 'int')
-				if v == 1 and (not val or val < v) then
-					val = v
-				end
-			end
-		end
-
-		local now = self._sys:time()
-		if val then
-			dev:set_input_prop(minput.name, "value", val, now, 0)
-		else
-			dev:set_input_prop(minput.name, "value", 0, now, 1)
-		end
-	end
-
-	for _, input in ipairs(self._tpl.calc_inputs) do
-		input.calc_func:run(dev)
-	end
-
-	self._log:debug('End', os.date())
+	--self._log:debug('End', os.date())
 
 	local next_tms = (self._conf.loop_gap or 1000) - ((self._sys:time() - begin_time) * 1000)
 	return next_tms > 0 and next_tms or 0

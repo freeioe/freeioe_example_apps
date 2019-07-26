@@ -6,29 +6,40 @@ RELEASE_APP (){
 
 # Release ioe
 RELEASE_APP ioe
-#RELEASE_APP bms
-RELEASE_APP modbus_master
-RELEASE_APP test_reboot 
-#RELEASE_APP modbus_slave
-RELEASE_APP frpc
-RELEASE_APP opcua_server
-RELEASE_APP opcua_client
-RELEASE_APP opcua_collect_example
-RELEASE_APP yizumi_un
-RELEASE_APP symlink
-RELEASE_APP network
-# Cloud connectors
-RELEASE_APP aliyun
-RELEASE_APP baidu_cloud
-RELEASE_APP huawei_cloud
-RELEASE_APP telit_cloud
-RELEASE_APP citic_cloud
+
+# modbus
+RELEASE_APP modbus/master
+
+# Hardware test
+RELEASE_APP hw_test/reboot 
+RELEASE_APP hw_test/serial_socket
+
+RELEASE_APP tools/frpc
+RELEASE_APP tools/network_uci
+
+# OPCUA apps
+RELEASE_APP opcua/server_pub
+RELEASE_APP opcua/client_pub
+RELEASE_APP opcua/client_simple
+RELEASE_APP opcua/yizumi
+RELEASE_APP opcua/symlink
+
+# MQTT Cloud connectors
+RELEASE_APP mqtt/aliyun
+RELEASE_APP mqtt/baidu
+RELEASE_APP mqtt/huawei
+RELEASE_APP mqtt/telit
+RELEASE_APP mqtt/citic
+
+# CNC
+RELEASE_APP cnc/focas
+
+# Edge Computing
+RELEASE_APP computing/showbox 
+
 # Others
 RELEASE_APP dlt645
-RELEASE_APP sim_tank
-RELEASE_APP focas
-RELEASE_APP showbox 
-RELEASE_APP rtu 
-RELEASE_APP sim
-RELEASE_APP port_test
-RELEASE_APP oliver_355_monitor
+RELEASE_APP other/sim_tank
+RELEASE_APP other/rtu 
+RELEASE_APP other/sim
+RELEASE_APP other/oliver_355_monitor

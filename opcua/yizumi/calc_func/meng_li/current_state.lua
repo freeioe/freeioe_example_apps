@@ -1,6 +1,6 @@
 local class = require 'middleclass'
 
-local calc = class("CALC_FUNCION_MENG_LI_A")
+local calc = class("CALC_FUNCION_MENG_LI_CS")
 
 function calc:initialize(app, input, node_finder)
 	self._app = app
