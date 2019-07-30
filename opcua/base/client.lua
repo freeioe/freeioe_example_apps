@@ -277,6 +277,7 @@ function client:createSubscription(inputs, callback)
 		if input then
 			local input = input
 			local data_value = data_value
+			--- TODO: Using better way to implement this co tasks
 			table.insert(self._co_tasks, function()
 				local r, err = xpcall(callback, debug.traceback, input, data_value)
 				if not r then

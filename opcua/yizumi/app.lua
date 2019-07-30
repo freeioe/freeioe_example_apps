@@ -24,12 +24,13 @@ function app:on_connected(client)
 	end
 
 	self._log:info("OPCUA Client connected")
+	local enable_sub = self._conf.enable_sub
 
-	local function get_opcua_node(ns, i)
-		return client:get_node(ns, i)
-	end
+	if not enable_sub then
+		local function get_opcua_node(ns, i)
+			return client:get_node(ns, i)
+		end
 
-	if not self._conf.enable_sub then
 		--- 获取节点
 		for _, input in ipairs(self._tpl.inputs) do
 			input.node = input.node or get_opcua_node(input.ns, input.i)
@@ -48,7 +49,7 @@ function app:on_connected(client)
 		local r, err = client:createSubscription(self._tpl.inputs, function(input, data_value)
 			local dev = self._dev
 			local value = client:parse_value(data_value, input.vt)
-			self._log:debug('Sub recv', input.name, value)
+			--self._log:debug('Sub recv', input.name, value)
 			if value then
 				dev:set_input_prop(input.name, "value", value, now, 0)
 			else
@@ -88,7 +89,8 @@ function app:on_connected(client)
 	--- TODO:
 	for _, input in ipairs(self._tpl.calc_inputs) do
 		local m = require('calc_func.'..input.func)
-		input.calc_func = m:new(self, input, get_opcua_node)
+		input.calc_func = m:new(self, self._dev, input, enable_sub)
+		input.calc_func:start(client)
 	end
 
 	self._ready_to_run = true
@@ -269,7 +271,7 @@ function app:on_run(tms)
 	end
 
 	for _, input in ipairs(self._tpl.calc_inputs) do
-		input.calc_func:run(dev)
+		input.calc_func:run()
 	end
 
 	self._log:debug('End', os.date())
