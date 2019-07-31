@@ -1,16 +1,13 @@
 --- 导入需求的模块
 local app_base = require 'app.base'
-local client_base = require 'base.client'
+local opcua_client = require 'base.client'
 local csv_tpl = require 'csv_tpl'
 local cjson = require 'cjson.safe'
 
 --- 注册对象(请尽量使用唯一的标识字符串)
-local app = app_base:subclass("FREEIOE_OPCUA_CLIENT_APP")
+local app = app_base:subclass("YIZUMI_OPCUA_CLIENT_APP")
 --- 设定应用最小运行接口版本(目前版本为4,为了以后的接口兼容性)
 app.static.API_VER = 4
-
-local default_modal = 'example'
---local default_modal = 'UN200A5'
 
 function app:connected()
 	return self._client ~= nil and self._client:connected()
@@ -162,12 +159,10 @@ function app:on_start()
 
 	self._dev = self._api:add_device(sys_id..'.'..meta.name, meta, inputs)
 
-	self._client = client_base:new(self, conf)
-
+	self._client = opcua_client:new(self, conf)
 	self._client.on_connected = function(client)
 		self:on_connected(client)
 	end
-
 	self._client:connect()
 
 	return true
@@ -177,11 +172,10 @@ end
 function app:on_close(reason)
 	self._log:warning('Application closing', reason)
 	--- 清理OpcUa客户端连接
-	self._client = nil
-	if self._client_obj then
-		self._client_obj:disconnect()
-		self._client_obj = nil
+	if self._client then
+		self._client:disconnect()
 	end
+	self._client = nil
 end
 
 --- 应用运行入口

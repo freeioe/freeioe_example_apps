@@ -21,6 +21,37 @@ function client:connected()
 	return self._client ~= nil
 end
 
+--- 
+-- Get the objects node (ns=0, i=85)
+--
+function client:get_objects_node()
+	if not self._client then
+		return nil, "Not connected"
+	end
+	return self._client:getObjectsNode()
+end
+
+---
+-- Get the namespace index (number) by specified namespace string
+-- e.g. http://opcfoundation.org/UA/ which is 0
+--
+function client:get_namespace_index(namespace)
+	if not self._client then
+		return nil, "Not connected"
+	end
+	return self._client:getNamesapceIndex(namespace)
+end
+
+--- Get the specified child from node by child_name
+--  The child_name is <namespace id>:<browse name>
+--  and you cloud append more child_name for deep finding
+function client:get_child(node, child_name, ...)
+	if not self._client then
+		return nil, "Not connected"
+	end
+	return node:getChild(child_name, ...)
+end
+
 function client:get_node(ns, i)
 	local client = self._client
 

@@ -1,17 +1,5 @@
 [
 	{
-		"name": "tpl",
-		"desc": "模板ID",
-		"type": "string",
-		"default": "TPL000000178"
-	},
-	{
-		"name": "ver",
-		"desc": "模板版本",
-		"type": "number",
-		"default": 3
-	},
-	{
 		"name": "loop_gap",
 		"desc": "采集周期(ms)",
 		"type": "number",
