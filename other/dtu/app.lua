@@ -6,7 +6,7 @@ local cjson = require 'cjson.safe'
 local sapp = require 'app.base'
 
 --- 注册对象(请尽量使用唯一的标识字符串)
-local app = sapp:subclass("RTU_EXAMPLE_APP")
+local app = sapp:subclass("DTU_EXAMPLE_APP")
 --- 设定应用最小运行接口版本(目前版本为4,为了以后的接口兼容性)
 app.static.API_VER = 4
 
@@ -43,9 +43,9 @@ function app:on_start()
 	}
 
 	local meta = self._api:default_meta()
-	meta.name = "RTU Serial"
+	meta.name = "DTU Serial"
 	meta.inst = self._name
-	meta.description = "RTU Serial Meta"
+	meta.description = "DTU Serial Meta"
 
 	self._dev = self._api:add_device(sn, meta, inputs)
 
