@@ -270,7 +270,6 @@ function client:connect()
 
 	self._client_obj = client
 
-
 	client:setStateCallback(function(cli, state)
 		self._log:trace("Client state changed to", state, cli)
 		if self._client_obj ~= cli then

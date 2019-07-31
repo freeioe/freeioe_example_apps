@@ -1,19 +1,8 @@
-local class = require 'middleclass'
-local opcua = require 'opcua'
+local app_base = require 'app.base'
+local opcua_client = require 'base.client'
 
-local app = class("FREEIOE_OPCUA_CLIENT_APP")
-app.static.API_VER = 1
-
-function app:initialize(name, sys, conf)
-	self._name = name
-	self._sys = sys
-	self._conf = conf
-	self._api = sys:data_api()
-	self._log = sys:logger()
-	self._connect_retry = 1000
-	self._input_count_in = 0
-	self._input_count_out = 0
-end
+local app = opcua_client:subclass("FREEIOE_OPCUA_CLIENT_APP")
+app.static.API_VER = 4
 
 local default_vals = {
 	int = 0,
@@ -57,7 +46,7 @@ end
 
 function app:is_connected()
 	if self._client then
-		return true
+		return self._client:connected() 
 	end
 end
 
@@ -171,137 +160,28 @@ function app:on_post_input(app, sn, input, prop, value, timestamp, quality)
 	print(sn, input, prop, value)
 	local var = node.vars[input]
 	if var and prop == 'value' then
-		self._input_count_in = self._input_count_in + 1
 		local r, err = pcall(set_var_value, var, value, timestamp, quality)
-		self._input_count_out = self._input_count_out + 1
 		if not r then
 			self._log:error("OPC Client failure!", err)
 		end
 	end
 end
 
-function app:on_disconnect()
+function app:on_connected(client)	
+	if client ~= self._client then
+		return
+	end
+	local devs = self._api:list_devices() or {}
 	self._nodes = {}
-	self._client = nil
-	self._sys:timeout(self._connect_retry, function() self:connect_proc() end)
-	self._connect_retry = self._connect_retry * 2
-	if self._connect_retry > 2000 * 64 then
-		self._connect_retry = 2000
+	for sn, props in pairs(devs) do
+		self:create_device_node(sn, props)
 	end
 end
 
-function app:connect_proc()
-	self._log:notice("OPC Client start connection!")
-	local client = self._client_obj
-
-	local ep = self._conf.endpoint or "opc.tcp://127.0.0.1:4840"
-	self._log:info("Client connect endpoint", ep)
-
-	local r, err
-
-	if self._conf.auth then
-		self._log:info("Client connect with username&password")
-		r, err = client:connect_username(ep, self._conf.auth.username, self._conf.auth.password)
-	else
-		self._log:info("Client connect without username&password")
-		r, err = client:connect(ep)
-	end
-	if r and r == 0 then
-		self._log:notice("OPC Client connect successfully!")
-		self._client = client
-		self._connect_retry = 2000
-		
-		local devs = self._api:list_devices() or {}
-		for sn, props in pairs(devs) do
-			self:create_device_node(sn, props)
-		end
-	else
-		local err = err or opcua.getStatusCodeName(r)
-		self._log:error("OPC Client connect failure! Error: "..err)
-		self:on_disconnect()
-	end
-end
-
-function app:print_debug()
-	while true do
-		if self._client then
-			if 0 == self._client:getState() then
-				self._sys:fork(function()
-					self:on_disconnect()
-				end)
-			end
-		end
-		--print(self._input_count_in, self._input_count_out)
-		self._sys:sleep(2000)
-	end
-end
-
-function app:load_encryption(conf)
-	local sys = self._sys
-
-	local securityMode = nil
-	if (conf.encryption.mode) then
-		if mode == 'SignAndEncrypt' then
-			securityMode = opcua.UA_MessageSecurityMode.UA_MESSAGESECURITYMODE_SIGNANDENCRYPT
-		end
-		if mode == 'Sign' then
-			securityMode = opcua.UA_MessageSecurityMode.UA_MESSAGESECURITYMODE_SIGN
-		end
-		if mode == 'None' then
-			securityMode = opcua.UA_MessageSecurityMode.UA_MESSAGESECURITYMODE_NONE
-		end
-	end
-
-	local cert_file = sys:app_dir()..(conf.encryption.cert or "certs/cert.der")
-	local key_file = sys:app_dir()..(conf.encryption.key or "certs/key.der")
-
-	local cert_fn = "certs/certt.der"
-	if conf.encryption.cert and string.len(conf.encryption.cert) > 0 then
-		cert_fn = conf.encryption.cert
-	end
-	local cert_file = sys:app_dir()..cert_fn
-
-	local key_fn = "certs/key.der"
-	if conf.encryption.key and string.len(conf.encryption.key) > 0 then
-		key_fn = conf.encryption.key
-	end
-
-	local key_file = sys:app_dir()..key_fn
-
-	return {
-		cert = cert_file,
-		key = key_file,
-		mode = securityMode,
-	}
-end
-
-function app:start()
-	self._nodes = {}
-
+function app:on_start()
 	local conf = self._conf
 	local sys = self._sys
-	local client = nil
 
-	if conf.encryption then
-		local cp = self:load_encryption(conf)
-		self._log:info("Create client with entryption", cp.mode, cp.cert, cp.key)
-		client = opcua.Client.new(cp.mode, cp.cert, cp.key)
-	else
-		self._log:info("Create client without entryption.")
-		client = opcua.Client.new()
-	end
-
-	local config = client.config
-	config:setTimeout(5000)
-	config:setSecureChannelLifeTime(10 * 60 * 1000)
-
-	local app_uri = conf.app_uri or "urn:freeioe:opcuaclient"
-	config:setApplicationURI(app_uri)
-
-	self._client_obj = client
-
-	self._sys:fork(function() self:print_debug() end)
-	self._sys:fork(function() self:connect_proc() end)
 	self._api:set_handler({
 		on_add_device = function(app, sn, props)
 			return self:on_add_device(app, sn, props)
@@ -317,16 +197,20 @@ function app:start()
 		end,
 	}, true)
 
+	self._client = opcua_client:new(self, conf)
+	self._client.on_connected = function(client)
+		self:on_connected(client)
+	end
+	self._client:connect()
+
 	return true
 end
 
 function app:close(reason)
-	print(self._name, reason)
-	self._client = nil
-	if self._client_obj then
-		self._nodes = {}
-		self._client_obj:disconnect()
-		self._client_obj = nil
+	self._nodes = {}
+	if self._client then
+		self._client:disconnect()
+		self._client = nil
 	end
 end
 
