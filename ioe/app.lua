@@ -445,27 +445,27 @@ function app:lte_strength(csq)
 	if self:check_symlink() then
 		return
 	end
-	local set_bs = function(val)
-		if leds.bs then
-			leds.bs:brightness(val)
-		end
-	end
 	local set_gs = function(val)
 		if leds.gs then
 			leds.gs:brightness(val)
 		end
 	end
+	local set_bs = function(val)
+		if leds.bs then
+			leds.bs:brightness(val)
+		end
+	end
 
 	if csq > 0 and csq < 18 then
-		set_bs(1)
-		set_gs(0)
+		set_gs(1)
+		set_bs(0)
 	else
 		if csq >= 18 and csq <= 32 then
-			set_bs(1)
 			set_gs(1)
+			set_bs(1)
 		else
-			set_bs(0)
 			set_gs(0)
+			set_bs(0)
 		end
 	end
 end
