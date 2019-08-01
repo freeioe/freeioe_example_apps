@@ -40,6 +40,6 @@ RELEASE_APP computing/showbox
 # Others
 RELEASE_APP dlt645
 RELEASE_APP other/sim_tank
-RELEASE_APP other/rtu 
+RELEASE_APP other/dtu 
 RELEASE_APP other/sim
 RELEASE_APP other/oliver_355_monitor
