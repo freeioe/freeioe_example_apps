@@ -62,7 +62,7 @@ local inputs = {
 -- 连接成功后的处理函数
 function app:on_connected(client)
 	if client ~= self._client then
-		return
+		return false
 	end
 
 	-- Cleanup nodes buffer
@@ -81,6 +81,7 @@ function app:on_connected(client)
 			--print(_,v.name,var)
 			if not var then
 				self._log:error('Variable not found', err)
+				return false, err
 			else
 				node.vars[v.name] = var
 			end
@@ -88,6 +89,7 @@ function app:on_connected(client)
 		local sn = namespace..'/'..obj_name
 		self._nodes[sn] = node
 	end
+	return true
 end
 
 --- 应用启动函数
@@ -121,7 +123,7 @@ function app:on_start()
 
 	self._client = opcua_client:new(self, conf)
 	self._client.on_connected = function(client)
-		self:on_connected(client)
+		return self:on_connected(client)
 	end
 	self._client:connect()
 

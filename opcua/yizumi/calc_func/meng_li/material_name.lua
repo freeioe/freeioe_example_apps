@@ -41,11 +41,12 @@ function calc:set_input_values(values)
 end
 
 function calc:start(ua_client)
+	self._client = ua_client
 	if self._enable_sub then
 		local inputs = {}
 		for i, ni in ipairs(self._i_list) do
 			inputs[#inputs + 1] = {
-				index = i
+				index = i,
 				ns = self._ns,
 				i = ni,
 				vt = 'int'
@@ -53,8 +54,8 @@ function calc:start(ua_client)
 		end
 		self._inputs = inputs
 		-- Subscribe nodes
-		local r, err = client:createSubscription(inputs, function(input, data_value)
-			local value = client:parse_value(data_value, input.vt)
+		local r, err = ua_client:create_subscription(inputs, function(input, data_value)
+			local value = ua_client:parse_value(data_value, input.vt)
 			--local ts = data_value.sourceTimestamp:asDateTime() / 10000000
 			self._cu:update(input.index, value)
 		end)

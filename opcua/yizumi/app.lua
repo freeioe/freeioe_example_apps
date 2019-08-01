@@ -17,7 +17,7 @@ end
 -- 连接成功后的处理函数
 function app:on_connected(client)
 	if client ~= self._client then
-		return
+		return false
 	end
 
 	self._log:info("OPCUA Client connected")
@@ -43,10 +43,11 @@ function app:on_connected(client)
 			alarm.node = alarm.node or get_opcua_node(alarm.ns, alarm.i)
 		end
 	else
-		local r, err = client:createSubscription(self._tpl.inputs, function(input, data_value)
+		local r, err = client:create_subscription(self._tpl.inputs, function(input, data_value)
 			local dev = self._dev
 			local value = client:parse_value(data_value, input.vt)
-			--self._log:debug('Sub recv', input.name, value)
+			self._log:debug('Sub recv', input.name, input.vt, value, data_value.value:asString())
+			--assert(tostring(value) == data_value.value:asString())
 			if value then
 				dev:set_input_prop(input.name, "value", value, now, 0)
 			else
@@ -55,6 +56,7 @@ function app:on_connected(client)
 		end)
 		if not r then
 			self._log:error("failed to subscribe nodes", err)
+			return false
 		else
 			self._log:notice("Subscribe nodes finished!!")
 		end
@@ -91,6 +93,7 @@ function app:on_connected(client)
 	end
 
 	self._ready_to_run = true
+	return true
 end
 
 --- 应用启动函数
@@ -98,12 +101,13 @@ function app:on_start()
 	local sys = self._sys
 	local conf = self._conf
 
-	--conf.endpoint = conf.endpoint or 'opc.tcp://172.30.0.187:38133'
+	--conf.endpoint = conf.endpoint or 'opc.tcp://172.30.0.187:16602'
+	conf.endpoint = conf.endpoint or 'opc.tcp://192.168.0.100:4840'
 	conf.enable_sub = true
 
 	local tpl_id = conf.tpl
 	local tpl_ver = conf.ver
-	local tpl_file = 'example_test'
+	local tpl_file = 'example'
 
 	if tpl_id and tpl_ver then
 		local capi = sys:conf_api(tpl_id)
@@ -161,7 +165,7 @@ function app:on_start()
 
 	self._client = opcua_client:new(self, conf)
 	self._client.on_connected = function(client)
-		self:on_connected(client)
+		return self:on_connected(client)
 	end
 	self._client:connect()
 

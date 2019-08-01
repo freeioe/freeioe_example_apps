@@ -169,13 +169,14 @@ end
 
 function app:on_connected(client)	
 	if client ~= self._client then
-		return
+		return false
 	end
 	local devs = self._api:list_devices() or {}
 	self._nodes = {}
 	for sn, props in pairs(devs) do
 		self:create_device_node(sn, props)
 	end
+	return true
 end
 
 function app:on_start()
@@ -199,7 +200,7 @@ function app:on_start()
 
 	self._client = opcua_client:new(self, conf)
 	self._client.on_connected = function(client)
-		self:on_connected(client)
+		return self:on_connected(client)
 	end
 	self._client:connect()
 

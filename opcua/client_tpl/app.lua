@@ -17,7 +17,7 @@ end
 -- 连接成功后的处理函数
 function app:on_connected(client)
 	if client ~= self._client then
-		return
+		return false, "Not this client"
 	end
 
 	self._log:info("OPCUA Client connected")
@@ -33,7 +33,7 @@ function app:on_connected(client)
 			input.node = input.node or get_opcua_node(input.ns, input.i)
 		end
 	else
-		local r, err = client:createSubscription(self._tpl.inputs, function(input, data_value)
+		local r, err = client:create_subscription(self._tpl.inputs, function(input, data_value)
 			local dev = self._dev
 			local value = client:parse_value(data_value, input.vt)
 			--self._log:debug('Sub recv', input.name, value)
@@ -45,12 +45,14 @@ function app:on_connected(client)
 		end)
 		if not r then
 			self._log:error("failed to subscribe nodes", err)
+			return false, "Subscribe failed"
 		else
 			self._log:notice("Subscribe nodes finished!!")
 		end
 	end
 
 	self._ready_to_run = true
+	return true
 end
 
 --- 应用启动函数

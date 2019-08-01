@@ -72,6 +72,15 @@ function client:get_node(ns, i)
 	return obj, err
 end
 
+function client:get_node_by_id(id)
+	local obj, err = self._client:getNode(id)
+	if not obj then
+		self._log:warning("Cannot get OPCUA node", ns, i, id)
+	end
+	self._log:debug('got input node', obj, ns, i)
+	return obj, err
+end
+
 function client:read_value(node, vt)
 	self._log:debug('reading node', node, vt, node and node.id)
 	if not node then
@@ -88,7 +97,7 @@ function client:parse_value(data_value, vt)
 	local dv = data_value
 
 	if vt == 'int' then
-		local value = dv.value:asLong() or dv.value:asString()
+		local value = dv.value:isNumeric() and dv.value:asLong() or dv.value:asString()
 		if not value then
 			return nil, "Value type incorrect"
 		end
@@ -107,7 +116,7 @@ function client:parse_value(data_value, vt)
 		return value, dv.sourceTimestamp, dv.serverTimestamp
 	end
 
-	local value = dv.value:asDouble() or dv.value:asString()
+	local value = dv.value:isNumeric() and dv.value:asDouble() or dv.value:asString()
 	if not value then
 		return nil, "Value type incorrect"
 	end
@@ -118,6 +127,11 @@ function client:parse_value(data_value, vt)
 	end
 
 	return value, dv.sourceTimestamp, dv.serverTimestamp
+end
+
+function client:on_connected()
+	log:debug("default on connected callback")
+	return true
 end
 
 ---
@@ -154,11 +168,10 @@ function client:connect_proc()
 				log:notice("OPC Client connect successfully!")
 				self._client = client
 
-				if self.on_connected then
-					self:on_connected()
-				end
+				return self:on_connected()
+			else
+				return true
 			end
-			return true
 		else
 			local err = err or opcua.getStatusCodeName(r)
 			if self._client then
@@ -294,7 +307,7 @@ function client:disconnect()
 	return true
 end
 
-function client:createSubscription(inputs, callback)
+function client:create_subscription(inputs, callback)
 	if not self._client then
 		return nil, "Client not connected"
 	end
@@ -326,11 +339,19 @@ function client:createSubscription(inputs, callback)
 	for _, v in ipairs(inputs) do
 		self._sys:sleep(0)
 		local id = opcua.NodeId.new(v.ns, v.i)
-		local mon_id, err = self._client:subscribeNode(sub_id, id)
-		if mon_id then
-			sub_map[mon_id] = v
-		else
-			table.insert(failed, v)
+		local node = self:get_node_by_id(id)
+		if node then
+			local mon_id, err = self._client:subscribeNode(sub_id, id)
+			if mon_id then
+				sub_map[mon_id] = v
+			else
+				table.insert(failed, v)
+			end
+
+			local r, err = xpcall(callback, debug.traceback, v, node.dataValue)
+			if not r then
+				self._log:warning("Failed to call callback", err)
+			end
 		end
 	end
 
