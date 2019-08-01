@@ -14,6 +14,7 @@ function lte_wan:initialize(app, sys, lte_wan_freq)
 	self._gcom = false
 	self._led_single = false
 	self._lte_wan_freq = lte_wan_freq
+	self._led_control = false
 
 	self._wan_sum = sum:new({
 		file = true,
@@ -29,6 +30,7 @@ function lte_wan:inputs()
 	local id = self._sys:id()
 	if string.sub(sys_id, 1, 8) == '2-30002-' or string.sub(sys_id, 1, 8) == '2-30102-' then
 		self._led_single = true
+		self._led_control = true
 		self._gcom = true
 		return {
 			{
@@ -121,6 +123,10 @@ function lte_wan:lte_strength(csq)
 	if self._app:check_symlink() then
 		return
 	end
+	if not self._led_control then
+		return
+	end
+
 	local set_bs = function(val)
 		if leds.bs then
 			leds.bs:brightness(val)
