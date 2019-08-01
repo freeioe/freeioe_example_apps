@@ -2,16 +2,17 @@ local class = require 'middleclass'
 local sum = require 'summation'
 local netinfo = require 'netinfo'
 local gcom = require 'utils.gcom'
+local leds = require 'utils.leds'
 local cjson = require 'cjson.safe'
 
 local lte_wan = class("FREEIOE_WAN_SUM_CLASS")
 
-function lte_wan:initialize(app, sys)
+function lte_wan:initialize(app, sys, lte_wan_freq)
 	self._app = app
 	self._sys = sys
 	self._3ginfo = false
 	self._gcom = false
-	self._lte_wan_freq = app._conf.lte_wan_freq
+	self._lte_wan_freq = lte_wan_freq
 
 	self._wan_sum = sum:new({
 		file = true,
@@ -26,6 +27,7 @@ function lte_wan:inputs()
 	local sys_id = self._sys:hw_id()
 	local id = self._sys:id()
 	if string.sub(sys_id, 1, 8) == '2-30002-' or string.sub(sys_id, 1, 8) == '2-30102-' then
+		self._led_single = true
 		self._gcom = true
 		return {
 			{
@@ -59,6 +61,7 @@ function lte_wan:inputs()
 	end
 	if lfs.attributes("/tmp/sysinfo/3ginfo", "mode") == 'file' then
 		self._3ginfo = true
+		self._led_single = false
 		-- TODO: 3Ginfo export
 		return {
 			{
@@ -112,7 +115,41 @@ function lte_wan:read_wan_sr()
 	end
 end
 
-function lte_wan:start(dev, lte_strength_cb)
+--- For signal strength
+function lte_wan:lte_strength(csq)
+	if self:check_symlink() then
+		return
+	end
+	local set_gs = function(val)
+		if leds.gs then
+			leds.gs:brightness(val)
+		end
+	end
+	local set_bs = function(val)
+		if leds.bs then
+			leds.bs:brightness(val)
+		end
+	end
+	if csq > 0 and csq < 18 then
+		set_gs(1)
+		set_bs(0)
+	else
+		if csq >= 18 and csq <= 32 then
+			--- GS will be dark when there is only one signal led
+			if not self._led_single then
+				set_gs(1)
+			else
+				set_gs(0)
+			end
+			set_bs(1)
+		else
+			set_gs(0)
+			set_bs(0)
+		end
+	end
+end
+
+function lte_wan:start(dev)
 	self._dev = dev
 	self:read_wan_sr()
 	local calc_lte_wan = nil
@@ -130,9 +167,9 @@ function lte_wan:start(dev, lte_strength_cb)
 			local csq, err = gcom.get_csq()
 			if csq then
 				self._dev:set_input_prop('csq', "value", csq)
-				if lte_strength_cb then
-					lte_strength_cb(csq)
-				end
+				self:lte_strength(csq)
+			else
+				self:lte_strength(0)
 			end
 			local cpsi, err = gcom.get_cpsi()
 			if cpsi then
@@ -162,9 +199,9 @@ function lte_wan:start(dev, lte_strength_cb)
 					local csq = tonumber(info.csq)
 					if csq then
 						self._dev:set_input_prop('csq', "value", csq)
-						if lte_strength_cb then
-							lte_strength_cb(csq)
-						end
+						self:lte_strength(csq)
+					else
+						self:lte_strength(0)
 					end
 
 					for k, v in pairs(info) do

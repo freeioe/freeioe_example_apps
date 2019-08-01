@@ -21,7 +21,7 @@ function app:initialize(name, sys, conf)
 	self._log = sys:logger()
 	self._cancel_timers = {}
 	self._apps_cache = {}
-	self._lte_wan = lte_wan:new(self, sys)
+	self._lte_wan = lte_wan:new(self, sys, conf.lte_wan_freq)
 end
 
 function app:start()
@@ -368,9 +368,7 @@ function app:first_run()
 	end
 	calc_tmp_disk()
 
-	self._lte_wan:start(self._dev, function(csq)
-		self:lte_strength(csq)
-	end)
+	self._lte_wan:start(self._dev)
 
 	self._sys:timeout(100, function()
 		self._log:debug("Fire system started event")
@@ -436,36 +434,6 @@ function app:check_cloud_status()
 			leds.cloud:brightness(1)
 		else
 			leds.cloud:brightness(0)
-		end
-	end
-end
-
---- For signal strength
-function app:lte_strength(csq)
-	if self:check_symlink() then
-		return
-	end
-	local set_gs = function(val)
-		if leds.gs then
-			leds.gs:brightness(val)
-		end
-	end
-	local set_bs = function(val)
-		if leds.bs then
-			leds.bs:brightness(val)
-		end
-	end
-
-	if csq > 0 and csq < 18 then
-		set_gs(1)
-		set_bs(0)
-	else
-		if csq >= 18 and csq <= 32 then
-			set_gs(1)
-			set_bs(1)
-		else
-			set_gs(0)
-			set_bs(0)
 		end
 	end
 end
