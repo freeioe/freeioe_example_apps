@@ -159,7 +159,7 @@ function lte_wan:start(dev, lte_strength_cb)
 					if ccid then
 						self._dev:set_input_prop('ccid', "value", ccid)
 					end
-					local csq = info.csq
+					local csq = tonumber(info.csq)
 					if csq then
 						self._dev:set_input_prop('csq', "value", csq)
 						if lte_strength_cb then
