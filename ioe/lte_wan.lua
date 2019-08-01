@@ -121,31 +121,27 @@ function lte_wan:lte_strength(csq)
 	if self._app:check_symlink() then
 		return
 	end
-	local set_gs = function(val)
-		if leds.gs then
-			leds.gs:brightness(val)
-		end
-	end
 	local set_bs = function(val)
 		if leds.bs then
 			leds.bs:brightness(val)
 		end
 	end
+	local set_gs = function(val)
+		if leds.gs then
+			leds.gs:brightness(val)
+		end
+	end
 	if csq > 0 and csq < 18 then
-		set_gs(1)
-		set_bs(0)
+		set_bs(1)
+		set_gs(0)
 	else
 		if csq >= 18 and csq <= 32 then
 			--- GS will be dark when there is only one signal led
-			if not self._led_single then
-				set_gs(1)
-			else
-				set_gs(0)
-			end
-			set_bs(1)
+			set_bs( not self._led_single and 1 or 0 )
+			set_gs(1)
 		else
-			set_gs(0)
 			set_bs(0)
+			set_gs(0)
 		end
 	end
 end
