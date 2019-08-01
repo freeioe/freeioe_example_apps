@@ -2,7 +2,6 @@ local class = require 'middleclass'
 local snax = require 'skynet.snax'
 local datacenter = require 'skynet.datacenter'
 local sysinfo = require 'utils.sysinfo'
-local gcom = require 'utils.gcom'
 local leds = require 'utils.leds'
 local event = require 'app.event'
 local lte_wan = require 'lte_wan'
@@ -275,6 +274,7 @@ end
 
 function app:close(reason)
 	--print(self._name, reason)
+	self._lte_wan:stop()
 	for name, cancel_timer in pairs(self._cancel_timers) do
 		cancel_timer()
 	end
@@ -368,7 +368,9 @@ function app:first_run()
 	end
 	calc_tmp_disk()
 
-	self._lte_wan:start()
+	self._lte_wan:start(self._dev, function(csq)
+		self:lte_strength(csq)
+	end)
 
 	self._sys:timeout(100, function()
 		self._log:debug("Fire system started event")

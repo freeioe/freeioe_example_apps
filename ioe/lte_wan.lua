@@ -1,6 +1,7 @@
 local class = require 'middleclass'
 local sum = require 'summation'
 local netinfo = require 'netinfo'
+local gcom = require 'utils.gcom'
 
 local lte_wan = class("FREEIOE_WAN_SUM_CLASS")
 
@@ -105,15 +106,16 @@ function lte_wan:read_wan_sr()
 	end
 end
 
+function lte_wan:start(dev, lte_strength_cb)
+	self._dev = dev
 
-function lte_wan:start()
 	if self._gcom then
 		self:read_wan_sr()
 		local calc_gcom = nil
 		local gcom_freq = self._gcom_freq or (1000 * 60)
 		calc_gcom = function()
 			-- Reset timer
-			self._cancel_timers['gcom'] = self._sys:cancelable_timeout(gcom_freq, calc_gcom)
+			self._gcom_cancel_timer = self._sys:cancelable_timeout(gcom_freq, calc_gcom)
 
 			local ccid, err = gcom.get_ccid()
 			if ccid then
@@ -122,7 +124,9 @@ function lte_wan:start()
 			local csq, err = gcom.get_csq()
 			if csq then
 				self._dev:set_input_prop('csq', "value", csq)
-				self:lte_strength(csq)
+				if lte_strength_cb then
+					lte_strength_cb(csq)
+				end
 			end
 			local cpsi, err = gcom.get_cpsi()
 			if cpsi then
@@ -143,6 +147,13 @@ end
 
 function lte_wan:run()
 	self:read_wan_sr()
+end
+
+function lte_wan:stop()
+	if self._gcom_cancel_timer then
+		self._gcom_cancel_timer()
+		self._gcom_cancel_timer = nil
+	end
 end
 
 return lte_wan
