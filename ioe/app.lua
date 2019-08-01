@@ -237,8 +237,8 @@ function app:start()
 
 	local meta = self._api:default_meta()
 	meta.name = "ThingsLink"
-	meta.description = "ThingsLink IOE Device"
-	meta.series = "FreeIOE" -- TODO:
+	meta.description = "FreeIOE Edge-Computing Gateway"
+	meta.series = sysinfo.board_name()
 	--
 	meta.platform = sysinfo.platform() or "unknown"
 	meta.firmware = sysinfo.firmware_version()

@@ -2,6 +2,7 @@ local class = require 'middleclass'
 local sum = require 'summation'
 local netinfo = require 'netinfo'
 local gcom = require 'utils.gcom'
+local cjson = require 'cjson.safe'
 
 local lte_wan = class("FREEIOE_WAN_SUM_CLASS")
 
@@ -10,7 +11,7 @@ function lte_wan:initialize(app, sys)
 	self._sys = sys
 	self._3ginfo = false
 	self._gcom = false
-	self._gcom_freq = app._conf.gcom_freq
+	self._lte_wan_freq = app._conf.lte_wan_freq
 
 	self._wan_sum = sum:new({
 		file = true,
@@ -71,8 +72,8 @@ function lte_wan:inputs()
 				vt = "int",
 			},
 			{
-				name = 'cpsi',
-				desc = 'GPRS/LTE work mode',
+				name = 'lte_info',
+				desc = 'GPRS/LTE work information',
 				vt = "string",
 			},
 			{
@@ -103,19 +104,24 @@ function lte_wan:read_wan_sr()
 		end
 	end
 	if self._3ginfo then
+		local info, err = netinfo.proc_net_dev('wwan0')
+		if info and #info == 16 then
+			self._wan_sum:set('recv', math.floor(info[1] / 1000))
+			self._wan_sum:set('send', math.floor(info[9] / 1000))
+		end
 	end
 end
 
 function lte_wan:start(dev, lte_strength_cb)
 	self._dev = dev
+	self:read_wan_sr()
+	local calc_lte_wan = nil
+	local lte_wan_freq = self._lte_wan_freq or (1000 * 60)
 
 	if self._gcom then
-		self:read_wan_sr()
-		local calc_gcom = nil
-		local gcom_freq = self._gcom_freq or (1000 * 60)
-		calc_gcom = function()
+		calc_lte_wan = function()
 			-- Reset timer
-			self._gcom_cancel_timer = self._sys:cancelable_timeout(gcom_freq, calc_gcom)
+			self._lte_wan_cancel_timer = self._sys:cancelable_timeout(lte_wan_freq, calc_lte_wan)
 
 			local ccid, err = gcom.get_ccid()
 			if ccid then
@@ -138,11 +144,45 @@ function lte_wan:start(dev, lte_strength_cb)
 			--- GCOM core dump file removal hacks
 			os.execute("rm -rf /tmp/gcom*.core")
 		end
-		--- GCOM takes too much time which may blocks the first run too long
-		self._sys:timeout(1000, function() calc_gcom() end)
 	end
 	if self._3ginfo then
+		calc_lte_wan = function()
+			self._lte_wan_cancel_timer = self._sys:cancelable_timeout(lte_wan_freq, calc_lte_wan)
+			local f, err = io.open('/tmp/sysinfo/3ginfo', 'r')
+			if f then
+				local str, err = f:read('*a')
+				f:close()
+
+				if str then
+					local info = cjson.decode(str)
+					local ccid = info.ccid
+					if ccid then
+						self._dev:set_input_prop('ccid', "value", ccid)
+					end
+					local csq = info.csq
+					if csq then
+						self._dev:set_input_prop('csq', "value", csq)
+						if lte_strength_cb then
+							lte_strength_cb(csq)
+						end
+					end
+
+					for k, v in pairs(info) do
+						if string.len(v) == 0 or v == '-' then
+							info[k] = nil
+						end
+					end
+					self._dev:set_input_prop('lte_info', "value", cjson.encode(info))
+
+					self._dev:set_input_prop('wan_r', "value", self._wan_sum:get('recv'))
+					self._dev:set_input_prop('wan_s', "value", self._wan_sum:get('send'))
+				end
+			end
+		end
 	end
+
+	--- GCOM takes too much time which may blocks the first run too long
+	self._sys:timeout(1000, function() calc_lte_wan() end)
 end
 
 function lte_wan:run()
@@ -150,9 +190,9 @@ function lte_wan:run()
 end
 
 function lte_wan:stop()
-	if self._gcom_cancel_timer then
-		self._gcom_cancel_timer()
-		self._gcom_cancel_timer = nil
+	if self._lte_wan_cancel_timer then
+		self._lte_wan_cancel_timer()
+		self._lte_wan_cancel_timer = nil
 	end
 end
 
