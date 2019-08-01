@@ -1,5 +1,6 @@
 local class = require 'middleclass'
 local sum = require 'summation'
+local netinfo = require 'netinfo'
 
 local lte_wan = class("FREEIOE_WAN_SUM_CLASS")
 
