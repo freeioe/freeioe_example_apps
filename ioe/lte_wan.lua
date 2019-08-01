@@ -161,13 +161,11 @@ function lte_wan:start(dev)
 			if ccid then
 				self._dev:set_input_prop('ccid', "value", ccid)
 			end
+
 			local csq, err = gcom.get_csq()
-			if csq then
-				self._dev:set_input_prop('csq', "value", csq)
-				self:lte_strength(csq)
-			else
-				self:lte_strength(0)
-			end
+			self._dev:set_input_prop('csq', "value", csq or 0)
+			self:lte_strength(csq or 0)
+
 			local cpsi, err = gcom.get_cpsi()
 			if cpsi then
 				self._dev:set_input_prop('cpsi', "value", cpsi)
@@ -193,13 +191,9 @@ function lte_wan:start(dev)
 					if ccid then
 						self._dev:set_input_prop('ccid', "value", ccid)
 					end
-					local csq = tonumber(info.csq)
-					if csq then
-						self._dev:set_input_prop('csq', "value", csq)
-						self:lte_strength(csq)
-					else
-						self:lte_strength(0)
-					end
+					local csq = tonumber(info.csq) or 0
+					self._dev:set_input_prop('csq', "value", csq)
+					self:lte_strength(csq)
 
 					for k, v in pairs(info) do
 						if string.len(v) == 0 or v == '-' then
