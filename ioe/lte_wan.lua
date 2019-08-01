@@ -12,6 +12,7 @@ function lte_wan:initialize(app, sys, lte_wan_freq)
 	self._sys = sys
 	self._3ginfo = false
 	self._gcom = false
+	self._led_single = false
 	self._lte_wan_freq = lte_wan_freq
 
 	self._wan_sum = sum:new({
@@ -117,7 +118,7 @@ end
 
 --- For signal strength
 function lte_wan:lte_strength(csq)
-	if self:check_symlink() then
+	if self._app:check_symlink() then
 		return
 	end
 	local set_gs = function(val)

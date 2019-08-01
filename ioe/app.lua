@@ -21,7 +21,7 @@ function app:initialize(name, sys, conf)
 	self._log = sys:logger()
 	self._cancel_timers = {}
 	self._apps_cache = {}
-	self._lte_wan = lte_wan:new(self, sys, conf.lte_wan_freq)
+	self._lte_wan = lte_wan:new(self, sys, self._conf.lte_wan_freq)
 end
 
 function app:start()
