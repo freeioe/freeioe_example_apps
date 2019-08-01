@@ -9,6 +9,7 @@ function lte_wan:initialize(app, sys)
 	self._sys = sys
 	self._3ginfo = false
 	self._gcom = false
+	self._gcom_freq = app._conf.gcom_freq
 
 	self._wan_sum = sum:new({
 		file = true,
@@ -109,7 +110,7 @@ function lte_wan:start()
 	if self._gcom then
 		self:read_wan_sr()
 		local calc_gcom = nil
-		local gcom_freq = self._conf.gcom_freq or (1000 * 60)
+		local gcom_freq = self._gcom_freq or (1000 * 60)
 		calc_gcom = function()
 			-- Reset timer
 			self._cancel_timers['gcom'] = self._sys:cancelable_timeout(gcom_freq, calc_gcom)
