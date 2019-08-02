@@ -45,7 +45,9 @@ local function load_tpl(name)
 					ns = tonumber(v[5]) or 0,
 					i = tonumber(v[6]) or -1,
 					value = tonumber(v[7]) or -1,
+					desc = v[8],
 				})
+				map_inputs[mi.name] = mi
 			end
 			if v[1] == 'CALC_INPUT' then
 				table.insert(calc_inputs, {

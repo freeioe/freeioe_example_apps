@@ -216,7 +216,9 @@ function lte_wan:start(dev)
 	end
 
 	--- GCOM takes too much time which may blocks the first run too long
-	self._sys:timeout(1000, function() calc_lte_wan() end)
+	if calc_lte_wan then
+		self._sys:timeout(1000, function() calc_lte_wan() end)
+	end
 end
 
 function lte_wan:run()

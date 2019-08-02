@@ -79,7 +79,7 @@ function calc:run()
 	if not self._enable_sub then
 		local values = {}
 		for i, node in ipairs(self._nodes) do
-			local value = read_val(node, 'int')
+			local value = self._client:read_value(node, 'int')
 			assert(value)
 			values[i] = value
 		end

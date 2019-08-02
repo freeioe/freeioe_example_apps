@@ -3,6 +3,8 @@ local app_base = require 'app.base'
 local opcua_client = require 'base.client'
 local csv_tpl = require 'csv_tpl'
 local cjson = require 'cjson.safe'
+local calc_map_input = require 'calc_func.map_input'
+local calc_alarm = require 'calc_func.alarm'
 
 --- 注册对象(请尽量使用唯一的标识字符串)
 local app = app_base:subclass("YIZUMI_OPCUA_CLIENT_APP")
@@ -32,21 +34,11 @@ function app:on_connected(client)
 		for _, input in ipairs(self._tpl.inputs) do
 			input.node = input.node or get_opcua_node(input.ns, input.i)
 		end
-
-		for _, minput in ipairs(self._tpl.map_inputs) do
-			for _, input in ipairs(minput.values) do
-				input.node = input.node or get_opcua_node(input.ns, input.i)
-			end
-		end
-
-		for _, alarm in ipairs(self._tpl.alarms) do
-			alarm.node = alarm.node or get_opcua_node(alarm.ns, alarm.i)
-		end
 	else
 		local r, err = client:create_subscription(self._tpl.inputs, function(input, data_value)
 			local dev = self._dev
 			local value = client:parse_value(data_value, input.vt)
-			self._log:debug('Sub recv', input.name, input.vt, value, data_value.value:asString())
+			self._log:debug('INPUT Sub recv', input.name, input.vt, value, data_value.value:asString())
 			--assert(tostring(value) == data_value.value:asString())
 			if value then
 				dev:set_input_prop(input.name, "value", value, now, 0)
@@ -54,38 +46,23 @@ function app:on_connected(client)
 				dev:set_input_prop(input.name, "value", 0, now, -1)
 			end
 		end)
+
 		if not r then
 			self._log:error("failed to subscribe nodes", err)
 			return false
 		else
 			self._log:notice("Subscribe nodes finished!!")
 		end
-
-		for _, minput in ipairs(self._tpl.map_inputs) do
-			local m_value = {}
-			--[[
-			client:createSubsciption(minput.values, function(input, data_value)
-				for _, input in ipairs(minput.values) do
-					if input.node then
-						local v = read_val(input.node, 'int')
-						if v == 1 and (not val or val < v) then
-							val = v
-						end
-					end
-				end
-
-				local now = self._sys:time()
-				if val then
-					dev:set_input_prop(minput.name, "value", val, now, 0)
-				else
-					dev:set_input_prop(minput.name, "value", 0, now, 1)
-				end
-			end)
-			]]--
-		end
 	end
 
-	--- TODO:
+	for k, input in pairs(self._tpl.map_inputs) do
+		input.calc_func = calc_map_input:new(self, self._dev, input, enable_sub)
+		input.calc_func:start(client)
+	end
+
+	self._calc_alarm = calc_alarm:new(self, self._dev, self._tpl.alarms, enable_sub)
+	self._calc_alarm:start(client)
+
 	for _, input in ipairs(self._tpl.calc_inputs) do
 		local m = require('calc_func.'..input.func)
 		input.calc_func = m:new(self, self._dev, input, enable_sub)
@@ -101,13 +78,13 @@ function app:on_start()
 	local sys = self._sys
 	local conf = self._conf
 
-	--conf.endpoint = conf.endpoint or 'opc.tcp://172.30.0.187:16602'
-	conf.endpoint = conf.endpoint or 'opc.tcp://192.168.0.100:4840'
+	conf.endpoint = conf.endpoint or 'opc.tcp://172.30.0.187:47055'
+	--conf.endpoint = conf.endpoint or 'opc.tcp://192.168.0.100:4840'
 	conf.enable_sub = true
 
 	local tpl_id = conf.tpl
 	local tpl_ver = conf.ver
-	local tpl_file = 'example'
+	local tpl_file = 'example_test'
 
 	if tpl_id and tpl_ver then
 		local capi = sys:conf_api(tpl_id)
@@ -142,7 +119,7 @@ function app:on_start()
 		}
 	end
 
-	for _, v in ipairs(tpl.map_inputs) do
+	for k, v in pairs(tpl.map_inputs) do
 		inputs[#inputs + 1] = {
 			name = v.name,
 			desc = v.desc or v.name,
@@ -158,7 +135,7 @@ function app:on_start()
 		}
 	end
 
-	--print(cjson.encode(inputs))
+	--print(cjson.encode(tpl.map_inputs))
 	self._tpl = tpl
 
 	self._dev = self._api:add_device(sys_id..'.'..meta.name, meta, inputs)
@@ -249,24 +226,10 @@ function app:on_run(tms)
 		end
 	end
 
-	for _, minput in ipairs(self._tpl.map_inputs) do
-		local val = nil
-		for _, input in ipairs(minput.values) do
-			if input.node then
-				local v = read_val(input.node, 'int')
-				if v == 1 and (not val or val < v) then
-					val = v
-				end
-			end
-		end
-
-		local now = self._sys:time()
-		if val then
-			dev:set_input_prop(minput.name, "value", val, now, 0)
-		else
-			dev:set_input_prop(minput.name, "value", 0, now, 1)
-		end
+	for k, input in pairs(self._tpl.map_inputs) do
+		input.calc_func:run()
 	end
+	self._calc_alarm:run()
 
 	for _, input in ipairs(self._tpl.calc_inputs) do
 		input.calc_func:run()
