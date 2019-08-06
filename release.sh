@@ -36,6 +36,7 @@ RELEASE_APP cnc/focas
 
 # Edge Computing
 RELEASE_APP computing/showbox 
+RELEASE_APP computing/oee 
 
 # Others
 RELEASE_APP dlt645

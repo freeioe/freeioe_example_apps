@@ -68,7 +68,7 @@ function client:get_node(ns, i)
 	if not obj then
 		self._log:warning("Cannot get OPCUA node", ns, i, id)
 	end
-	self._log:debug('got input node', obj, ns, i)
+	--self._log:debug('got input node', obj, ns, i)
 	return obj, err
 end
 
@@ -77,7 +77,7 @@ function client:get_node_by_id(id)
 	if not obj then
 		self._log:warning("Cannot get OPCUA node", ns, i, id)
 	end
-	self._log:debug('got input node', obj, ns, i)
+	--self._log:debug('got input node', obj, ns, i)
 	return obj, err
 end
 
@@ -134,6 +134,10 @@ function client:on_connected()
 	return true
 end
 
+function client:on_disconnected()
+	log:debug("default on disconnected callback")
+end
+
 ---
 -- 连接处理函数
 function client:connect_proc()
@@ -143,6 +147,21 @@ function client:connect_proc()
 	local log = self._log
 
 	log:notice("OPC Client start connection!")
+
+	client:setStateCallback(function(cli, state)
+		table.insert(self._co_tasks, function()
+			self._log:trace("Client state changed to", state, cli)
+			if self._client_obj ~= cli then
+				return
+			end
+			if state == opcua.UA_ClientState.DISCONNECTED then
+				return self:on_disconnected()
+			end
+			if state == opcua.UA_ClientState.CONNECTED then
+				return self:on_connected()
+			end
+		end)
+	end)
 
 	local ep = conf.endpoint or "opc.tcp://127.0.0.1:4840"
 	--local ep = conf.endpoint or "opc.tcp://172.30.0.187:55623"
@@ -168,7 +187,7 @@ function client:connect_proc()
 				log:notice("OPC Client connect successfully!")
 				self._client = client
 
-				return self:on_connected()
+				return true
 			else
 				return true
 			end
@@ -282,17 +301,6 @@ function client:connect()
 	config:setApplicationURI(client_uri)
 
 	self._client_obj = client
-
-	client:setStateCallback(function(cli, state)
-		self._log:trace("Client state changed to", state, cli)
-		if self._client_obj ~= cli then
-			return
-		end
-		if state == opcua.UA_ClientState.DISCONNECTED then
-		end
-		if state == opcua.UA_ClientState.CONNECTED then
-		end
-	end)
 
 	--- 发起OpcUa连接
 	self._sys:fork(function() self:connect_proc() end)

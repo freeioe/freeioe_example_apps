@@ -69,6 +69,10 @@ function calc:start(ua_client)
 	end
 end
 
+function calc:stop()
+	--TODO: unsubscribe
+end
+
 function calc:run()
 	local app = self._app
 	if not app:connected() then

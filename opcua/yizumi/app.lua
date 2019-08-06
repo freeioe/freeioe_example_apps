@@ -11,8 +11,41 @@ local app = app_base:subclass("YIZUMI_OPCUA_CLIENT_APP")
 --- 设定应用最小运行接口版本(目前版本为4,为了以后的接口兼容性)
 app.static.API_VER = 4
 
+local alarm_state_input = 'AlarmState'
+
 function app:connected()
 	return self._client ~= nil and self._client:connected()
+end
+
+function app:on_disconnected(client)
+	if self._client ~= client then
+		return
+	end
+	self._ready_to_read = false
+
+	for _, input in ipairs(self._tpl.calc_inputs) do
+		if input.calc_func then
+			input.calc_func:stop()
+			input.calc_func = nil
+		end
+	end
+
+	for k, input in pairs(self._tpl.map_inputs) do
+		if input.calc_func then
+			input.calc_func:stop()
+			input.calc_func = nil
+		end
+	end
+
+	for _, input in ipairs(self._tpl.inputs) do
+		input.node = nil
+	end
+
+
+	if self._calc_alarm then
+		self._calc_alarm:stop()
+		self._calc_alarm = nil
+	end
 end
 
 ---
@@ -24,6 +57,17 @@ function app:on_connected(client)
 
 	self._log:info("OPCUA Client connected")
 	local enable_sub = self._conf.enable_sub
+
+	for _, input in ipairs(self._tpl.calc_inputs) do
+		local m = require('calc_func.'..input.func)
+		input.calc_func = m:new(self, self._dev, input, enable_sub)
+		input.calc_func:start(client)
+	end
+
+	for k, input in pairs(self._tpl.map_inputs) do
+		input.calc_func = calc_map_input:new(self, self._dev, input, enable_sub)
+		input.calc_func:start(client)
+	end
 
 	if not enable_sub then
 		local function get_opcua_node(ns, i)
@@ -55,36 +99,28 @@ function app:on_connected(client)
 		end
 	end
 
-	for k, input in pairs(self._tpl.map_inputs) do
-		input.calc_func = calc_map_input:new(self, self._dev, input, enable_sub)
-		input.calc_func:start(client)
+	if #self._tpl.alarms > 0 then
+		self._calc_alarm = calc_alarm:new(self, self._dev, self._tpl.alarms, alarm_state_input, enable_sub)
+		self._calc_alarm:start(client)
 	end
 
-	self._calc_alarm = calc_alarm:new(self, self._dev, self._tpl.alarms, enable_sub)
-	self._calc_alarm:start(client)
-
-	for _, input in ipairs(self._tpl.calc_inputs) do
-		local m = require('calc_func.'..input.func)
-		input.calc_func = m:new(self, self._dev, input, enable_sub)
-		input.calc_func:start(client)
-	end
-
-	self._ready_to_run = true
+	self._ready_to_read = true
 	return true
 end
 
 --- 应用启动函数
 function app:on_start()
+	self._watches = {}
 	local sys = self._sys
 	local conf = self._conf
 
 	conf.endpoint = conf.endpoint or 'opc.tcp://172.30.0.187:47055'
 	--conf.endpoint = conf.endpoint or 'opc.tcp://192.168.0.100:4840'
-	conf.enable_sub = true
+	conf.enable_sub = conf.enable_sub ~= nil and conf.enable_sub or true
 
 	local tpl_id = conf.tpl
 	local tpl_ver = conf.ver
-	local tpl_file = 'example_test'
+	local tpl_file = 'example'
 
 	if tpl_id and tpl_ver then
 		local capi = sys:conf_api(tpl_id)
@@ -134,15 +170,36 @@ function app:on_start()
 			vt = v.vt
 		}
 	end
+	if #tpl.alarms > 0 then
+		inputs[#inputs + 1] = {
+			name = alarm_state_input,
+			desc = '报警状态',
+			vt = 'string',
+		}
+	end
 
 	--print(cjson.encode(tpl.map_inputs))
 	self._tpl = tpl
 
 	self._dev = self._api:add_device(sys_id..'.'..meta.name, meta, inputs)
+	local org_set_input_prop = self._dev.set_input_prop
+	self._dev.set_input_prop = function(dev, input, prop, value, timestamp, quality)
+		--print(dev, input, prop, value, timestamp, quality)
+		org_set_input_prop(dev, input, prop, value, timestamp, quality)
+		local cb_list = self._watches[input]
+		if cb_list then
+			for _, v in pairs(cb_list) do
+				v(input, prop, value, timestamp, quality)
+			end
+		end
+	end
 
 	self._client = opcua_client:new(self, conf)
 	self._client.on_connected = function(client)
 		return self:on_connected(client)
+	end
+	self._client.on_disconnected = function(client)
+		return self:on_disconnected(client)
 	end
 	self._client:connect()
 
@@ -159,22 +216,7 @@ function app:on_close(reason)
 	self._client = nil
 end
 
---- 应用运行入口
-function app:on_run(tms)
-	local begin_time = self._sys:time()
-	if not self._client or self._conf.enable_sub then
-		return 1000
-	end
-
-	if not self._ready_to_run then
-		return 1000
-	end
-
-	local dev = self._dev
-	local client = self._client
-
-	self._log:debug('Start', os.date())
-
+function app:read_all_inputs()
 	local read_val = function(node, vt)
 		local value, source_ts, server_ts = client:read_value(node, vt)
 		-- skip source/server timestamp
@@ -200,36 +242,42 @@ function app:on_run(tms)
 			-- dev:set_input_prop(k, "value", 0, now, 1)
 		end
 	end
+end
 
-	for _, alarm in ipairs(self._tpl.alarms) do
-		local alarms = {}
-		local val = read_val(alarm.node, alarm.vt)
-		if val and val > 0 then
-			table.insert(alarms, {
-				desc = alarm.desc,
-				val = val,
-				errno = alarm.errno,
-			})
-		end
-		if #alarms > 0 then
-			--- TODO: Fire alarm
-			local state = 2
-			for _, alarm in ipairs(alarms) do
-				if alarm.is_error then
-					state = 3
-				end
-			end
-			self._err_state = state
-		else
-			-- TODO: Fire alaram clear
-			self._err_state = nil
-		end
+function app:watch_input(key, input, cb)
+	local cb_list = self._watches[input] or {}
+	cb_list[key] = cb
+	self._watches[input] = cb_list
+end
+
+--- 应用运行入口
+function app:on_run(tms)
+	local begin_time = self._sys:time()
+	if not self._client then
+		return 1000
+	end
+
+	if not self._ready_to_read then
+		return 1000
+	end
+
+	local dev = self._dev
+	local client = self._client
+	local enable_sub = self._conf.enable_sub
+
+	self._log:debug('Start', os.date())
+
+	if not enable_sub then
+		self:read_all_inputs()
 	end
 
 	for k, input in pairs(self._tpl.map_inputs) do
 		input.calc_func:run()
 	end
-	self._calc_alarm:run()
+
+	if self._calc_alarm then
+		self._calc_alarm:run()
+	end
 
 	for _, input in ipairs(self._tpl.calc_inputs) do
 		input.calc_func:run()

@@ -4,9 +4,10 @@ local event = require 'app.event'
 
 local alarm = class('CALC_FUNC_ALARM_CLASSS_LIB')
 
-function alarm:initialize(app, dev, nodes, enable_sub)
+function alarm:initialize(app, dev, nodes, input, enable_sub)
 	self._app = app
 	self._dev = dev
+	self._input = input
 	self._enable_sub = enable_sub
 	self._log = app._log
 
@@ -18,15 +19,18 @@ function alarm:initialize(app, dev, nodes, enable_sub)
 			i = v.i,
 			vt = 'int',
 			reverse = v.reverse,
-			errno = v.errno
+			errno = v.errno,
+			is_error = v.is_error,
 		})
 	end
 
 	self._nodes = node_list
+	self._alarmed = {}
 end
 
 function alarm:set_alarm_value(node, value)
 	local bval = node.reverse and value == 0 or value ~= 0
+
 	--print(node.desc, node.i, node.on, bval, value)
 	if node.on == nil then
 		node.on = bval
@@ -39,6 +43,8 @@ function alarm:set_alarm_value(node, value)
 			self:fire_alarm(node, node.on)
 		end
 	end
+
+	self:update_state(node, bval)
 end
 
 function alarm:fire_alarm(node, on, delay)
@@ -78,6 +84,30 @@ function alarm:fire_alarm(node, on, delay)
 	end)
 end
 
+function alarm:update_state(node, on)
+	if not self._input then
+		return
+	end
+
+	if on then
+		self._alarmed[node.errno] = node.is_error
+	else
+		self._alarmed[node.errno] = nil
+	end
+
+	local new_state = 'NONE'
+	for k, v in pairs(self._alarmed) do
+		if v.is_error == 1 then
+			new_state = 'ERROR'
+		else
+			if new_state ~= 'ERROR' then
+				new_state = 'WARNING'
+			end
+		end
+	end
+	self._dev:set_input_prop(self._input, 'value', new_state)
+end
+
 function alarm:start(ua_client)
 	local client = ua_client
 	self._client = client
@@ -97,6 +127,10 @@ function alarm:start(ua_client)
 			node.obj = obj
 		end
 	end
+end
+
+function alarm:stop()
+	-- TODO: Unsubscribe
 end
 
 function alarm:run()
