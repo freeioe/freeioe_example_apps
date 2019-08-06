@@ -44,9 +44,9 @@ function app:on_start()
 		{ name = 'defectives_quantity', desc = '不良品数量', vt = 'int'},
 		{ name = 'energy_consumption', desc = '能耗', vt = 'int', unit = ''},
 
-		{ name = 'up_rate', desc = '开机率', vt = 'float', unit = '%'},
-		{ name = 'run_rate', desc = '稼动率', vt = 'float', unit = '%'},
-		{ name = 'good_rate', desc = '良率', vt = 'float', unit = '%'},
+		{ name = 'up_rate', desc = '开机率', vt = 'float'},
+		{ name = 'run_rate', desc = '稼动率', vt = 'float'},
+		{ name = 'good_rate', desc = '良率', vt = 'float'},
 		{ name = 'oee', desc = 'OEE', vt = 'float'},
 	}
 
