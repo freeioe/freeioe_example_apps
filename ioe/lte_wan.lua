@@ -3,6 +3,7 @@ local sum = require 'summation'
 local netinfo = require 'netinfo'
 local gcom = require 'utils.gcom'
 local leds = require 'utils.leds'
+local sysinfo = require 'utils.sysinfo'
 local cjson = require 'cjson.safe'
 
 local lte_wan = class("FREEIOE_WAN_SUM_CLASS")
@@ -21,7 +22,8 @@ function lte_wan:initialize(app, sys, lte_wan_freq)
 		save_span = 60 * 5, -- five minutes
 		key = 'wan',
 		span = 'month',
-		path = '/root', -- Q102's data/cache partition
+		path = sysinfo.data_dir(),
+		--path = '/root', -- Q102's data/cache partition
 	})
 end
 
