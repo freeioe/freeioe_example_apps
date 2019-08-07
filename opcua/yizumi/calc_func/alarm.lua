@@ -26,6 +26,8 @@ function alarm:initialize(app, dev, nodes, input, enable_sub)
 
 	self._nodes = node_list
 	self._alarmed = {}
+	self._alarm_on = {}
+	self._alarm_off = {}
 end
 
 function alarm:set_alarm_value(node, value)
