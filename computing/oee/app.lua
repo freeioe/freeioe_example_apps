@@ -51,13 +51,17 @@ function app:on_start()
 		{ name = 'oee', desc = 'OEE', vt = 'float'},
 	}
 
+	local commands = {
+		{ name = "reset_sum", desc = '重置统计数据（重新计数)' }
+	}
+
 	local dev_sn = self._sys:id()..'.'..self._name
 	self._dev_sn = dev_sn 
 	local meta = self._api:default_meta()
 	meta.name = "OEE"
 	meta.description = "OEE"
 	meta.series = "X"
-	self._dev = self._api:add_device(dev_sn, meta, inputs)
+	self._dev = self._api:add_device(dev_sn, meta, inputs, nil, commands)
 
 	local timezone = sysinfo.TZ and sysinfo.TZ() or sysinfo.cat_file('/tmp/TZ') or "UTC"
 	self._log:notice(string.format("OEE Application started! TimeZone: %s", timezone))
@@ -67,6 +71,16 @@ function app:on_start()
 	self:start_calc()
 
 	return true
+end
+
+function app:on_command(app_src, sn, command, param)
+	self._log:notice("Received command", command, param)
+	if command == 'reset_sum' then
+		self._sum:reset()
+		self._sum:save()
+		return true
+	end
+	return false, "No such command"
 end
 
 function app:load_init_values()
