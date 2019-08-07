@@ -33,7 +33,7 @@ end
 
 function calc:set_input_values(values)
 	local str = string.pack('<I2I2I2I2I2I2I2I2I2I2', table.unpack(values))
-	local ei = string.find(str, string.byte(0), 1, true)
+	local ei = string.find(str, ' ', 1, true)
 	if ei then
 		str = string.sub(str, 1, ei - 1)
 	end
