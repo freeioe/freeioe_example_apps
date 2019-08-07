@@ -3,6 +3,7 @@ local ioe = require 'ioe'
 local event = require 'app.event'
 local app_calc = require 'app.utils.calc'
 local summation = require 'summation'
+local date = require 'date'
 local sysinfo = require 'utils.sysinfo'
 
 --- 注册应用对象
@@ -185,7 +186,8 @@ function app:update_dev()
 	--{ name = 'energy_consumption', desc = '能耗', vt = 'int', unit = ''},
 
 	if up_time > 0 then
-		local up_rate = up_time / (os.time() % (3600 * 24) )
+		local this_day_seconds = date(os.date('%T')):spanseconds()
+		local up_rate = up_time / this_day_seconds
 		local run_rate = (run_time + warn_time) / up_time
 
 		local good_rate = quantity > 0 and (1 - (defectives / quantity)) or 1
