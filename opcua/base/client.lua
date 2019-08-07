@@ -77,7 +77,7 @@ function client:get_node_by_id(id)
 	if not obj then
 		self._log:warning("Cannot get OPCUA node", ns, i, id)
 	end
-	--self._log:debug('got input node', obj, ns, i)
+	self._log:debug('got input node', obj, ns, i)
 	return obj, err
 end
 

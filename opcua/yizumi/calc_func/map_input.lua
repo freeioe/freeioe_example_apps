@@ -101,5 +101,8 @@ function map_input:run()
 	end
 end
 
+function map_input:stop()
+	--TODO: UN-SUB nodes
+end
 
 return map_input
