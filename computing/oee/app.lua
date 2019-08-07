@@ -58,7 +58,8 @@ function app:on_start()
 	meta.series = "X"
 	self._dev = self._api:add_device(dev_sn, meta, inputs)
 
-	self._log:notice("Show Box Started!!!!")
+	local timezone = sysinfo.TZ and sysinfo.TZ() or sysinfo.cat_file('/tmp/TZ') or "UTC"
+	self._log:notice(string.format("OEE Application started! TimeZone: %s", timezone))
 
 	self:load_init_values()
 
@@ -201,6 +202,8 @@ end
 
 --- 应用退出函数
 function app:on_close(reason)
+	-- save the summation counts
+	self._sum:save()
 end
 
 --- 返回应用对象
