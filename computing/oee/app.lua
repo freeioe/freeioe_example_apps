@@ -5,6 +5,7 @@ local app_calc = require 'app.utils.calc'
 local summation = require 'summation'
 local date = require 'date'
 local sysinfo = require 'utils.sysinfo'
+local cjson = require 'cjson.safe'
 
 --- 注册应用对象
 local app = app_base:subclass("FREEIOE_EXAMPLE_TRIGGER_APP")
@@ -49,6 +50,8 @@ function app:on_start()
 		{ name = 'run_rate', desc = '稼动率', vt = 'float'},
 		{ name = 'good_rate', desc = '良率', vt = 'float'},
 		{ name = 'oee', desc = 'OEE', vt = 'float'},
+
+		{ name = 'processing_parameters', desc = '工艺参数(JSON)', vt = 'string' },
 	}
 
 	local commands = {
@@ -157,6 +160,32 @@ function app:start_calc()
 			end
 
 			self:update_dev()
+		end
+	end)
+
+	local pp_last_count = 0
+	self._calc:add('processing_parameters', {
+		{ sn = self._dsn, input = 'MouldName', prop='value' },
+		{ sn = self._dsn, input = 'MaterialType', prop='value' },
+		{ sn = self._dsn, input = 'CurrentCount', prop='value' }
+	}, function(mould_name, material_type, current_count)
+		if current_count ~= pp_last_count then
+			local dev = self._api:get_device(self._dsn)
+			local BarrelTemp1_Current = dev:get_input_prop('BarrelTemp1_Current', 'value')
+			local BarrelTemp2_Current = dev:get_input_prop('BarrelTemp2_Current', 'value')
+			-- TODO: more
+
+			local str, err = cjson.encode({
+				mould = mould_name,
+				material = material_type,
+				count = current_count,
+				barreltemp1 = BarrelTemp1_Current,
+				barreltemp2 = BarrelTemp2_Current,
+				-- TODO: more
+			})
+			if str then
+				self._dev:set_input_prop('processing_parameters', 'value', str)
+			end
 		end
 	end)
 end
