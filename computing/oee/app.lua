@@ -139,7 +139,7 @@ function app:start_calc()
 			begin_def_count = defectives_count
 		else
 			self._log:debug("Count changed", begin_count, current_count, begin_def_count, defectives_count)
-			if count > 0 and self._last_state == nil then
+			if current_count > begin_count and self._last_state == nil then
 				self._last_state = 0 -- set the run state
 				self._last_state_time = ioe.time()
 			end
