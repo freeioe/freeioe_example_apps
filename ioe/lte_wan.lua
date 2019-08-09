@@ -64,9 +64,11 @@ function lte_wan:inputs()
 			},
 		}
 	end
-	if lfs.attributes("/tmp/sysinfo/3ginfo", "mode") == 'file' then
+	if lfs.attributes("/tmp/sysinfo/3ginfo", "mode") == 'file'
+		or lfs.attributes("/etc/rc.d/S21wwanleds", "mode") then
 		self._3ginfo = true
 		self._led_single = false
+		self._led_control = false
 		-- TODO: 3Ginfo export
 		return {
 			{
