@@ -113,8 +113,8 @@ function app:start_calc()
 	--end, 30)	
 	--
 	local last_mould = nil
-	local begin_count = nil
-	local begin_def_count = nil
+	local begin_count = 0
+	local begin_def_count = 0
 	self._calc:add('quantity', {
 		{ sn = self._dsn, input = 'MouldName', prop='value' },
 		{ sn = self._dsn, input = 'CurrentCount', prop='value' },
@@ -139,25 +139,20 @@ function app:start_calc()
 			begin_def_count = defectives_count
 		else
 			self._log:debug("Count changed", begin_count, current_count, begin_def_count, defectives_count)
-			if current_count <= 1 then
-				-- Mannually reset by user, summation will take care about reset
-				self._sum:set('quantity', count)
-			else
-				local count = current_count - begin_count
-				if count > 0 and self._last_state == nil then
-					self._last_state = 0 -- set the run state
-					self._last_state_time = ioe.time()
-				end
-				self._sum:set('quantity', count)
+			if count > 0 and self._last_state == nil then
+				self._last_state = 0 -- set the run state
+				self._last_state_time = ioe.time()
 			end
 
-			if defectives_count <= 1 then
-				-- Mannually reseted by user
-				self._sum:set('defectives', count)
-			else
-				local count = defectives_count - begin_def_count
-				self._sum:set('defectives', count)
+			if current_count <= 1 or current_count < begin_count then
+				begin_count = current_count
 			end
+			self._sum:set('quantity', current_count - begin_count)
+
+			if defectives_count <=1 or defectives_count < begin_def_count then
+				begin_def_count = defectives_count
+			end
+			self._sum:set('defectives', defectives_count - begin_def_count)
 
 			self:update_dev()
 		end
