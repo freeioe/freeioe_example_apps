@@ -144,15 +144,17 @@ function app:start_calc()
 				self._last_state_time = ioe.time()
 			end
 
-			if current_count <= 1 or current_count < begin_count then
+			if current_count < 1 or current_count < begin_count then
 				begin_count = current_count
 			end
 			self._sum:set('quantity', current_count - begin_count)
+			self._log:debug('Quantity now is', self._sum:get('quantity'))
 
-			if defectives_count <=1 or defectives_count < begin_def_count then
+			if defectives_count < 1 or defectives_count < begin_def_count then
 				begin_def_count = defectives_count
 			end
 			self._sum:set('defectives', defectives_count - begin_def_count)
+			self._log:debug('Defectives now is', self._sum:get('defectives'))
 
 			self:update_dev()
 		end
