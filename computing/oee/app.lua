@@ -113,26 +113,17 @@ function app:start_calc()
 	--end, 30)	
 	--
 	local last_mould = nil
-	local begin_count = 0
-	local begin_def_count = 0
+	local begin_count = nil
+	local begin_def_count = nil
 	self._calc:add('quantity', {
 		{ sn = self._dsn, input = 'MouldName', prop='value' },
 		{ sn = self._dsn, input = 'CurrentCount', prop='value' },
 		{ sn = self._dsn, input = 'DefectivesCount', prop='value' }
 	}, function(mould_name, current_count, defectives_count)
-		--[[
-		if not begin_count then
-			begin_count = current_count
-		end
-		if not begin_def_count then
-			begin_def_count = defectives_count
-		end
-		if not last_mould then
-			last_mould = mould_name
-		end
-		]]--
-
-		if mould_name ~= last_mould then
+		assert(mould_name ~=  nil)
+		assert(current_count ~= nil)
+		assert(defectives_count ~= nil)
+		if mould_name ~= last_mould or last_mould == nil then
 			self._log:debug("Mould changed", mould_name, current_count, defectives_count)
 			last_mould = mould_name
 			begin_count = current_count

@@ -24,6 +24,11 @@ function app:on_start()
 				desc = 'input '..i,
 			}
 		end
+		inputs[#inputs + 1] = {
+			name = 'tag_string',
+			desc = 'input as string',
+			vt = 'string',
+		}
 
 		local meta = self._api:default_meta()
 		meta.name = "Data Simulation"
@@ -42,13 +47,17 @@ end
 
 function app:on_run(tms)
 	local tag_count = self._conf.tag_count or 4
-	local run_loop = self._conf.run_loop or 100 -- ms
+	local run_loop = self._conf.run_loop or 1000 -- ms
 
 	for _, dev in ipairs(self._devs) do
+		--[[
 		for i = 1, tag_count do
 			dev:set_input_prop('tag'..i, 'value', math.random(0xFFFFFFFF))
 		end
+		]]--
+		dev:set_input_prop('tag_string', 'value', os.date())
 	end
+
 
 	return run_loop
 end

@@ -234,12 +234,12 @@ function app:read_all_inputs()
 				dev:set_input_prop(input.name, "value", value, now, 0)
 			else
 				self._log:warning("Read "..input.name.." failed!!")
-				dev:set_input_prop(input.name, "value", 0, now, 1)
+				dev:set_input_prop(input.name, "value", 0, now, -1)
 			end
 		else
 			local now = self._sys:time()
 			-- TODO:
-			-- dev:set_input_prop(k, "value", 0, now, 1)
+			-- dev:set_input_prop(k, "value", 0, now, -1)
 		end
 	end
 end
