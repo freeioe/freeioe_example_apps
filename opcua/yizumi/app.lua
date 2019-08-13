@@ -134,12 +134,15 @@ function app:on_start()
 
 	---获取设备序列号和应用配置
 	local sys_id = self._sys:id()
+	local device_sn = conf.device_sn
+	if conf.with_ioe_sn then
+		device_sn = sys_id..'.'..device_sn
+	end
 
 	csv_tpl.init(self._sys:app_dir())
 	local tpl = csv_tpl.load_tpl(tpl_file)
 
 	--- 创建设备对象实例
-	local sys_id = self._sys:id()
 	local meta = self._api:default_meta()
 	meta.name = tpl.meta.name
 	meta.manufacturer = tpl.meta.manufacturer
@@ -181,7 +184,7 @@ function app:on_start()
 	--print(cjson.encode(tpl.map_inputs))
 	self._tpl = tpl
 
-	self._dev = self._api:add_device(sys_id..'.'..meta.name, meta, inputs)
+	self._dev = self._api:add_device(device_sn, meta, inputs)
 	local org_set_input_prop = self._dev.set_input_prop
 	self._dev.set_input_prop = function(dev, input, prop, value, timestamp, quality)
 		--print(dev, input, prop, value, timestamp, quality)

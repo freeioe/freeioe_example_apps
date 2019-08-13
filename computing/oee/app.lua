@@ -58,7 +58,11 @@ function app:on_start()
 		{ name = "reset_sum", desc = '重置统计数据（重新计数)' }
 	}
 
-	local dev_sn = self._sys:id()..'.'..self._name
+	local sys_id = self._sys:id()
+	local dev_sn = self._conf.device_sn
+	if self._conf.with_ioe_sn then
+		dev_sn = sys_id..'.'..dev_sn
+	end
 	self._dev_sn = dev_sn 
 	local meta = self._api:default_meta()
 	meta.name = "OEE"
@@ -88,7 +92,7 @@ end
 
 function app:load_init_values()
 	-- 设备关联序列号
-	self._dsn = self._sys:id()..'.'..(self._conf.dsn or 'UN200A5')
+	self._dsn = self._conf.dsn or (self._sys:id()..'.'..'UN200A5')
 end
 
 

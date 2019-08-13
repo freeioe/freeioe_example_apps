@@ -1,5 +1,16 @@
 [
 	{
+		"name": "device_sn",
+		"desc": "设备序列号",
+		"type": "string"
+	},
+	{
+		"name": "with_ioe_sn",
+		"desc": "是否使用网关ID作为前缀",
+		"type": "boolean",
+		"default": true
+	},
+	{
 		"name": "tpl",
 		"desc": "模板ID",
 		"type": "string",
