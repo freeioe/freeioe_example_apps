@@ -165,6 +165,7 @@ function app:start_calc()
 		{ sn = self._dsn, input = 'MaterialType', prop='value' },
 		{ sn = self._dsn, input = 'CurrentCount', prop='value' }
 	}, function(mould_name, material_type, current_count)
+		self._log:debug("Processing Parameters", mould_name, material_type, current_count)
 		if current_count ~= pp_last_count then
 			local dev = self._api:get_device(self._dsn)
 			local BarrelTemp1_Current = dev:get_input_prop('BarrelTemp1_Current', 'value')
@@ -182,6 +183,7 @@ function app:start_calc()
 			if str then
 				self._dev:set_input_prop('processing_parameters', 'value', str)
 			end
+			pp_last_count = current_count
 		end
 	end)
 end
