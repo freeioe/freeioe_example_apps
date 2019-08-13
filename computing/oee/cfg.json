@@ -5,6 +5,12 @@
 		"type": "string"
 	},
 	{
+		"name": "dsn_with_ioe_sn",
+		"desc": "采集设备序列号是否使用网关ID作为前缀",
+		"type": "boolean",
+		"default": true
+	},
+	{
 		"name": "device_sn",
 		"desc": "设备序列号",
 		"type": "string"
