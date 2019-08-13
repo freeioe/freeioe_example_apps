@@ -93,7 +93,7 @@ end
 function app:load_init_values()
 	-- 设备关联序列号
 	local dsn = self._conf.dsn or 'UN200A5'
-	if self.conf.dsn_with_ioe_sn then
+	if self._conf.dsn_with_ioe_sn then
 		dsn = self._sys:id()..'.'..dsn
 	end
 	self._dsn = dsn
