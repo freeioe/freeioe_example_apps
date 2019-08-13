@@ -182,8 +182,12 @@ function app:on_run(tms)
 	--- First run???
 	if self._last_state ~= nil then
 		local now = ioe.time()
-		self._sum:add(ft_times[self._last_state + 1], (now - self._last_state_time))
-		self._last_state_time = now
+		if self._last_state_time < now then
+			self._sum:add(ft_times[self._last_state + 1], (now - self._last_state_time))
+			self._last_state_time = now
+		else
+			-- TODO: what's happened???
+		end
 	end
 
 	self:update_dev()
