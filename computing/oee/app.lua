@@ -28,6 +28,13 @@ function app:on_init()
 		span = 'day',
 		path = sysinfo.data_dir(),
 	})
+	self._sum_hour = summation:new({
+		file = true,
+		save_span = 60 * 5,
+		key = self._name .. '_quantity_hour',
+		span = 'hour',
+		path = sysinfo.data_dir(),
+	})
 end
 
 function app:on_start()
@@ -45,6 +52,10 @@ function app:on_start()
 		{ name = 'quantity', desc = '产量', vt = 'int'},
 		{ name = 'defectives_quantity', desc = '不良品数量', vt = 'int'},
 		{ name = 'energy_consumption', desc = '能耗', vt = 'int', unit = ''},
+
+		{ name = 'hour_quantity', desc = '小时产量', vt = 'int'},
+		{ name = 'hour_defectives_quantity', desc = '小时不良品数量', vt = 'int'},
+		{ name = 'hour_energy_consumption', desc = '小时能耗', vt = 'int', unit = ''},
 
 		{ name = 'up_rate', desc = '开机率', vt = 'float'},
 		{ name = 'run_rate', desc = '稼动率', vt = 'float'},
@@ -85,6 +96,8 @@ function app:on_command(app_src, sn, command, param)
 	if command == 'reset_sum' then
 		self._sum:reset()
 		self._sum:save()
+		self._sum_hour:reset()
+		self._sum_hour:save()
 		return true
 	end
 	return false, "No such command"
@@ -97,6 +110,7 @@ function app:load_init_values()
 		dsn = self._sys:id()..'.'..dsn
 	end
 	self._dsn = dsn
+	self._log:notice("Reading data source from sn", dsn)
 end
 
 
@@ -165,24 +179,35 @@ function app:start_calc()
 		{ sn = self._dsn, input = 'MaterialType', prop='value' },
 		{ sn = self._dsn, input = 'CurrentCount', prop='value' }
 	}, function(mould_name, material_type, current_count)
-		self._log:debug("Processing Parameters", mould_name, material_type, current_count)
+		--- Show log
+		self._log:debug("Processing Parameters", mould_name, material_type, current_count, pp_last_count)
+		--- if count increase by one ???
 		if current_count ~= pp_last_count then
-			local dev = self._api:get_device(self._dsn)
-			local BarrelTemp1_Current = dev:get_input_prop('BarrelTemp1_Current', 'value')
-			local BarrelTemp2_Current = dev:get_input_prop('BarrelTemp2_Current', 'value')
-			-- TODO: more
+			local pp_value = {
+				Count = current_count,
+				LastCount = pp_last_count,
+			}
 
-			local str, err = cjson.encode({
-				mould = mould_name,
-				material = material_type,
-				count = current_count,
-				barreltemp1 = BarrelTemp1_Current,
-				barreltemp2 = BarrelTemp2_Current,
-				-- TODO: more
-			})
+			local dev = self._api:get_device(self._dsn)
+			for _, v in ipairs(self._conf.process_paramters or {}) do
+				local value = dev:get_input_prop(v.input_name, 'value')
+				if value then
+					pp_value[v.input_name] = value
+				else
+					self._log:debug("Missing processing parameters", v.input_name)
+				end
+			end
+
+			pp_value.MouldName = pp_value.MouldName or mould_name
+			pp_value.MaterialType = pp_value.MaterialType or material_type
+
+			local str, err = cjson.encode(pp_value)
 			if str then
 				self._dev:set_input_prop('processing_parameters', 'value', str)
+			else
+				self._log:warning("Failed to encode process parameters to json string!!")
 			end
+
 			pp_last_count = current_count
 		end
 	end)
@@ -229,6 +254,14 @@ function app:update_dev()
 	self._dev:set_input_prop('quantity', 'value', quantity)
 	self._dev:set_input_prop('defectives_quantity', 'value', defectives)
 	--{ name = 'energy_consumption', desc = '能耗', vt = 'int', unit = ''},
+
+	self._sum_hour:set('quantity', quantity)
+	self._sum_hour:set('defectives', defectives)
+	local hour_quantity = self._sum_hour:get('quantity') or 0
+	local hour_defectives = self._sum_hour:get('defectives') or 0
+
+	self._dev:set_input_prop('hour_quantity', 'value', hour_quantity)
+	self._dev:set_input_prop('hour_defectives_quantity', 'value', hour_defectives)
 
 	if up_time > 0 then
 		local this_day_seconds = date(os.date('%T')):spanseconds()

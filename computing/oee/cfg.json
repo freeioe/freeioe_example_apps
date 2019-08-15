@@ -20,5 +20,17 @@
 		"desc": "是否使用网关ID作为前缀",
 		"type": "boolean",
 		"default": true
+	},
+	{
+		"name": "process_parameters",
+		"desc": "工艺参数",
+		"type": "table",
+		"cols": [
+			{
+				"name": "input_name",
+				"desc": "采集设备输入项名称",
+				"type": "string"
+			}
+		]
 	}
 ]
