@@ -82,8 +82,8 @@ function app:on_start()
 		self._dev_sn = dev_sn 
 
 		local meta = self._api:default_meta()
-		meta.name = "OEE"
-		meta.description = "OEE"
+		meta.name = "YIZUMI_OEE"
+		meta.description = "Yizumi OEE calculator device"
 		meta.series = "X"
 		self._dev = self._api:add_device(dev_sn, meta, inputs, nil, commands)
 

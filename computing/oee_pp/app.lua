@@ -104,7 +104,7 @@ function app:on_start()
 
 		local meta = self._api:default_meta()
 		meta.name = "YIZUMI_PP"
-		meta.description = "Processing Parameters calculator"
+		meta.description = "Yizumi Processing Parameters calculator device"
 		meta.series = "X"
 		self._pp_dev = self._api:add_device(dev_sn, meta, inputs)
 
