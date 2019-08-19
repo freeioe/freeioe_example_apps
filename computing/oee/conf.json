@@ -1,0 +1,54 @@
+[
+	{
+		"name": "dsn",
+		"desc": "采集设备序列号",
+		"type": "string",
+		"default": "UN200A5"
+	},
+	{
+		"name": "dsn_with_ioe_sn",
+		"desc": "采集设备序列号是否使用网关ID作为前缀",
+		"type": "boolean",
+		"default": true
+	},
+	{
+		"name": "with_oee",
+		"desc": "是否计算OEE",
+		"type": "boolean",
+		"default": true
+	},
+	{
+		"name": "device_sn",
+		"desc": "设备序列号",
+		"type": "string"
+	},
+	{
+		"name": "with_pp",
+		"desc": "是否计算工艺参数",
+		"type": "boolean",
+		"default": false
+	},
+	{
+		"name": "pp_device_sn",
+		"desc": "工艺参数设备序列号",
+		"type": "string"
+	},
+	{
+		"name": "with_ioe_sn",
+		"desc": "是否使用网关ID作为前缀",
+		"type": "boolean",
+		"default": true
+	},
+	{
+		"name": "process_parameters",
+		"desc": "工艺参数",
+		"type": "table",
+		"cols": [
+			{
+				"name": "input_name",
+				"desc": "采集设备输入项名称",
+				"type": "string"
+			}
+		]
+	}
+]

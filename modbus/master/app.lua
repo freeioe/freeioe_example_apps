@@ -1,45 +1,21 @@
-local class = require 'middleclass'
 --- 导入需要的模块
-local modbus = require 'modbus.init'
-local sm_client = require 'modbus.skynet_client'
-local socketchannel = require 'socketchannel'
-local serialchannel = require 'serialchannel'
+local modbus_master = require 'modbus.master.skynet'
+local modbus_pdu = require 'modbus.pdu.init'
+local data_pack = require 'modbus.data.pack'
+local data_unpack = require 'modbus.data.unpack'
+
 local csv_tpl = require 'csv_tpl'
 local conf_helper = require 'app.conf_helper'
+local base_app = require 'app.base'
+local basexx = require 'basexx'
 
 --- 注册对象(请尽量使用唯一的标识字符串)
-local app = class("MODBUS_LUA_App")
+local app = base_app:subclass("MODBUS_LUA_App")
 --- 设定应用最小运行接口版本(目前版本为1,为了以后的接口兼容性)
-app.static.API_VER = 1
-
----
--- 应用对象初始化函数
--- @param name: 应用本地安装名称。 如modbus_com_1
--- @param sys: 系统sys接口对象。参考API文档中的sys接口说明
--- @param conf: 应用配置参数。由安装配置中的json数据转换出来的数据对象
-function app:initialize(name, sys, conf)
-	self._name = name
-	self._sys = sys
-	self._conf = conf
-	--- 获取数据接口
-	self._api = sys:data_api()
-	--- 获取日志接口
-	self._log = sys:logger()
-	self._log:debug(name.." Application initlized")
-end
+app.static.API_VER = 4
 
 --- 应用启动函数
-function app:start()
-	--- 设定回调处理函数(目前此应用只做数据采集)
-	self._api:set_handler({
-		on_output = function(app, sn, output, prop, value, timestamp, priv)
-			return self:write_output(sn, output, prop, value, timestamp, priv)
-		end,
-		on_ctrl = function(...)
-			print(...)
-		end,
-	})
-
+function app:on_start()
 	csv_tpl.init(self._sys:app_dir())
 
 	---获取设备序列号和应用配置
@@ -64,6 +40,10 @@ function app:start()
 
 	local helper = conf_helper:new(self._sys, config)
 	helper:fetch()
+
+	self._pdu = modbus_pdu:new()
+	self._data_unpack = data_unpack:new()
+	self._data_pack = data_pack:new()
 
 	self._devs = {}
 	for _, v in ipairs(helper:devices()) do
@@ -112,8 +92,6 @@ function app:start()
 		end
 	end
 
-	local client = nil
-
 	--- 获取配置
 	local conf = helper:config()
 	conf.channel_type = conf.channel_type or 'socket'
@@ -125,26 +103,26 @@ function app:start()
 		}
 	else
 		conf.opt = conf.opt or {
-			port = "/dev/ttymxc1",
-			baudrate = 115200
+			port = "/tmp/ttyS1",
+			baudrate = 19200
 		}
 	end
 	if conf.channel_type == 'socket' then
-		client = sm_client(socketchannel, conf.opt, modbus.apdu_tcp, 1)
+		self._modbus = modbus_master('tcp', {link='tcp', tcp=conf.opt})
 	else
-		client = sm_client(serialchannel, conf.opt, modbus.apdu_rtu, 1)
+		self._modbus = modbus_master('rtu', {link='serial', serial=conf.opt})
 	end
 
-	self._client = client
+	self._modbus:start()
 
 	return true
 end
 
 --- 应用退出函数
-function app:close(reason)
-	if self._client then
-		self._client:close()
-		self._client = nil
+function app:on_close(reason)
+	if self._modbus then
+		self._modbus:close()
+		self._modbus = nil
 	end
 	print(self._name, reason)
 end
@@ -193,7 +171,7 @@ function app:write_packet(dev, stat, unit, output, value)
 		unit = unit or output.unit,
 		len = output.len or 1,
 	}
-	local timeout = output.timeout or 500
+	local timeout = output.timeout or 5000
 	local ef = modbus.encode[output.dt]
 	local df = modbus.decode[output.dt]
 	assert(ef and df)
@@ -202,7 +180,8 @@ function app:write_packet(dev, stat, unit, output, value)
 	req.data = table.concat({ ef(val) })
 	
 	--- 设定通讯口数据回调
-	self._client:set_io_cb(function(io, msg)
+	self._modbus:set_io_cb(function(io, msg)
+		self._log:trace(io, basexx.to_hex(msg))
 		--- 输出通讯报文
 		dev:dump_comm(io, msg)
 		--- 计算统计信息
@@ -217,7 +196,7 @@ function app:write_packet(dev, stat, unit, output, value)
 		--- 统计数据
 		stat:inc('packets_out', 1)
 		--- 接口调用
-		return self._client:request(req, timeout)
+		return self._modbus:request(req, timeout)
 	end, req, 1000)
 
 	if not r then 
@@ -249,17 +228,16 @@ function app:write_packet(dev, stat, unit, output, value)
 end
 
 function app:read_packet(dev, stat, unit, pack)
+	local unit = unit or pack.unit
 	--- 设定读取的起始地址和读取的长度
 	local base_address = pack.saddr or 0x00
-	local req = {
-		func = tonumber(pack.func) or 0x03, -- 03指令
-		addr = base_address, -- 起始地址
-		len = pack.len or 10, -- 长度
-		unit = unit or pack.unit
-	}
+	local func = pack.func or 0x03 -- 03指令
+	local addr = base_address -- 起始地址
+	local len = pack.len or 10 -- 长度
 
 	--- 设定通讯口数据回调
-	self._client:set_io_cb(function(io, msg)
+	self._modbus:set_io_cb(function(io, msg)
+		self._log:trace(io, basexx.to_hex(msg))
 		--- 输出通讯报文
 		dev:dump_comm(io, msg)
 		--- 计算统计信息
@@ -270,26 +248,26 @@ function app:read_packet(dev, stat, unit, pack)
 		end
 	end)
 	--- 读取数据
-	local timeout = pack.timeout or 500
-	local r, pdu, err = pcall(function(req, timeout) 
-		--- 统计数据
-		stat:inc('packets_out', 1)
-		--- 接口调用
-		return self._client:request(req, timeout)
-	end, req, 1000)
-
-	if not r then 
-		pdu = tostring(pdu)
-		if string.find(pdu, 'timeout') then
-			self._log:debug(pdu, err)
-		else
-			self._log:warning(pdu, err)
-		end
+	local timeout = pack.timeout or 5000
+	local resp = nil
+	local req, err = self._pdu:make_request(func, addr, len)
+	if not req then
+		self._log:warning("Failed to build modbus request, error:", err)
 		return self:invalid_dev(dev, pack)
 	end
 
-	if not pdu then 
-		self._log:warning("read failed: " .. err) 
+	self._log:debug("Before request", unit, func, addr, len, timeout)
+	local r, err = self._modbus:request(unit, req, function(unit_recv, pdu)
+		if unit_recv == unit then
+			resp = pdu
+			return true
+		else
+			return nil, pdu
+		end
+	end, timeout)
+
+	if not r or not resp then 
+		self._log:warning("read failed: " .. (err or "Timeout"))
 		return self:invalid_dev(dev, pack)
 	end
 
@@ -298,7 +276,7 @@ function app:read_packet(dev, stat, unit, pack)
 	stat:inc('packets_in', 1)
 
 	--- 解析数据
-	local d = modbus.decode
+	local d = self._data_unpack
 	if d.uint8(pdu, 1) == (0x80 + pack.func) then
 		local basexx = require 'basexx'
 		self._log:warning("read package failed 0x"..basexx.to_hex(string.sub(pdu, 1, 1)))
@@ -335,8 +313,8 @@ function app:read_dev(dev, stat, unit, tpl)
 end
 
 --- 应用运行入口
-function app:run(tms)
-	if not self._client then
+function app:on_run(tms)
+	if not self._modbus then
 		return
 	end
 

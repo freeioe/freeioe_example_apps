@@ -28,8 +28,8 @@ local function load_tpl(name)
 				end
 				input.pack = v[5]
 				input.dt = v[6]
-				input.offset = v[7]
-				input.rate = v[8]
+				input.offset = tonumber(v[7])
+				input.rate = tonumber(v[8])
 
 				inputs[#inputs + 1] = input
 			end
@@ -41,19 +41,19 @@ local function load_tpl(name)
 				if string.len(v[4]) > 0 then
 					output.vt = v[4]
 				end
-				output.func = v[5]
+				output.func = tonumber(v[5])
 				output.dt = v[6]
-				output.addr = v[7]
-				output.rate = v[8]
+				output.addr = tonumber(v[7])
+				output.rate = tonumber(v[8])
 				outputs[#outputs + 1] = output
 			end
 			if v[1] == 'PACKET' then
 				local pack = {
 					name = v[2],
 					desc = v[3],
-					func = v[4],
-					saddr = v[5],
-					len = v[6]
+					func = tonumber(v[4]),
+					saddr = tonumber(v[5]),
+					len = tonumber(v[6])
 				}
 				packets[#packets + 1] = pack
 			end
