@@ -82,8 +82,8 @@ function app:on_start()
 		self._dev_sn = dev_sn 
 
 		local meta = self._api:default_meta()
-		meta.name = "OEE"
-		meta.description = "OEE"
+		meta.name = "YIZUMI_OEE"
+		meta.description = "Yizumi OEE calculator device"
 		meta.series = "X"
 		self._dev = self._api:add_device(dev_sn, meta, inputs, nil, commands)
 
@@ -219,7 +219,7 @@ function app:start_pp_calc()
 			}
 
 			local dev = self._api:get_device(self._dsn)
-			for _, v in ipairs(self._conf.process_paramters or {}) do
+			for _, v in ipairs(self._conf.process_parameters or {}) do
 				local value = dev:get_input_prop(v.input_name, 'value')
 				if value then
 					pp_value[v.input_name] = value
