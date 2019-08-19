@@ -5,6 +5,7 @@ local data_pack = require 'modbus.data.pack'
 local data_unpack = require 'modbus.data.unpack'
 
 local csv_tpl = require 'csv_tpl'
+local packet_split = require 'packet_split'
 local conf_helper = require 'app.conf_helper'
 local base_app = require 'app.base'
 local basexx = require 'basexx'
@@ -42,8 +43,9 @@ function app:on_start()
 	helper:fetch()
 
 	self._pdu = modbus_pdu:new()
-	self._data_unpack = data_unpack:new()
 	self._data_pack = data_pack:new()
+	self._data_unpack = data_unpack:new()
+	self._split = packet_split:new(self._data_pack, self._data_unpack)
 
 	self._devs = {}
 	for _, v in ipairs(helper:devices()) do
@@ -60,23 +62,32 @@ function app:on_start()
 			meta.description = tpl.meta.desc or "Modbus Device"
 			meta.series = tpl.meta.series or "XXX"
 			meta.inst = v.name
-			--- inputs
+
 			local inputs = {}
-			for _, v in ipairs(tpl.inputs) do
-				inputs[#inputs + 1] = {
-					name = v.name,
-					desc = v.desc,
-					vt = v.vt
-				}
-			end
-			--- outputs
 			local outputs = {}
-			for _, v in ipairs(tpl.outputs) do
-				outputs[#outputs + 1] = {
-					name = v.name,
-					desc = v.desc,
-				}
+			for _, v in ipairs(tpl.inputs) do
+				print(v.rw)
+				if string.find(v.rw, '[Rr]') then
+					inputs[#inputs + 1] = {
+						name = v.name,
+						desc = v.desc,
+						vt = v.vt,
+						unit = v.unit,
+					}
+				end
+				if string.find(v.rw, '[Ww]') then
+					outputs[#outputs + 1] = {
+						name = v.name,
+						desc = v.desc,
+						unit = v.unit,
+					}
+				end
 			end
+
+			local packets = self._split:split(inputs)
+			local cjson = require 'cjson.safe'
+			print(cjson.encode(packets))
+
 			--- 生成设备对象
 			local dev = self._api:add_device(dev_sn, meta, inputs, outputs)
 			--- 生成设备通讯口统计对象
@@ -88,6 +99,7 @@ function app:on_start()
 				dev = dev,
 				tpl = tpl,
 				stat = stat,
+				packets = packets,
 			})
 		end
 	end
@@ -165,20 +177,23 @@ end
 
 function app:write_packet(dev, stat, unit, output, value)
 	--- 设定写数据的地址
-	local req = {
-		func = tonumber(output.func) or 0x06, -- 06指令
-		addr = output.addr, -- 地址
-		unit = unit or output.unit,
-		len = output.len or 1,
-	}
+	local func = tonumber(output.func) or 0x06
+	local addr = output.addr
+	local unit = unit or output.unit
+	local len = output.len or 1
+
 	local timeout = output.timeout or 5000
-	local ef = modbus.encode[output.dt]
-	local df = modbus.decode[output.dt]
-	assert(ef and df)
+	local dpack = self._data_pack
 
 	local val = math.floor(value * (1/output.rate))
-	req.data = table.concat({ ef(val) })
-	
+	local data = dpack[output.dt](dpack, value)
+
+	local req, err = self._pdu:make_request(func, addr, len, data)
+	if not req then
+		self._log:warning("Failed to build modbus request, error:", err)
+		return self:invalid_dev(dev, pack)
+	end
+
 	--- 设定通讯口数据回调
 	self._modbus:set_io_cb(function(io, msg)
 		self._log:trace(io, basexx.to_hex(msg))
@@ -192,22 +207,8 @@ function app:write_packet(dev, stat, unit, output, value)
 		end
 	end)
 	--- 写入数据
-	local r, pdu, err = pcall(function(req, timeout) 
-		--- 统计数据
-		stat:inc('packets_out', 1)
-		--- 接口调用
-		return self._modbus:request(req, timeout)
-	end, req, 1000)
-
-	if not r then 
-		pdu = tostring(pdu)
-		if string.find(pdu, 'timeout') then
-			self._log:debug(pdu, err)
-		else
-			self._log:warning(pdu, err)
-		end
-		return nil, pdu
-	end
+	stat:inc('packets_out', 1)
+	local pdu, err = self._modbus:request(unit, req, timeout)
 
 	if not pdu then 
 		self._log:warning("write failed: " .. err) 
@@ -228,11 +229,10 @@ function app:write_packet(dev, stat, unit, output, value)
 end
 
 function app:read_packet(dev, stat, unit, pack)
-	local unit = unit or pack.unit
+	assert(dev and stat and unit)
 	--- 设定读取的起始地址和读取的长度
-	local base_address = pack.saddr or 0x00
-	local func = pack.func or 0x03 -- 03指令
-	local addr = base_address -- 起始地址
+	local func = pack.fc or 0x03 -- 03指令
+	local addr = pack.start or 0x00
 	local len = pack.len or 10 -- 长度
 
 	--- 设定通讯口数据回调
@@ -249,7 +249,6 @@ function app:read_packet(dev, stat, unit, pack)
 	end)
 	--- 读取数据
 	local timeout = pack.timeout or 5000
-	local resp = nil
 	local req, err = self._pdu:make_request(func, addr, len)
 	if not req then
 		self._log:warning("Failed to build modbus request, error:", err)
@@ -257,16 +256,11 @@ function app:read_packet(dev, stat, unit, pack)
 	end
 
 	self._log:debug("Before request", unit, func, addr, len, timeout)
-	local r, err = self._modbus:request(unit, req, function(unit_recv, pdu)
-		if unit_recv == unit then
-			resp = pdu
-			return true
-		else
-			return nil, pdu
-		end
-	end, timeout)
 
-	if not r or not resp then 
+	stat:inc('packets_out', 1)
+
+	local pdu, err = self._modbus:request(unit, req, timeout)
+	if not pdu then
 		self._log:warning("read failed: " .. (err or "Timeout"))
 		return self:invalid_dev(dev, pack)
 	end
@@ -277,20 +271,20 @@ function app:read_packet(dev, stat, unit, pack)
 
 	--- 解析数据
 	local d = self._data_unpack
-	if d.uint8(pdu, 1) == (0x80 + pack.func) then
+	if d:uint8(pdu, 1) == (0x80 + func) then
 		local basexx = require 'basexx'
 		self._log:warning("read package failed 0x"..basexx.to_hex(string.sub(pdu, 1, 1)))
 		return
 	end
 
-	local len = d.uint8(pdu, 2)
+	local len = d:uint8(pdu, 2)
 	--assert(len >= pack.len * 2)
 	local pdu_data = string.sub(pdu, 3)
 
 	for _, input in ipairs(pack.inputs) do
 		local df = d[input.dt]
 		assert(df)
-		local val = df(pdu_data, input.offset)
+		local val = df(d, pdu_data, input.offset)
 		if input.rate and input.rate ~= 1 then
 			val = val * input.rate
 			dev:set_input_prop(input.name, "value", val)
@@ -306,8 +300,8 @@ function app:invalid_dev(dev, pack)
 	end
 end
 
-function app:read_dev(dev, stat, unit, tpl)
-	for _, pack in ipairs(tpl.packets) do
+function app:read_dev(dev, stat, unit, packets)
+	for _, pack in ipairs(packets) do
 		self:read_packet(dev, stat, unit, pack)
 	end
 end
@@ -319,7 +313,7 @@ function app:on_run(tms)
 	end
 
 	for _, dev in ipairs(self._devs) do
-		self:read_dev(dev.dev, dev.stat, dev.unit, dev.tpl)
+		self:read_dev(dev.dev, dev.stat, dev.unit, dev.packets)
 	end
 
 	--- 返回下一次调用run之前的时间间隔

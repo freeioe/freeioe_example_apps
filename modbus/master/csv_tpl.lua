@@ -23,48 +23,18 @@ local function load_tpl(name)
 					name = v[2],
 					desc = v[3],
 				}
-				if string.len(v[4]) > 0 then
-					input.vt = v[4]
-				end
-				input.pack = v[5]
+				input.unit = v[4]
+				input.rw = v[5]
 				input.dt = v[6]
-				input.offset = tonumber(v[7])
-				input.rate = tonumber(v[8])
+				if string.len(v[7]) > 0 then
+					input.vt = v[7]
+				end
+				input.fc = tonumber(v[8])
+				input.addr = tonumber(v[9])
+				input.rate = tonumber(v[10])
+				input.offset = tonumber(v[11])
 
 				inputs[#inputs + 1] = input
-			end
-			if v[1] == 'OUTPUT' then
-				local output = {
-					name = v[2],
-					desc = v[3],
-				}
-				if string.len(v[4]) > 0 then
-					output.vt = v[4]
-				end
-				output.func = tonumber(v[5])
-				output.dt = v[6]
-				output.addr = tonumber(v[7])
-				output.rate = tonumber(v[8])
-				outputs[#outputs + 1] = output
-			end
-			if v[1] == 'PACKET' then
-				local pack = {
-					name = v[2],
-					desc = v[3],
-					func = tonumber(v[4]),
-					saddr = tonumber(v[5]),
-					len = tonumber(v[6])
-				}
-				packets[#packets + 1] = pack
-			end
-		end
-	end
-
-	for _, pack in ipairs(packets) do
-		pack.inputs = {}
-		for _, input in ipairs(inputs) do
-			if input.pack == pack.name then
-				pack.inputs[#pack.inputs + 1] = input
 			end
 		end
 	end
@@ -72,16 +42,8 @@ local function load_tpl(name)
 	return {
 		meta = meta,
 		inputs = inputs,
-		outputs = outputs,
-		packets = packets
 	}
 end
-
---[[
---local cjson = require 'cjson.safe'
-local tpl = load_tpl('bms')
-print(cjson.encode(tpl))
-]]--
 
 return {
 	load_tpl = load_tpl,
