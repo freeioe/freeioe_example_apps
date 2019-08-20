@@ -2,14 +2,18 @@ local ftcsv = require 'ftcsv'
 
 local tpl_dir = 'tpl/'
 
+local WRITE_FUNC_MAP = {}
+WRITE_FUNC_MAP[0x01] = 0x05
+WRITE_FUNC_MAP[0x02] = 0x05
+WRITE_FUNC_MAP[0x03] = 0x06
+WRITE_FUNC_MAP[0x04] = 0x06
+
 local function load_tpl(name)
 	local path = tpl_dir..name..'.csv'
 	local t = ftcsv.parse(path, ",", {headers=false})
 
 	local meta = {}
-	local inputs = {}
-	local outputs = {}
-	local packets =  {}
+	local props = {}
 
 	for k,v in ipairs(t) do
 		if #v > 1 then
@@ -28,16 +32,16 @@ local function load_tpl(name)
 				end
 
 				input.rw = v[5]
-				if string.len(input.rw) == 0 then
+				if not input.rw or string.len(input.rw) == 0 then
 					input.rw = 'RO'
 				end
 
 				input.dt = v[6]
-				if string.len(input.dt) == 0 then
+				if not input.dt or string.len(input.dt) == 0 then
 					input.dt = 'uint16'
 				end
 
-				if string.len(v[7]) > 0 then
+				if v[7] and string.len(v[7]) > 0 then
 					input.vt = v[7]
 				else
 					input.vt = 'float'
@@ -48,14 +52,20 @@ local function load_tpl(name)
 				input.rate = tonumber(v[10]) or 1
 				input.offset = tonumber(v[11]) or 0
 
-				inputs[#inputs + 1] = input
+				if v[12] and string.len(v[12]) > 0 then
+					input.wfc = tonumber(v[12])
+				else
+					input.wfc = WRITE_FUNC_MAP[input.fc]
+				end
+
+				props[#props + 1] = input
 			end
 		end
 	end
 
 	return {
 		meta = meta,
-		inputs = inputs,
+		props = props,
 	}
 end
 

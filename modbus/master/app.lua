@@ -11,9 +11,9 @@ local base_app = require 'app.base'
 local basexx = require 'basexx'
 
 --- 注册对象(请尽量使用唯一的标识字符串)
-local app = base_app:subclass("MODBUS_LUA_App")
---- 设定应用最小运行接口版本(目前版本为1,为了以后的接口兼容性)
-app.static.API_VER = 4
+local app = base_app:subclass("MODBUS_LUA_MASTER_APP")
+--- 设定应用最小运行接口版本
+app.static.API_VER = 5
 
 --- 应用启动函数
 function app:on_start()
@@ -65,7 +65,9 @@ function app:on_start()
 
 			local inputs = {}
 			local outputs = {}
-			for _, v in ipairs(tpl.inputs) do
+			local tpl_inputs = {}
+			local tpl_outputs = {}
+			for _, v in ipairs(tpl.props) do
 				if string.find(v.rw, '[Rr]') then
 					inputs[#inputs + 1] = {
 						name = v.name,
@@ -73,6 +75,7 @@ function app:on_start()
 						vt = v.vt,
 						unit = v.unit,
 					}
+					tpl_inputs[#tpl_inputs + 1] = v
 				end
 				if string.find(v.rw, '[Ww]') then
 					outputs[#outputs + 1] = {
@@ -80,10 +83,11 @@ function app:on_start()
 						desc = v.desc,
 						unit = v.unit,
 					}
+					tpl_outputs[#tpl_outputs + 1] = v
 				end
 			end
 
-			local packets = self._split:split(tpl.inputs)
+			local packets = self._split:split(tpl.props)
 
 			--- 生成设备对象
 			local dev = self._api:add_device(dev_sn, meta, inputs, outputs)
@@ -97,6 +101,8 @@ function app:on_start()
 				tpl = tpl,
 				stat = stat,
 				packets = packets,
+				inputs = tpl_inputs,
+				outputs = tpl_outputs,
 			})
 		end
 	end
@@ -122,6 +128,31 @@ function app:on_start()
 		self._modbus = modbus_master('rtu', {link='serial', serial=conf.opt})
 	end
 
+	--- 设定通讯口数据回调
+	self._modbus:set_io_cb(function(io, unit, msg)
+		self._log:trace(io, basexx.to_hex(msg))
+		local dev = nil
+		for _, v in ipairs(self._devs) do
+			if v.unit == unit then
+				dev = v
+				break
+			end
+		end
+		--- 输出通讯报文
+		
+		if dev then
+			dev.dev:dump_comm(io, msg)
+			--- 计算统计信息
+			if io == 'IN' then
+				dev.stat:inc('bytes_in', string.len(msg))
+			else
+				dev.stat:inc('bytes_out', string.len(msg))
+			end
+		else
+			self._sys:dump_comm(sys_id, io, msg)
+		end
+	end)
+
 	self._modbus:start()
 
 	return true
@@ -136,7 +167,7 @@ function app:on_close(reason)
 	print(self._name, reason)
 end
 
-function app:write_output(sn, output, prop, value)
+function app:on_output(app_src, sn, output, prop, value, timestamp)
 	local dev = nil
 	for _, v in ipairs(self._devs) do
 		if v.sn == sn then
@@ -149,7 +180,8 @@ function app:write_output(sn, output, prop, value)
 	end
 
 	local tpl_output = nil
-	for _, v in ipairs(dev.tpl.outputs or {}) do
+	for _, v in ipairs(dev.outputs or {}) do
+		print(v.name, output)
 		if v.name == output then
 			tpl_output = v
 			break
@@ -164,45 +196,45 @@ function app:write_output(sn, output, prop, value)
 	end
 	
 	local r, err = self:write_packet(dev.dev, dev.stat, dev.unit, tpl_output, value)
+	--[[
 	if not r then
 		local info = "Write output failure!"
 		local data = { sn=sn, output=output, prop=prop, value=value, err=err }
 		self._dev:fire_event(event.LEVEL_ERROR, event.EVENT_DEV, info, data)
 	end
+	]]--
 	return r, err
 end
 
 function app:write_packet(dev, stat, unit, output, value)
 	--- 设定写数据的地址
-	local func = tonumber(output.func) or 0x06
+	local func = tonumber(output.wfc) or 0x06
 	local addr = output.addr
-	local unit = unit or output.unit
-	local len = output.len or 1
 
 	local timeout = output.timeout or 5000
-	local dpack = self._data_pack
 
-	local val = math.floor(value * (1/output.rate))
-	local data = dpack[output.dt](dpack, value)
+	local val = value / output.rate
+	if output.dt ~= 'float' and output.dt ~= 'double' then
+		val = math.floor(val + 0.5)
+	end
 
-	local req, err = self._pdu:make_request(func, addr, len, data)
+	local req = nil
+	local err = nil
+
+	if output.wfc == 0x06 then
+		req, err = self._pdu:make_request(func, addr, val)
+	else
+		--- TODO:
+		local dpack = self._data_pack
+		local data = dpack[output.dt](dpack, val)
+		req, err = self._pdu:make_request(func, addr, string.len(data), data)
+	end
+
 	if not req then
 		self._log:warning("Failed to build modbus request, error:", err)
 		return self:invalid_dev(dev, pack)
 	end
 
-	--- 设定通讯口数据回调
-	self._modbus:set_io_cb(function(io, msg)
-		self._log:trace(io, basexx.to_hex(msg))
-		--- 输出通讯报文
-		dev:dump_comm(io, msg)
-		--- 计算统计信息
-		if io == 'IN' then
-			stat:inc('bytes_in', string.len(msg))
-		else
-			stat:inc('bytes_out', string.len(msg))
-		end
-	end)
 	--- 写入数据
 	stat:inc('packets_out', 1)
 	local pdu, err = self._modbus:request(unit, req, timeout)
@@ -215,13 +247,6 @@ function app:write_packet(dev, stat, unit, output, value)
 	--- 统计数据
 	stat:inc('packets_in', 1)
 
-	--- 解析数据
-	local pdu_data = string.sub(pdu, 4)
-	local val_ret = df(pdu_data, 1)
-	if val_ret ~= val then
-		return nil, "Write failed!"
-	end
-
 	return true
 end
 
@@ -232,18 +257,6 @@ function app:read_packet(dev, stat, unit, pack)
 	local addr = pack.start or 0x00
 	local len = pack.len or 10 -- 长度
 
-	--- 设定通讯口数据回调
-	self._modbus:set_io_cb(function(io, msg)
-		self._log:trace(io, basexx.to_hex(msg))
-		--- 输出通讯报文
-		dev:dump_comm(io, msg)
-		--- 计算统计信息
-		if io == 'IN' then
-			stat:inc('bytes_in', string.len(msg))
-		else
-			stat:inc('bytes_out', string.len(msg))
-		end
-	end)
 	--- 读取数据
 	local timeout = pack.timeout or 5000
 	local req, err = self._pdu:make_request(func, addr, len)
