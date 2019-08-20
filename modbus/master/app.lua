@@ -223,8 +223,9 @@ function app:write_packet(dev, stat, unit, output, value)
 
 	if output.wfc == 0x06 then
 		req, err = self._pdu:make_request(func, addr, val)
+	elseif output.wfc == 0x05 then
+		req, err = self._pdu:make_request(func, addr, val ~= 0 and 0xFF00 or 0x0000)
 	else
-		--- TODO:
 		local dpack = self._data_pack
 		local data = dpack[output.dt](dpack, val)
 		req, err = self._pdu:make_request(func, addr, string.len(data), data)
