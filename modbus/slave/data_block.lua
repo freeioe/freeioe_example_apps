@@ -1,0 +1,56 @@
+local class = require 'middleclass'
+
+local block = class('MODBUS_APP_DATA_BLOCK')
+
+function block:initialize(data_pack, max_lens)
+	self._pack = data_pack
+	self._data = {}
+	self._data[0x01] = string.rep('\0', 1024)
+	self._data[0x02] = string.rep('\0', 1024)
+	self._data[0x03] = string.rep('\0\0', 1024)
+	self._data[0x04] = string.rep('\0\0', 1024)
+end
+
+function block:write(input, value)
+	local fc = input.fc
+	local addr = input.addr
+	local rate = input.rate
+	local offset = input.offset
+
+	local d = self._data[fc]
+	if not d then
+		return nil, 'Not supported function code!'
+	end
+	local val = value / input.rate
+	if input.dt ~= 'float' and input.dt ~= 'double' then
+		val = math.floor(val)
+	end
+
+	local dpack = self._pack
+	local df = dpack[input.dt]
+	if not df then
+		return nil, 'Data type not supported!'
+	end
+	local data, err = df(dpack, val)
+	if not data then
+		return nil, err
+	end
+
+	local index = addr + offset + 1
+
+	local bd = string.sub(d, 1, index)
+	local ed = string.sub(d, index + string.len(data))
+	--
+	self._data[fc] = bd..data..ed
+end
+
+function block:read(fc, addr, len)
+	local d = self._data[fc]
+	if not d then
+		return nil, 'Not supportted function code!'
+	end
+
+	return string.sub(addr + 1, addr + len + 1)
+end
+
+return block

@@ -53,6 +53,7 @@ function app:on_start()
 
 		--- 生成设备的序列号
 		local dev_sn = sys_id.."."..v.sn
+		self._log:debug("Loading template file", v.tpl)
 		local tpl, err = csv_tpl.load_tpl(v.tpl)
 		if not tpl then
 			self._log:error("loading csv tpl failed", err)

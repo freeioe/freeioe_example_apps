@@ -1,193 +1,103 @@
-local class = require 'middleclass'
 --- 导入需要的模块
-local modbus = require 'modbus.init'
-local mslave = require 'mslave'
-local socketchannel = require 'socketchannel'
-local serialchannel = require 'serialchannel'
+local modbus_slave = require 'modbus.slave.skynet'
+local modbus_request = require 'modbus.pdu.request'
+local modbus_response = require 'modbus.pdu.response'
+local data_pack = require 'modbus.data.pack'
+local data_unpack = require 'modbus.data.unpack'
+
 local csv_tpl = require 'csv_tpl'
+local data_block = require 'data_block'
 local conf_helper = require 'app.conf_helper'
+local base_app = require 'app.base'
+local basexx = require 'basexx'
 
 --- 注册对象(请尽量使用唯一的标识字符串)
-local app = class("MODBUS_SLAVE_APP")
---- 设定应用最小运行接口版本(目前版本为1,为了以后的接口兼容性)
-app.static.API_VER = 1
-
---- 设定变量的默认值
-local default_vals = {
-	int = 0,
-	string = '',
-}
-
---- 创建Modbus寄存器
-local function create_var(device, input, addr, fmt)
-	local current = device:get_input_prop(input.name, 'value')
-	local val = input.vt and default_vals[input.vt] or 0.0
-
-	return self._slave:add_var(addr, fmt, current or val)
-end
-
----
--- 应用对象初始化函数
--- @param name: 应用本地安装名称。 如modbus_com_1
--- @param sys: 系统sys接口对象。参考API文档中的sys接口说明
--- @param conf: 应用配置参数。由安装配置中的json数据转换出来的数据对象
-function app:initialize(name, sys, conf)
-	self._name = name
-	self._sys = sys
-	self._conf = conf
-	--- 获取数据接口
-	self._api = sys:data_api()
-	--- 获取日志接口
-	self._log = sys:logger()
-	self._log:debug(name.." Application initlized")
-end
-
---- 设定变量的当前值
--- @param var: OPCUA变量对象
--- @param value: 变量的当前值
--- @param timestamp: 时间戳
--- @param quality: 质量戳
-local function set_var_value(var, value, timestamp, quality)
-	return var:set_value(value)
-end
-
-
---- 创建数据回调对象
--- @param app: 应用实例对象
-local function create_handler(app)
-	local api = app._api
-	local slave = app._slave
-	local log = app._log
-	local idx = app._idx
-	local nodes = app._nodes
-	return {
-		--- 处理设备对象添加消息
-		on_add_device = function(app, sn, props)
-			--- 使用设备SN来生成设备对象的ID
-			local device = api:get_device(sn)
-			local tpl = app:load_tpl(sn)
-
-			local node = nodes[sn] or {
-				device = device,
-				vars = {}
-			}
-			local vars = node.vars
-			for i, input in ipairs(props.inputs) do
-				local var = vars[input.name]
-				if not var then
-					local t = tpl.inputs[input.name]
-					vars[input.name] = create_var(input, device, t.addr, t.fmt)
-				end
-			end
-			nodes[sn] = node
-		end,
-		--- 处理设备对象删除消息
-		on_del_device = function(app, sn)
-			local node = nodes[sn]
-			if node then
-				--- 删除设备对象
-				slave:deleteNode(node.devobj.id, true)
-				nodes[sn] = nil
-			end
-		end,
-		--- 处理设备对象修改消息
-		on_mod_device = function(app, sn, props)
-			local node = nodes[sn]
-			if not node or not node.vars then
-				assert(false) -- TODO: should not be here
-			end
-			local vars = node.vars
-			for i, input in ipairs(props.inputs) do
-				local var = vars[input.name]
-				if not var then
-					vars[input.name] = create_var(idx, node.devobj, input, node.device)
-				end
-			end
-		end,
-		--- 处理设备输入项数值变更消息
-		on_input = function(app, sn, input, prop, value, timestamp, quality)
-			local node = nodes[sn]
-			if not node or not node.vars then
-				log:error("Unknown sn", sn)
-				return
-			end
-			--- 设定OPCUA变量的当前值
-			local var = node.vars[input]
-			if var and prop == 'value' then
-				set_var_value(var, value, timestamp, quality)
-			end
-		end,
-	}
-end
-
-function app:load_tpl(sn)
-	-- Load the template file by sn
-	local tpl, err = csv_tpl.load_tpl(sn)
-	if not tpl then
-		self._log:error("loading csv tpl failed", err)
-		return nil, err
-	end
-	--- inputs
-	local inputs = {}
-	for _, v in ipairs(tpl.inputs) do
-		inputs[v.name] = {
-			addr = v.addr,
-			fmt = v.fmt
-		}
-	end
-	--- outputs
-	local outputs = {}
-	for _, v in ipairs(tpl.outputs) do
-		outputs[v.name] = {
-			addr = v.addr,
-			fmt = v.fmt
-		}
-	end
-
-	local commands = {}
-	for _, v in ipairs(tpl.commands) do
-		commands[v.name] = {
-			addr = v.addr,
-			fmt = 'json'
-		}
-	end
-
-	return {
-		inputs = inputs,
-		outputs = outputs,
-		commands = commands
-	}
-end
+local app = base_app:subclass("MODBUS_LUA_SLAVE_APP")
+--- 设定应用最小运行接口版本
+app.static.API_VER = 5
 
 --- 应用启动函数
-function app:start()
-	--- 设定回调处理函数(目前此应用只做数据采集)
-	self._api:set_handler({
-		on_output = function(app, sn, output, prop, value, timestamp, priv)
-			return self:write_output(sn, output, prop, value, timestamp, priv)
-		end,
-		on_ctrl = function(...)
-			print(...)
-		end,
-	})
-
+function app:on_start()
 	csv_tpl.init(self._sys:app_dir())
 
+	---获取设备序列号和应用配置
+	local sys_id = self._sys:id()
+
 	local config = self._conf or {}
+	--[[
+	config.devs = config.devs or {
+		{ unit = 1, name = 'bms01', sn = 'xxx-xx-1', tpl = 'bms' },
+		{ unit = 2, name = 'bms02', sn = 'xxx-xx-2', tpl = 'bms2' }
+	}
+	]]--
 
-	self._handler = create_handler(self)
-	self._api:set_handler(self._handler, true)
-
-	--- List all devices and then create registers
-	self._sys:fork(function()
-		local devs = self._api:list_devices() or {}
-		for sn, props in pairs(devs) do
-			--- Calling handler for creating opcua object
-			self._handler.on_add_device(self, sn, props)
+	--- 获取云配置
+	if not config.devs or config.cnf then
+		if not config.cnf then
+			config = 'CNF000000002.1' -- loading cloud configuration CNF000000002 version 1
+		else
+			config = config.cnf .. '.' .. config.ver
 		end
-	end)
+	end
 
-	local slave = nil
+	local helper = conf_helper:new(self._sys, config)
+	helper:fetch()
+
+	self._request = modbus_request:new()
+	self._response = modbus_response:new()
+	self._data_pack = data_pack:new()
+	self._data_unpack = data_unpack:new()
+
+	self._devs = {}
+	for _, v in ipairs(helper:devices()) do
+		assert(v.sn and v.name and v.unit and v.tpl)
+
+		--- 生成设备的序列号
+		local dev_sn = sys_id.."."..v.sn
+		self._log:debug("Loading template file", v.tpl)
+		local tpl, err = csv_tpl.load_tpl(v.tpl)
+		if not tpl then
+			self._log:error("loading csv tpl failed", err)
+		else
+			local meta = self._api:default_meta()
+			meta.name = tpl.meta.name or "Modbus"
+			meta.description = tpl.meta.desc or "Modbus Device"
+			meta.series = tpl.meta.series or "XXX"
+			meta.inst = v.name
+
+			local inputs = {}
+			local outputs = {}
+			for _, v in ipairs(tpl.inputs) do
+				if string.find(v.rw, '[Rr]') then
+					inputs[#inputs + 1] = {
+						name = v.name,
+						desc = v.desc,
+						vt = v.vt,
+						unit = v.unit,
+					}
+				end
+				if string.find(v.rw, '[Ww]') then
+					outputs[#outputs + 1] = {
+						name = v.name,
+						desc = v.desc,
+						unit = v.unit,
+					}
+				end
+			end
+
+			local block = data_block:new(self._data_pack, self._data_unpack)
+
+			table.insert(self._devs, {
+				unit = v.unit,
+				sn = dev_sn,
+				dev = dev,
+				tpl = tpl,
+				inputs = inputs,
+				outputs = outputs,
+				block = block
+			})
+		end
+	end
 
 	--- 获取配置
 	local conf = helper:config()
@@ -200,44 +110,131 @@ function app:start()
 		}
 	else
 		conf.opt = conf.opt or {
-			port = "/dev/ttymxc1",
-			baudrate = 115200
+			port = "/tmp/ttyS1",
+			baudrate = 19200
 		}
 	end
+
 	if conf.channel_type == 'socket' then
-		local apdu = config.apdu and modbus['apdu_'..config.apdu] or modbus.apdu_tcp
-		slave = mslave(socketchannel, conf.opt, apdu, 1)
+		self._modbus = modbus_slave('tcp', {link='tcp', tcp=conf.opt})
 	else
-		local apdu = config.apdu and modbus['apdu_'..config.apdu] or modbus.apdu_rtu
-		slave = mslave(serialchannel, conf.opt, apdu, 1)
+		self._modbus = modbus_slave('rtu', {link='serial', serial=conf.opt})
 	end
 
-	self._slave = slave
+	for _, v in ipairs(self._devs) do
+		self._modbus:add_unit(v.unit, function(pdu, response)
+			self:handle_pdu(v, response, self._request:unpack(pdu))
+		end)
+	end
+
+	--- 设定通讯口数据回调
+	self._modbus:set_io_cb(function(io, unit, msg)
+		self._log:trace(io, basexx.to_hex(msg))
+		local dev = nil
+		for _, v in ipairs(self._devs) do
+			if v.unit == unit then
+				dev = v
+				break
+			end
+		end
+		--- 输出通讯报文
+		
+		if dev then
+			self._sys:dump_comm(dev.sn, io, msg)
+		else
+			self._sys:dump_comm(sys_id, io, msg)
+		end
+	end)
+
+
+	self._modbus:start()
 
 	return true
 end
 
+function app:handle_pdu(dev, response, fc, ...)
+	if not fc then
+		-- TODO:
+		return
+	end
+	local h = self['handle_fc_0x'..string.format('%02X', fc)]
+	if not h then
+		-- TODO:
+		return
+	end
+
+	return h(self, dev, response, ...)
+end
+
+function app:handle_fc_0x01(dev, response, addr, len)
+	local block = dev.block
+	local data = block:read(0x01, addr, len)
+	local pdu = self._response:pack(0x01, len, data)
+	return response(pdu)
+end
+
+function app:handle_fc_0x02(dev, response, addr, len)
+	local block = dev.block
+	local data = block:read(0x02, addr, len)
+	local pdu = self._response:pack(0x01, len, data)
+	return response(pdu)
+end
+
+function app:handle_fc_0x03(dev, response, addr, len)
+	local block = dev.block
+	local data = block:read(0x03, addr, len)
+	local pdu = self._response:pack(0x03, len, data)
+	return response(pdu)
+end
+
+function app:handle_fc_0x04(dev, response, addr, len)
+	local block = dev.block
+	local data = block:read(0x04, addr, len)
+	local pdu = self._response:pack(0x04, len, data)
+	return response(pdu)
+end
+
+function app:handle_fc_0x05(dev, response, addr, data)
+	--- TODO: write prop
+end
+
+function app:handle_fc_0x06(dev, response, addr, data)
+	--- TODO: write prop
+end
+
+function app:handle_fc_0x0F(dev, response, addr, len, data)
+	--- TODO: write prop
+end
+
+function app:handle_fc_0x10(dev, response, addr, len, data)
+	--- TODO: write prop
+end
+
 --- 应用退出函数
-function app:close(reason)
-	if self._slave then
-		self._slave:close()
-		self._slave = nil
+function app:on_close(reason)
+	if self._modbus then
+		self._modbus:close()
+		self._modbus = nil
 	end
 	print(self._name, reason)
 end
 
---- 应用运行入口
-function app:run(tms)
-	if not self._slave then
+function app:on_input(app_src, sn, input, prop, value, timestamp, quality)
+	if quality ~= 0 or value ~= 'value' then
 		return
 	end
 
 	for _, dev in ipairs(self._devs) do
-		self:read_dev(dev.dev, dev.stat, dev.unit, dev.tpl)
+		if dev.sn == sn then
+			local block = dev.block
+			for _, v in ipairs(v.inputs) do
+				if input == v.name then
+					block:write(input, value)
+					break
+				end
+			end
+		end
 	end
-
-	--- 返回下一次调用run之前的时间间隔
-	return self._conf.loop_gap or 5000
 end
 
 --- 返回应用对象

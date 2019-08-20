@@ -18,53 +18,37 @@ local function load_tpl(name)
 				meta.desc = v[3]
 				meta.series = v[4]
 			end
-			if v[1] == 'INPUT' then
+			if v[1] == 'PROP' then
 				local input = {
 					name = v[2],
 					desc = v[3],
 				}
 				if string.len(v[4]) > 0 then
-					input.vt = v[4]
+					input.unit = v[4]
 				end
-				input.pack = v[5]
+
+				input.rw = v[5]
+				if string.len(input.rw) == 0 then
+					input.rw = 'RO'
+				end
+
 				input.dt = v[6]
-				input.offset = v[7]
-				input.rate = v[8]
+				if string.len(input.dt) == 0 then
+					input.dt = 'uint16'
+				end
+
+				if string.len(v[7]) > 0 then
+					input.vt = v[7]
+				else
+					input.vt = 'float'
+				end
+
+				input.fc = tonumber(v[8]) or 0x03
+				input.addr = tonumber(v[9]) or 0
+				input.rate = tonumber(v[10]) or 1
+				input.offset = tonumber(v[11]) or 0
 
 				inputs[#inputs + 1] = input
-			end
-			if v[1] == 'OUTPUT' then
-				local output = {
-					name = v[2],
-					desc = v[3],
-				}
-				if string.len(v[4]) > 0 then
-					output.vt = v[4]
-				end
-				output.func = v[5]
-				output.dt = v[6]
-				output.addr = v[7]
-				output.rate = v[8]
-				outputs[#outputs + 1] = output
-			end
-			if v[1] == 'PACKET' then
-				local pack = {
-					name = v[2],
-					desc = v[3],
-					func = v[4],
-					saddr = v[5],
-					len = v[6]
-				}
-				packets[#packets + 1] = pack
-			end
-		end
-	end
-
-	for _, pack in ipairs(packets) do
-		pack.inputs = {}
-		for _, input in ipairs(inputs) do
-			if input.pack == pack.name then
-				pack.inputs[#pack.inputs + 1] = input
 			end
 		end
 	end
@@ -72,16 +56,8 @@ local function load_tpl(name)
 	return {
 		meta = meta,
 		inputs = inputs,
-		outputs = outputs,
-		packets = packets
 	}
 end
-
---[[
---local cjson = require 'cjson.safe'
-local tpl = load_tpl('bms')
-print(cjson.encode(tpl))
-]]--
 
 return {
 	load_tpl = load_tpl,
