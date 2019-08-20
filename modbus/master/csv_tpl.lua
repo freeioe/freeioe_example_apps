@@ -18,7 +18,7 @@ local function load_tpl(name)
 				meta.desc = v[3]
 				meta.series = v[4]
 			end
-			if v[1] == 'INPUT' then
+			if v[1] == 'PROP' then
 				local input = {
 					name = v[2],
 					desc = v[3],
