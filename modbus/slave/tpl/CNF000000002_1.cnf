@@ -1,0 +1,27 @@
+{
+	"channel_type": "serial",
+	"opt": {
+		"port": "/tmp/ttyS10",
+		"baudrate": 9600
+	},
+	"tpls": [{
+			"id": "TPL000000002",
+			"name": "bms",
+			"ver": 1
+		}
+	],
+	"devs": [{
+			"unit": 1,
+			"name": "bms01",
+			"sn": "xxx-xx-xx-1",
+			"tpl": "bms"
+		},
+		{
+			"unit": 2,
+			"name": "bms02",
+			"sn": "xxx-xx-xx-2",
+			"tpl": "bms"
+		}
+	],
+	"loop_gap": 3000
+}
