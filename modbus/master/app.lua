@@ -181,7 +181,6 @@ function app:on_output(app_src, sn, output, prop, value, timestamp)
 
 	local tpl_output = nil
 	for _, v in ipairs(dev.outputs or {}) do
-		print(v.name, output)
 		if v.name == output then
 			tpl_output = v
 			break
@@ -224,7 +223,7 @@ function app:write_packet(dev, stat, unit, output, value)
 	if output.wfc == 0x06 then
 		req, err = self._pdu:make_request(func, addr, val)
 	elseif output.wfc == 0x05 then
-		req, err = self._pdu:make_request(func, addr, val ~= 0 and 0xFF00 or 0x0000)
+		req, err = self._pdu:make_request(func, addr, val ~= 0)
 	else
 		local dpack = self._data_pack
 		local data = dpack[output.dt](dpack, val)
