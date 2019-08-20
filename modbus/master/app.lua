@@ -66,7 +66,6 @@ function app:on_start()
 			local inputs = {}
 			local outputs = {}
 			for _, v in ipairs(tpl.inputs) do
-				print(v.rw)
 				if string.find(v.rw, '[Rr]') then
 					inputs[#inputs + 1] = {
 						name = v.name,
@@ -84,9 +83,7 @@ function app:on_start()
 				end
 			end
 
-			local packets = self._split:split(inputs)
-			local cjson = require 'cjson.safe'
-			print(cjson.encode(packets))
+			local packets = self._split:split(tpl.inputs)
 
 			--- 生成设备对象
 			local dev = self._api:add_device(dev_sn, meta, inputs, outputs)
@@ -255,18 +252,19 @@ function app:read_packet(dev, stat, unit, pack)
 		return self:invalid_dev(dev, pack)
 	end
 
-	self._log:debug("Before request", unit, func, addr, len, timeout)
 
+	--- 统计数据
 	stat:inc('packets_out', 1)
 
+	--self._log:debug("Before request", unit, func, addr, len, timeout)
 	local pdu, err = self._modbus:request(unit, req, timeout)
 	if not pdu then
 		self._log:warning("read failed: " .. (err or "Timeout"))
 		return self:invalid_dev(dev, pack)
 	end
+	--self._log:trace("read input registers done!", unit)
 
 	--- 统计数据
-	self._log:trace("read input registers done!", unit)
 	stat:inc('packets_in', 1)
 
 	--- 解析数据
@@ -282,9 +280,9 @@ function app:read_packet(dev, stat, unit, pack)
 	local pdu_data = string.sub(pdu, 3)
 
 	for _, input in ipairs(pack.inputs) do
-		local df = d[input.dt]
-		assert(df)
-		local val = df(d, pdu_data, input.offset)
+		--print(input.name, input.addr, input.pack_index)
+		local val = pack.unpack(input, pdu_data)
+		--print(val)
 		if input.rate and input.rate ~= 1 then
 			val = val * input.rate
 			dev:set_input_prop(input.name, "value", val)

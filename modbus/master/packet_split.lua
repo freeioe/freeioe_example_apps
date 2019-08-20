@@ -48,6 +48,13 @@ function split:sort(inputs)
 			return true
 		end
 
+		if a.offset > b.offset then
+			return false
+		end
+		if a.offset < b.offset then
+			return true
+		end
+
 		return false
 	end)
 end
@@ -62,37 +69,45 @@ function split:split(inputs)
 	local packets = {}
 	local pack = {}
 	for _, v in ipairs(inputs) do
-		pack.fc = pack.fc or v.fc
-		--print(pack.fc, v.fc, v.addr, v.dt)
-		if pack.fc == v.fc then
-			pack.start = pack.start or v.addr
-			local len = DATA_TYPES[v.dt]
-			if v.offset ~= nil then
-				len = len + v.offset // 8
-			end
-			if v.addr + len - pack.start <= MAX_COUNT then
-				pack.inputs = pack.inputs or {}
-
-				if v.dt == 'bit' and (pack.fc == 0x01 or pack.fc == 0x02) then
-					v.pack_index = (v.addr - pack.start) * 8 + (v.offset or 0)
-				else
-					v.pack_index = v.addr - pack.start 
-				end
-
-				table.insert(pack.inputs, v)
-				pack.len = v.addr + len - pack.start
-			else
+		if pack.fc ~= v.fc then
+			if pack.fc ~= nil then
 				table.insert(packets, pack)
-				pack = {}
 			end
-		else
-			table.insert(packets, pack)
-			pack = {}
+			pack = { fc=v.fc }
+			pack.start = v.addr
+			pack.inputs = {}
+			pack.unpack = function(input, data, index)
+				return self:unpack(input, data, index)
+			end
 		end
+		v.offset = v.offset or 0
+
+		local DT = assert(DATA_TYPES[v.dt], 'data_type '..v.dt..' not supported!')
+		local max_len = assert(MAX_COUNT['MC_0x'..string.format('%02X', v.fc)], 'function code '..v.fc..' not supported!')
+
+		local input_end = v.addr + DT.len
+		if v.dt ~= 'bit' then
+			input_end = input_end + v.offset
+		end
+
+		if input_end - pack.start > max_len then
+			table.insert(packets, pack)
+			pack = { fc=v.fc }
+			pack.start = v.addr
+			pack.inputs = {}
+		end
+
+		if v.dt ~= 'bit' then
+			v.pack_index = v.addr - pack.start + v.offset +1
+		else
+			v.pack_index = (v.addr - pack.start) * 8 + v.offset + 1
+		end
+
+		table.insert(pack.inputs, v)
+		pack.len = input_end - pack.start
 	end
 	if pack.fc then
 		table.insert(packets, pack)
-		pack = {}
 	end
 
 	return packets
@@ -103,10 +118,11 @@ function split:pack(input, value)
 	return dtf(self._pack, value)
 end
 
-function split:unpack(input, data, index)
+function split:unpack(input, data, index, offset)
 	local index = index or input.pack_index
+	local offset = offset or input.offset
 	local dtf = assert(self._unpack[input.dt])
-	return dtf(self._unpack, data, index)
+	return dtf(self._unpack, data, index, offset)
 end
 
 

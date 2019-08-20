@@ -1,0 +1,57 @@
+COMMENT,name,description,series,,,,
+META,York YR,约克螺杆冷水组YR系列,YR,,,,
+,,,,,,,
+COMMENT,name,description,vt,package,data type,start addr,rate
+INPUT,lcl_set_point,冷冻水出水温度设定点,,PACK01,uint16,1,0.1
+INPUT,mc_set_point,电机电流限制设定点,,PACK01,uint16,3,0.1
+INPUT,lcl_temp,冷冻水出水温度,,PACK01,uint16,9,0.1
+INPUT,rcl_temp,冷冻水进水温度,,PACK01,uint16,11,0.1
+INPUT,eva_pressure,蒸发压力,,PACK01,uint16,13,0.1
+INPUT,con_pressure,冷凝压力,,PACK01,uint16,15,0.1
+INPUT,oil_pressure_diff,油压差,,PACK01,uint16,17,0.1
+INPUT,rcol_temp,冷却水进水温度,,PACK01,uint16,19,0.1
+INPUT,lcol_temp,冷却水出水温度,,PACK01,uint16,21,0.1
+INPUT,mcp_fla,线电流比率,int,PACK01,uint16,23,1
+INPUT,ia,SSS相A电流,int,PACK01,uint16,25,1
+INPUT,ib,SSS相B电流,int,PACK01,uint16,27,1
+INPUT,ic,SSS相C电流,int,PACK01,uint16,29,1
+INPUT,va,SSS相A电压,int,PACK01,uint16,31,1
+INPUT,vb,SSS相B电压,int,PACK01,uint16,33,1
+INPUT,vc,SSS相C电压,int,PACK01,uint16,35,1
+INPUT,lcl_set_point_r,SSS相C电压,,PACK01,uint16,37,0.1
+INPUT,mc_set_point_r,电机电流限制设定点,,PACK01,uint16,39,0.1
+INPUT,es_temp,饱和蒸发温度,,PACK01,uint16,41,0.1
+INPUT,cs_temp,饱和冷凝温度,,PACK01,uint16,43,0.1
+INPUT,dis_temp,排气温度,,PACK01,uint16,45,0.1
+INPUT,fp_diff,过滤器压差,,PACK01,uint16,49,0.1
+INPUT,op_hours,机组的运行时间,int,PACK01,uint16,51,1
+INPUT,sys_start,系统启动时间,int,PACK01,uint16,53,1
+INPUT,mlcm_fla_limit,最低线电流比率,int,PACK01,uint16,55,1
+INPUT,ref_level,制冷等级,int,PACK01,uint16,57,1
+,,,,,,,
+INPUT,mr_contracts,电机运行,int,PACK64,uint16,1,1
+INPUT,or_solenoid,Oil Return Solenoid,int,PACK64,uint16,3,1
+INPUT,cl_pump,冷冻泵,int,PACK64,uint16,5,1
+INPUT,ps_switch,面板上的停止开关,int,PACK64,uint16,7,1
+INPUT,clf_switch,冷冻水流开关,int,PACK64,uint16,9,1
+,,,,,,,
+INPUT,ice_storage_mode,Ice Storage Mode,int,PACK84,uint16,1,1
+,,,,,,,
+INPUT,unit_warning_fault_code,警告故障,int,PACK_ERR,uint16,1,1
+INPUT,operation_code,Operation Code,int,PACK_ERR,uint16,3,1
+INPUT,unit_safety_fault_code,机组的安全故障,int,PACK_ERR,uint16,5,1
+INPUT,unit_cycling_fault_code,机组循环故障,int,PACK_ERR,uint16,7,1
+,,,,,,,
+,,,,,,,
+COMMENT,name,description,vt,function code,data type,addr,rate
+OUTPUT,lcl_set_point,冷冻水出水温度设定点,int,6,uint16,0,0.1
+OUTPUT,mc_set_point,电机电流限制点,int,6,uint16,2,0.1
+OUTPUT,remote_ctrl,远程启动停止,int,6,uint16,60,1
+,,,,,,,
+,,,,,,,
+,,,,,,,
+COMMENT,name,description,function code,start addr,len,,
+PACKET,PACK01,03命令报文-地址0,3,0,29,,
+PACKET,PACK_ERR,03命令报文-地址31,3,30,4,,
+PACKET,PACK64,03命令报文-地址65,3,64,5,,
+PACKET,PACK83,03命令报文-地址84,3,83,1,,

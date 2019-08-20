@@ -1,7 +1,7 @@
 COMMENT,name,description,series,,,,,,,
 META,BMS,BMS Device,XXX,,,,,,,
 ,,,,,,,,,,
-"COMMENT,点名,描述,单位,数据类型,读写属性,值类型,FC,start addr,rate",name,description,unit,RW,data type,vt,function_code,data_address,rate,bit_offset
+"COMMENT,点名,描述,单位,数据类型,读写属性,值类型,FC,start addr,rate",name,description,unit,RW,data type,vt,function_code,data_address,rate,offset
 INPUT,Us01,单体电压01,V,RO,uint8,float,3,1,0.001,0
 INPUT,Us01_1,单体电压01,V,RO,uint8,float,3,1,0.001,1
 INPUT,Us02,单体电压02,V,RO,int16,float,3,3,0.001,
