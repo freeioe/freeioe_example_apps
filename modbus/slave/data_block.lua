@@ -16,6 +16,8 @@ function block:write(input, value)
 	local addr = input.addr
 	local rate = input.rate
 	local offset = input.offset
+	assert(fc, 'Function code required!')
+	assert(addr, 'Address required!')
 
 	local d = self._data[fc]
 	if not d then
@@ -24,6 +26,9 @@ function block:write(input, value)
 	local val = value / input.rate
 	if input.dt ~= 'float' and input.dt ~= 'double' then
 		val = math.floor(val)
+	end
+	if input.dt == 'bit' then
+		val = val ~= 0
 	end
 
 	local dpack = self._pack
@@ -42,6 +47,8 @@ function block:write(input, value)
 	local ed = string.sub(d, index + string.len(data))
 	--
 	self._data[fc] = bd..data..ed
+
+	return true
 end
 
 function block:read(fc, addr, len)
@@ -50,7 +57,7 @@ function block:read(fc, addr, len)
 		return nil, 'Not supportted function code!'
 	end
 
-	return string.sub(addr + 1, addr + len + 1)
+	return string.sub(d, addr + 1, addr + len + 1)
 end
 
 return block

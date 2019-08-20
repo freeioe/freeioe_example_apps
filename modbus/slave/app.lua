@@ -10,6 +10,7 @@ local data_block = require 'data_block'
 local conf_helper = require 'app.conf_helper'
 local base_app = require 'app.base'
 local basexx = require 'basexx'
+local cov = require 'cov'
 
 --- 注册对象(请尽量使用唯一的标识字符串)
 local app = base_app:subclass("MODBUS_LUA_SLAVE_APP")
@@ -18,6 +19,11 @@ app.static.API_VER = 5
 
 --- 应用启动函数
 function app:on_start()
+	self._cov = cov:new(function(...)
+		self:handle_cov_data(...)
+	end, {})
+	self._cov:start()
+
 	csv_tpl.init(self._sys:app_dir())
 
 	---获取设备序列号和应用配置
@@ -67,6 +73,8 @@ function app:on_start()
 
 			local inputs = {}
 			local outputs = {}
+			local tpl_inputs = {}
+			local tpl_outputs = {}
 			for _, v in ipairs(tpl.inputs) do
 				if string.find(v.rw, '[Rr]') then
 					inputs[#inputs + 1] = {
@@ -75,6 +83,7 @@ function app:on_start()
 						vt = v.vt,
 						unit = v.unit,
 					}
+					tpl_inputs[#tpl_inputs + 1] = v
 				end
 				if string.find(v.rw, '[Ww]') then
 					outputs[#outputs + 1] = {
@@ -82,6 +91,7 @@ function app:on_start()
 						desc = v.desc,
 						unit = v.unit,
 					}
+					tpl_outputs[#tpl_outputs + 1] = v
 				end
 			end
 
@@ -92,8 +102,8 @@ function app:on_start()
 				sn = dev_sn,
 				dev = dev,
 				tpl = tpl,
-				inputs = inputs,
-				outputs = outputs,
+				inputs = tpl_inputs,
+				outputs = tpl_outputs,
 				block = block
 			})
 		end
@@ -219,20 +229,32 @@ function app:on_close(reason)
 	print(self._name, reason)
 end
 
+function app:handle_cov_data(key, value, timestamp, quality)
+	local sn, input = string.match(key, '^([^/]+)/(.+)$')
+	for _, dev in ipairs(self._devs) do
+		if dev.sn == sn then
+			local block = dev.block
+			for _, v in ipairs(dev.inputs) do
+				if input == v.name then
+					local r, err = block:write(v, value)
+					if not r then
+						self._log:debug('Value write failed!', err)
+					end
+				end
+			end
+		end
+	end
+end
+
 function app:on_input(app_src, sn, input, prop, value, timestamp, quality)
-	if quality ~= 0 or value ~= 'value' then
+	if quality ~= 0 or prop ~= 'value' then
 		return
 	end
 
 	for _, dev in ipairs(self._devs) do
 		if dev.sn == sn then
-			local block = dev.block
-			for _, v in ipairs(v.inputs) do
-				if input == v.name then
-					block:write(input, value)
-					break
-				end
-			end
+			local key = sn..'/'..input
+			self._cov:handle(key, value, timestamp, quality)
 		end
 	end
 end
