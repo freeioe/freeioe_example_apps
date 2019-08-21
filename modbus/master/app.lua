@@ -296,13 +296,11 @@ function app:read_packet(dev, stat, unit, pack)
 	for _, input in ipairs(pack.inputs) do
 		--print(input.name, input.addr, input.pack_index)
 		local val = pack.unpack(input, pdu_data)
-		--print(val)
+		--print(input.name, val)
 		if input.rate and input.rate ~= 1 then
 			val = val * input.rate
-			dev:set_input_prop(input.name, "value", val)
-		else
-			dev:set_input_prop(input.name, "value", math.tointeger(val))
 		end
+		dev:set_input_prop(input.name, "value", val)
 	end
 end
 

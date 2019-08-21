@@ -40,9 +40,9 @@ function block:write(input, value)
 	if not data then
 		return nil, err
 	end
-	if addr == 0 then
+	if fc == 0x01 or fc == 0x02 then
 		local basexx = require 'basexx'
-		print(input.name, basexx.to_hex(data), offset)
+		print(input.name, basexx.to_hex(data), offset, value, val)
 	end
 
 	local index = addr + offset -- addresss start from zore
@@ -52,7 +52,7 @@ function block:write(input, value)
 	--
 	self._data[fc] = bd..data..ed
 
-	if addr == 0 then
+	if fc == 0x01 or fc == 0x02 then
 		local basexx = require 'basexx'
 		print( basexx.to_hex(string.sub(self._data[fc], 1, 4)))
 	end
@@ -64,6 +64,9 @@ function block:read(fc, addr, len)
 	local d = self._data[fc]
 	if not d then
 		return nil, 'Not supportted function code!'
+	end
+	if fc == 0x01 or fc == 0x02 then
+		len = math.ceil(len / 8)
 	end
 
 	return string.sub(d, addr + 1, addr + len)
