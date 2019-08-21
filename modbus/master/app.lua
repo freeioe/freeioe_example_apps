@@ -123,6 +123,8 @@ function app:on_start()
 			baudrate = 19200
 		}
 	end
+	self._loop_gap = conf.loop_gap or self._conf.loop_gap
+
 	if conf.channel_type == 'socket' then
 		self._modbus = modbus_master('tcp', {link='tcp', tcp=conf.opt})
 	else
@@ -335,7 +337,7 @@ function app:on_run(tms)
 	end
 
 	--- 返回下一次调用run之前的时间间隔
-	return self._conf.loop_gap or 5000
+	return self._loop_gap or 5000
 end
 
 --- 返回应用对象
