@@ -1,7 +1,7 @@
 COMMENT,name,description,series,,,,,,,
 META,JCI-TMS2100-N,Johnson Control JCI-TMS2100-N,TMS2100,,,,,,,
 ,,,,,,,,,,
-"COMMENT,点名,描述,单位,数据类型,读写属性,值类型,FC,start addr,rate",name,description,unit,RW,data type,vt,function_code,data_address,rate,offset
+COMMENT,name,description,unit,RW,data type,vt,function_code,data_address,rate,offset
 PROP,status,状态,,RW,uint16,int,3,4,1,
 PROP,mode,模式,,RW,uint16,int,3,6,1,
 PROP,set_point,设置温度,,RW,uint16,float,3,8,0.1,
