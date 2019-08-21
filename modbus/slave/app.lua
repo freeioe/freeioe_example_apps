@@ -139,7 +139,7 @@ function app:on_start()
 
 	--- 设定通讯口数据回调
 	self._modbus:set_io_cb(function(io, unit, msg)
-		self._log:trace(io, basexx.to_hex(msg))
+		--self._log:trace(io, basexx.to_hex(msg))
 		local dev = nil
 		for _, v in ipairs(self._devs) do
 			if v.unit == unit then
