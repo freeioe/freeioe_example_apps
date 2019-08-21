@@ -1,0 +1,67 @@
+[
+	{
+		"name": "loop_gap",
+		"desc": "采集间隔",
+		"type": "number",
+		"default": 1000
+	},
+	{
+		"name": "channel_type",
+		"desc": "通讯类型",
+		"type": "dropdown",
+		"default": "serial",
+		"values": [
+			{
+				"name": "TCP连接",
+				"value": "socket"
+			},
+			{
+				"name": "串口",
+				"value": "serial"
+			}
+		],
+		"depends": {
+			"socket": "socket_opt",
+			"serial": "serial_opt"
+		}
+	},
+	{
+		"name": "socket_opt",
+		"type": "tcp_client"
+	},
+	{
+		"name": "serial_opt",
+		"type": "serial"
+	},
+	{
+		"name": "tpls",
+		"type": "templates"
+	},
+	{
+		"name": "devs",
+		"desc": "Device List",
+		"type": "table",
+		"cols": [
+			{
+				"name": "unit",
+				"desc": "Address",
+				"type": "number"
+			},
+			{
+				"name": "name",
+				"desc": "Device Name",
+				"type": "string"
+			},
+			{
+				"name": "sn",
+				"desc", "Device Serial Number",
+				"type": "string"
+			},
+			{
+				"name": "tpl",
+				"desc": "Template",
+				"type": "template"
+			}
+		]
+	}
+]

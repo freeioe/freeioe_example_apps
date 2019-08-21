@@ -112,13 +112,13 @@ function app:on_start()
 	local conf = helper:config()
 	conf.channel_type = conf.channel_type or 'socket'
 	if conf.channel_type == 'socket' then
-		conf.opt = conf.opt or {
+		conf.opt = conf.socket_opt or {
 			host = "127.0.0.1",
 			port = 1503,
 			nodelay = true
 		}
 	else
-		conf.opt = conf.opt or {
+		conf.opt = conf.serial_opt or {
 			port = "/tmp/ttyS1",
 			baudrate = 19200
 		}

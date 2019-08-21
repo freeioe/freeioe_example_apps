@@ -1,6 +1,6 @@
 {
 	"channel_type": "serial",
-	"opt": {
+	"serial_opt": {
 		"port": "/dev/ttymxc1",
 		"baudrate": 115200
 	},
