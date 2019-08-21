@@ -2,7 +2,7 @@ COMMENT,name,description,series,,,,,,,,
 META,BMS,BMS Device,XXX,,,,,,,,
 ,,,,,,,,,,,
 "COMMENT,点名,描述,单位,数据类型,读写属性,值类型,FC,start addr,rate",name,description,unit,RW,data type,vt,function_code,data_address,rate,offset,write_function_code
-PROP,Us01,单体电压01,V,RW,uint8,float,3,1,0.001,0,6
+PROP,Us01,单体电压01,V,RW,uint8,float,3,1,1,0,6
 PROP,Us01_1,单体电压01,V,RO,uint8,float,3,1,0.001,1,6
 PROP,Us02,单体电压02,V,RO,int16,float,3,3,0.001,,6
 PROP,Us03,单体电压03,,RO,int16,float,3,5,0.001,,6
@@ -38,5 +38,5 @@ PROP,Icc,充电电流,I,RO,int16,float,3,63,0.001,,6
 PROP,Ifd,放电电流,I,RO,int16,float,3,65,0.001,,6
 PROP,SOC,剩余容量%,,RO,int16,int,3,67,1,,6
 PROP,Cmax,额定容量Ah,,RO,int16,float,3,69,0.001,,6
-PROP,Cleft,剩余容量,,RW,int32,float,3,71,0.001,,6
+PROP,Cleft,剩余容量,,RW,int32,float,3,71,0.001,,16
 PROP,BNo,电池组号,,WO,int16,int,3,75,1,,6
