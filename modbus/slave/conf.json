@@ -48,7 +48,7 @@
 			},
 			{
 				"name": "sn",
-				"desc", "Device Serial Number",
+				"desc": "Device Serial Number",
 				"type": "string"
 			},
 			{

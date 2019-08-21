@@ -40,10 +40,12 @@ function block:write(input, value)
 	if not data then
 		return nil, err
 	end
+	--[[
 	if fc == 0x01 or fc == 0x02 then
 		local basexx = require 'basexx'
 		print(input.name, basexx.to_hex(data), offset, value, val)
 	end
+	]]--
 
 	local index = addr + offset -- addresss start from zore
 
@@ -52,10 +54,12 @@ function block:write(input, value)
 	--
 	self._data[fc] = bd..data..ed
 
+	--[[
 	if fc == 0x01 or fc == 0x02 then
 		local basexx = require 'basexx'
 		print( basexx.to_hex(string.sub(self._data[fc], 1, 4)))
 	end
+	]]--
 
 	return true
 end
