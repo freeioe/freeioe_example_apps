@@ -20,6 +20,12 @@
 		}
 	},
 	{
+		"name": "ascii",
+		"desc": "ASCII Prootcol (only for serial link)",
+		"type": "boolean",
+		"default": false
+	},
+	{
 		"name": "socket_opt",
 		"type": "tcp_server"
 	},

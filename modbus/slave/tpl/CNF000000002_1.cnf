@@ -1,6 +1,7 @@
 {
 	"channel_type": "serial",
-	"opt": {
+	"ascii": true,
+	"serial_opt": {
 		"port": "/tmp/ttyS10",
 		"baudrate": 9600
 	},
@@ -22,6 +23,5 @@
 			"sn": "xxx-xx-xx-2",
 			"tpl": "bms"
 		}
-	],
-	"loop_gap": 3000
+	]
 }

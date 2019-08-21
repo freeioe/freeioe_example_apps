@@ -126,12 +126,20 @@ function app:on_start()
 	if conf.channel_type == 'socket' then
 		self._modbus = modbus_master('tcp', {link='tcp', tcp=conf.opt})
 	else
-		self._modbus = modbus_master('rtu', {link='serial', serial=conf.opt})
+		if conf.ascii then
+			self._modbus = modbus_master('ascii', {link='serial', serial=conf.opt})
+		else
+			self._modbus = modbus_master('rtu', {link='serial', serial=conf.opt})
+		end
 	end
 
 	--- 设定通讯口数据回调
 	self._modbus:set_io_cb(function(io, unit, msg)
-		--self._log:trace(io, basexx.to_hex(msg))
+		if conf.ascii then
+			self._log:trace(io, msg)
+		else
+			self._log:trace(io, basexx.to_hex(msg))
+		end
 		local dev = nil
 		for _, v in ipairs(self._devs) do
 			if v.unit == unit then
