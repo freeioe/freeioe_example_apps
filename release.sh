@@ -23,6 +23,7 @@ RELEASE_APP tools/network_uci
 RELEASE_APP opcua/server_pub
 RELEASE_APP opcua/client_pub
 RELEASE_APP opcua/client_simple
+RELEASE_APP opcua/client_tpl
 RELEASE_APP opcua/yizumi
 RELEASE_APP opcua/symlink
 
