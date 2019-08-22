@@ -1,0 +1,32 @@
+[
+	{
+		"name": "socket_type",
+		"desc": "网络类型",
+		"type": "dropdown",
+		"default": "tcp_server",
+		"values": [
+			{
+				"name": "TCP服务器",
+				"value": "tcp_server"
+			},
+			{
+				"name": "UDP服务器",
+				"value": "udp_server"
+			}
+		],
+		"depends": {
+			"tcp_server": "tcp_server",
+			"udp_server": "udp_server"
+		}
+	},
+	{
+		"name": "tcp_server",
+		"desc": "TCP服务器设定",
+		"type": "tcp_server"
+	},
+	{
+		"name": "serial",
+		"desc": "串口设定",
+		"type": "serial"
+	}
+]
