@@ -25,6 +25,13 @@
 		"type": "tcp_server"
 	},
 	{
+		"name": "ascii",
+		"desc": "串口是否使用ASCII协议",
+		"type": "boolean",
+		"default": false
+	},
+
+	{
 		"name": "serial",
 		"desc": "串口设定",
 		"type": "serial"

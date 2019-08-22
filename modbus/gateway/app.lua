@@ -55,10 +55,15 @@ function app:on_start()
 	self._socket_stat = self._dev:stat('socket')
 	self._serial_stat = self._dev:stat('serial')
 
-	self._serial_apdu = modbus_rtu:new() -- modbus_ascii:new()
+	local conf = self._conf
+
+	if conf.ascii then
+		self._serial_apdu = modbus_ascii:new()
+	else
+		self._serial_apdu = modbus_rtu:new()
+	end
 	self._socket_apdu = modbus_tcp:new()
 
-	local conf = self._conf
 	conf.serial = conf.serial or {}
 	self._serial_opt = {
 		port = conf.serial.port or '/tmp/ttyS1',
