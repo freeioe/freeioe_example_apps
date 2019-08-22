@@ -38,6 +38,9 @@ function app:on_connected(client)
 			local value = client:parse_value(data_value, input.vt)
 			--self._log:debug('Sub recv', input.name, value)
 			if value then
+				if input.vt ~= 'string' and input.rate ~= 1 then
+					value = value * input.rate
+				end
 				dev:set_input_prop(input.name, "value", value, now, 0)
 			else
 				dev:set_input_prop(input.name, "value", 0, now, -1)
@@ -60,7 +63,7 @@ function app:on_start()
 	local sys = self._sys
 	local conf = self._conf
 
-	--conf.endpoint = conf.endpoint or 'opc.tcp://172.30.0.187:38133'
+	conf.endpoint = conf.endpoint or 'opc.tcp://localhost:4840'
 	conf.enable_sub = true
 
 	local tpl_id = conf.tpl
@@ -148,6 +151,9 @@ function app:on_run(tms)
 			local value = read_val(node, input.vt)
 			local now = self._sys:time()
 			if value then
+				if input.vt ~= 'string' and input.rate ~= 1 then
+					value = value * input.rate
+				end
 				dev:set_input_prop(input.name, "value", value, now, 0)
 			else
 				self._log:warning("Read "..input.name.." failed!!")

@@ -66,18 +66,18 @@ function client:get_node(ns, i)
 	local id = opcua.NodeId.new(ns, i)
 	local obj, err = client:getNode(id)
 	if not obj then
-		self._log:warning("Cannot get OPCUA node", ns, i, id)
+		self._log:warning("Cannot get OPCUA node", ns, i)
 	end
-	--self._log:debug('got input node', obj, ns, i)
+	self._log:debug('got input node', obj, ns, i)
 	return obj, err
 end
 
 function client:get_node_by_id(id)
 	local obj, err = self._client:getNode(id)
 	if not obj then
-		self._log:warning("Cannot get OPCUA node", ns, i, id)
+		self._log:warning("Cannot get OPCUA node", id.ns, id.index)
 	end
-	self._log:debug('got input node', obj, ns, i)
+	self._log:debug('got input node', obj, id.ns, id.index)
 	return obj, err
 end
 
@@ -96,8 +96,33 @@ end
 function client:parse_value(data_value, vt)
 	local dv = data_value
 
+	--- Latest opcua binding support asValue function
+	if dv.value.asValue then
+		local value, err = dv.value:asValue()
+		if value then
+			if vt == 'int' then
+				value = tonumber(value)
+				if value then
+					return math.floor(value)
+				end
+			end
+			if vt == 'string' then
+				value = tostring(value)
+				if value then
+					return value
+				end
+			end
+			value = tonumber(value)
+			if value then
+				return value
+			end
+		else
+			--print('asValue failed', err)
+		end
+	end
+
 	if vt == 'int' then
-		local value = dv.value:isNumeric() and dv.value:asLong() or dv.value:asString()
+		local value = dv.value:isNumeric() and dv.value:asLong() or dv.value:asString() or dv.value:asDateTime()
 		if not value then
 			return nil, "Value type incorrect"
 		end
@@ -112,11 +137,11 @@ function client:parse_value(data_value, vt)
 	end
 
 	if vt == 'string' then
-		local value = dv.value:asString()
+		local value = dv.value:asString() or dv.value:asDateTime()
 		return value, dv.sourceTimestamp, dv.serverTimestamp
 	end
 
-	local value = dv.value:isNumeric() and dv.value:asDouble() or dv.value:asString()
+	local value = dv.value:isNumeric() and dv.value:asDouble() or dv.value:asString() or dv.value:asDateTime()
 	if not value then
 		return nil, "Value type incorrect"
 	end
