@@ -76,13 +76,18 @@
 		]
 	},
 	{
+		"name": "fake_devices",
+		"desc": "设备列表",
+		"type": "fake_section"
+	},
+	{
 		"name": "devs",
 		"desc": "需要上传的设备列表",
 		"type": "table",
 		"cols": [
 			{
-				"name": "设备序号",
-				"desc": "sn",
+				"name": "sn",
+				"desc": "设备序号",
 				"type": "string"
 			}
 		]
@@ -111,10 +116,10 @@
 		"type": "section",
 		"child": [
 			{
-				"name": "upload_data",
-				"desc": "上送数据",
+				"name": "diable_data",
+				"desc": "禁止数据上送",
 				"type": "boolean",
-				"default": true
+				"default": false
 			},
 			{
 				"name": "upload_event",
@@ -123,28 +128,28 @@
 				"default": 0
 			},
 			{
-				"name": "enable_output",
-				"desc": "启用设备输出",
+				"name": "disable_output",
+				"desc": "禁止设备输出",
 				"type": "boolean",
-				"default": true
+				"default": false
 			},
 			{
-				"name": "enable_output",
-				"desc": "启用设备指令",
+				"name": "diable_command",
+				"desc": "禁止设备指令",
 				"type": "boolean",
-				"default": true
+				"default": false
 			},
 			{
-				"name": "upload_devices",
-				"desc": "上送设备信息",
+				"name": "disable_devices",
+				"desc": "禁止设备信息上送",
 				"type": "boolean",
-				"default": true
+				"default": false
 			},
 			{
-				"name": "upload_data_em",
-				"desc": "上送紧急数据",
+				"name": "disable_data_em",
+				"desc": "禁止上送紧急数据",
 				"type": "boolean",
-				"default": true
+				"default": false
 			},
 			{
 				"name": "disable_compress",

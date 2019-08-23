@@ -58,7 +58,11 @@ function app:initialize(name, sys, conf)
 	end
 	self._enable_devices = {}
 	for k,v in ipairs(conf.devs or {}) do
-		self._enable_devices[v.sn] = true
+		if v.sn and string.len(v.sn) > 0 then
+			self._enable_devices[v.sn] = true
+		else
+			self._log:warning("Device missing sn in conf.devs item")
+		end
 	end
 
 	local sys_id = sys:id()
@@ -121,21 +125,21 @@ end
 
 function app:on_publish_data_list(val_list)
     local data=cjson.encode(val_list)
-    if not self._disable_compress then
+    if self._disable_compress then
+		return self:publish(self._mqtt_id.."/data", data, 0, false)
+	else
         data = self:compress(data)
 		return self:publish(self._mqtt_id.."/data_gz", data, 0, false)
-	else
-		return self:publish(self._mqtt_id.."/data", data, 0, false)
     end
 end
 
 function app:on_publish_cached_data_list(val_list)
 	local data=cjson.encode(val_list)
     if not self._disable_compress then
+		return self:publish(self._mqtt_id.."/cached_data", data, 0, false)
+	else
         data = self:compress(data)
 		return self:publish(self._mqtt_id.."/cached_data_gz", data, 0, false)
-	else
-		return self:publish(self._mqtt_id.."/cached_data", data, 0, false)
     end
 end
 
@@ -183,11 +187,11 @@ function app:on_publish_devices(devices)
 		return false
 	end
 
-	if not self._disable_compress then
+	if self._disable_compress then
+		return self:publish(self._mqtt_id.."/devices", data, 1, true)
+	else
 		data = self:compress(data)
 		return self:publish(self._mqtt_id.."/devices_gz", data, 1, true)
-	else
-		return self:publish(self._mqtt_id.."/devices", data, 1, true)
 	end
 end
 
