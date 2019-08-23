@@ -184,7 +184,7 @@ function app:on_publish_devices(devices)
 		return true
 	end
 	local new_devices = {}
-	for k, v in pairs(self._enabled_devices) do
+	for k, v in pairs(self._enable_devices) do
 		if v then
 			new_devices[k] = devices[k]
 		end
