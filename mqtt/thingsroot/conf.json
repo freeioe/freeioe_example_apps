@@ -1,0 +1,171 @@
+[
+	{
+		"name": "mqtt",
+		"desc": "服务器信息",
+		"type": "section",
+		"child":[
+			{
+				"name": "server",
+				"desc": "MQTT地址",
+				"type": "string",
+				"default":"example.thingsroot.com"
+			},
+			{
+				"name": "port",
+				"desc": "MQTT端口",
+				"type": "number",
+				"default": 1883
+			},
+			{
+				"name": "username(留空使用标准规则)",
+				"desc": "MQTT用户",
+				"type": "string"
+			},
+			{
+				"name": "password(留空使用标准规则)",
+				"desc": "MQTT密码",
+				"type": "string"
+			},
+			{
+				"name": "client_id",
+				"desc": "客户端ID(留空使用标准规则)",
+				"type": "string"
+			}
+		]
+	},
+	{
+		"name": "auth_type",
+		"desc": "开启TLS",
+		"type": "dropdown",
+		"default": "none",
+		"values": [
+			{
+				"name": "不使用",
+				"value": "none"
+			},
+			{
+				"name": "使用",
+				"value": "tls"
+			}
+		],
+		"depends": {
+			"none": "none_object",
+			"tls": "tls_cert"
+		}
+	},
+	{
+		"name": "tls_cert",
+		"desc": "CA证书(文本)",
+		"type": "text"
+	},
+	{
+		"name": "options",
+		"desc": "数据传输选项",
+		"type": "section",
+		"child": [
+			{
+				"name": "period",
+				"desc": "上送周期(秒)",
+				"type": "number",
+				"default": 60
+			},
+			{
+				"name": "ttl",
+				"desc": "最大数据间隔(秒)",
+				"type": "number",
+				"default": 300
+			},
+			{
+				"name": "data_upload_dpp",
+				"desc": "最大打包数量",
+				"type": "number",
+				"default": 1024
+			},
+			{
+				"name": "enable_data_cache",
+				"desc": "开启短线缓存",
+				"type": "boolean",
+				"default": false
+			}
+		]
+	},
+	{
+		"name": "devs",
+		"desc": "需要上传的设备列表",
+		"type": "table",
+		"cols": [
+			{
+				"name": "设备序号",
+				"desc": "sn",
+				"type": "string"
+			}
+		]
+	},
+	{
+		"name": "fake_options_ex",
+		"desc": "高级选项",
+		"type": "fake_section"
+	},
+	{
+		"name": "has_options_ex",
+		"desc": "开启高级选项",
+		"type": "dropdown",
+		"values": [
+			"no",
+			"yes"
+		],
+		"depends": {
+			"no": "_no_options_ex",
+			"yes": "options_ex"
+		}
+	},
+	{
+		"name": "options_ex",
+		"desc": "高级选项",
+		"type": "section",
+		"child": [
+			{
+				"name": "upload_data",
+				"desc": "上送数据",
+				"type": "boolean",
+				"default": true
+			},
+			{
+				"name": "upload_event",
+				"desc": "事件上送(最小等级)",
+				"type": "number",
+				"default": 0
+			},
+			{
+				"name": "enable_output",
+				"desc": "启用设备输出",
+				"type": "boolean",
+				"default": true
+			},
+			{
+				"name": "enable_output",
+				"desc": "启用设备指令",
+				"type": "boolean",
+				"default": true
+			},
+			{
+				"name": "upload_devices",
+				"desc": "上送设备信息",
+				"type": "boolean",
+				"default": true
+			},
+			{
+				"name": "upload_data_em",
+				"desc": "上送紧急数据",
+				"type": "boolean",
+				"default": true
+			},
+			{
+				"name": "disable_compress",
+				"desc": "禁止压缩(调试使用)",
+				"type": "boolean",
+				"default": false
+			}
+		]
+	}
+]
