@@ -57,7 +57,7 @@ function app:initialize(name, sys, conf)
 		conf.tls_cert_path = ca_path
 	end
 	self._enable_devices = {}
-	for k,v in ipairs(conf.devs or {}) do
+	for _, v in ipairs(conf.devs or {}) do
 		if v.sn and string.len(v.sn) > 0 then
 			self._enable_devices[v.sn] = true
 		else
@@ -70,7 +70,7 @@ function app:initialize(name, sys, conf)
 	local mqtt_conf = self:to_mqtt_app_conf(conf)
 	if not mqtt_conf.username then
 		mqtt_conf.username = "dev="..sys_id.."|time="..os.time()
-		mqtt_conf.password = hmac:new(sha1, mqtt_secret, id):hexdigest()
+		mqtt_conf.password = hmac:new(sha1, mqtt_secret, sys_id):hexdigest()
 	end
 	if not mqtt_conf.client_id then
 		mqtt_conf.client_id = sys_id
@@ -120,7 +120,7 @@ function app:on_publish_data_em(key, value, timestamp, quality)
 		return
 	end
 
-	return self:on_publish_data(ke, value, timestamp, quality)
+	return self:on_publish_data(key, value, timestamp, quality)
 end
 
 function app:on_publish_data_list(val_list)
@@ -145,6 +145,9 @@ end
 
 function app:on_event(app, sn, level, data, timestamp)
 	if self._disable_event then
+		return true
+	end
+	if not self._enable_devices[sn] then
 		return true
 	end
 
@@ -180,8 +183,14 @@ function app:on_publish_devices(devices)
 	if self._disable_devices then
 		return true
 	end
+	local new_devices = {}
+	for k, v in pairs(self._enabled_devices) do
+		if v then
+			new_devices[k] = devices[k]
+		end
+	end
 
-	local data, err = cjson.encode(devices)
+	local data, err = cjson.encode(new_devices)
 	if not data then
 		self._log:error("Devices data json encode failed", err)
 		return false
@@ -213,13 +222,13 @@ function app:mqtt_will()
 	return self._mqtt_id.."/status", "OFFLINE", 1, true
 end
 
-function app:on_mqtt_message(mid, topic, data, qos, retained)
+function app:on_mqtt_message(mid, topic, payload, qos, retained)
 	local id, t, sub = topic:match('^([^/]+)/([^/]+)(.-)$')
 	if id ~= self._mqtt_id and id ~= "ALL" then
 		self._log:error("MQTT recevied incorrect topic message")
 		return
 	end
-	local data, err = cjson.decode(data)
+	local data, err = cjson.decode(payload)
 	if not data then
 		self._log:error("Decode JSON data failed", err)
 		return
@@ -249,6 +258,9 @@ function app:on_mqtt_output(topic, id, data)
 	if self._disable_output then
 		return self:on_mqtt_result(id, false, 'Device output disabled!')
 	end
+	if not self._enable_devices[data.device] then
+		return self:on_mqtt_result(id, false, 'Device not allowed!')
+	end
 
 	local device, err = self._api:get_device(data.device)
 	if not device then
@@ -275,6 +287,9 @@ end
 function app:on_mqtt_command(topic, id, data)
 	if self._disable_command then
 		return self:on_mqtt_result(id, false, 'Device command disabled!')
+	end
+	if not self._enable_devices[data.device] then
+		return self:on_mqtt_result(id, false, 'Device not allowed!')
 	end
 
 	local device, err = self._api:get_device(data.device)
