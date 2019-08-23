@@ -13,7 +13,7 @@ local mqtt_secret = "VEhJTkdTUk9PVAo="
 
 function app:to_mqtt_app_conf(conf)
 	conf.mqtt = conf.mqtt or {}
-	local conf = {
+	local new_conf = {
 		--- mqtt
 		client_id = conf.mqtt.client_id and conf.mqtt.client_id ~= '' and conf.mqtt.client_id or nil,
 		username = conf.mqtt.username and conf.mqtt.username ~= '' and conf.mqtt.username or nil,
@@ -24,7 +24,7 @@ function app:to_mqtt_app_conf(conf)
 		tls_cert = conf.tls_cert_path,
 	}
 	for k, v in pairs(conf.options or {}) do
-		conf[k] = v
+		new_conf[k] = v
 	end
 	if conf.has_options_ex == 'yes' then
 		self._disable_data = conf.options_ex.disable_data
@@ -38,7 +38,7 @@ function app:to_mqtt_app_conf(conf)
 	self._disable_apps = true --- application list not supported!!!!
 	self._disable_stat = true --- statiticsis not supported!!!
 
-	return conf
+	return new_conf
 end
 
 ---
