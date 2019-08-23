@@ -233,11 +233,13 @@ function app:handle_input(app, sn, input, prop, value, timestamp, quality)
 	self._cov:handle(key, value, timestamp, quality)
 end
 
-function app:handle_event(app, sn, level, data, timestamp)
+function app:handle_event(app, sn, level, type_, info, data, timestamp)
 	local msg = {
 		app = app,
 		sn = sn,
 		level = level,
+		['type'] = type_,
+		info = info,
 		data = data,
 		timestamp = timestamp,
 	}

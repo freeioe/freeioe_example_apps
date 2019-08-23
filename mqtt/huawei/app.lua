@@ -77,7 +77,7 @@ function app:mqtt_auth()
 	return nil, err
 end
 
-function app:create_event_msg(app, sn, level, data, timestamp)
+function app:create_event_msg(app, sn, level, type_, info, data, timestamp)
 	return {
 		header = {
 			eventType = "event",
@@ -91,6 +91,8 @@ function app:create_event_msg(app, sn, level, data, timestamp)
 			app = app,
 			sn = sn,
 			level = level,
+			['type'] = type_,
+			info = info,
 			data = data,
 			timestamp = timestamp
 		},
@@ -132,8 +134,8 @@ function app:on_publish_data_list(val_list)
 	return true
 end
 
-function app:on_event(app, sn, level, data, timestamp)
-	local msg = self:create_event_msg("event", app, sn, level, data, timestamp)
+function app:on_event(app, sn, level, type_, info, data, timestamp)
+	local msg = self:create_event_msg("event", app, sn, level, type_, info, data, timestamp)
 	return self:publish(".cloud.signaltrans.v2.categories.event", cjson.encode(msg), 1, false)
 end
 

@@ -143,7 +143,7 @@ function app:on_publish_cached_data_list(val_list)
     end
 end
 
-function app:on_event(app, sn, level, data, timestamp)
+function app:on_event(app, sn, level, type_, info, data, timestamp)
 	if self._disable_event then
 		return true
 	end
@@ -151,14 +151,14 @@ function app:on_event(app, sn, level, data, timestamp)
 		return true
 	end
 
-	local msg = {
-		app = app,
-		sn = sn,
+	local event = {
 		level = level,
+		['type'] = tyep_,
+		info = info,
 		data = data,
-		timestamp = timestamp,
+		app = app
 	}
-	return self:publish(self._mqtt_id.."/event", cjson.encode(msg), 1, false)
+	return self:publish(self._mqtt_id.."/event", cjson.encode({sn, event, timestamp} ), 1, false)
 end
 
 --[[

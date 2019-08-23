@@ -54,11 +54,13 @@ function app:on_publish_data_list(val_list)
 end
 
 
-function app:on_event(app, sn, level, data, timestamp)
+function app:on_event(app, sn, level, type_, info, data, timestamp)
 	local msg = {
 		app = app,
 		sn = sn,
+		['type'] = type_,
 		level = level,
+		info = info,
 		data = data,
 		timestamp = timestamp,
 	}
