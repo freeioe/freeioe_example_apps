@@ -11,15 +11,16 @@ app.static.API_VER = 5
 
 local mqtt_secret = "VEhJTkdTUk9PVAo="
 
-local function to_mqtt_app_conf(conf)
+function app:to_mqtt_app_conf(conf)
+	conf.mqtt = conf.mqtt or {}
 	local conf = {
 		--- mqtt
 		client_id = conf.mqtt.client_id and conf.mqtt.client_id ~= '' and conf.mqtt.client_id or nil,
 		username = conf.mqtt.username and conf.mqtt.username ~= '' and conf.mqtt.username or nil,
 		password = conf.mqtt.password and conf.mqtt.password ~= '' and conf.mqtt.password or nil,
-		server = conf.mqtt.server,
+		server = conf.mqtt.server or '172.30.11.199',
 		port = conf.mqtt.port,
-		enable_tls = conf.mqt.enable_tls,
+		enable_tls = conf.mqtt.enable_tls,
 		tls_cert = conf.tls_cert_path,
 	}
 	for k, v in pairs(conf.options or {}) do
@@ -36,6 +37,8 @@ local function to_mqtt_app_conf(conf)
 	end
 	self._disable_apps = true --- application list not supported!!!!
 	self._disable_stat = true --- statiticsis not supported!!!
+
+	return conf
 end
 
 ---
@@ -46,20 +49,21 @@ end
 function app:initialize(name, sys, conf)
 	self._prv_conf = conf
 	-- TODO: tls_certs saving file
-	if string.len(conf.tls_cert) > 0 then
+	if conf.tls_cert and string.len(conf.tls_cert) > 0 then
 		local ca_path = sys:app_dir()..'ca.crt'
 		local f = assert(io.open(ca_path, 'w+'))
 		f:write(conf.tls_cert)
 		f:close()
 		conf.tls_cert_path = ca_path
 	end
-	for k,v in ipairs(conf.devs) do
+	self._enable_devices = {}
+	for k,v in ipairs(conf.devs or {}) do
 		self._enable_devices[v.sn] = true
 	end
 
 	local sys_id = sys:id()
 
-	local mqtt_conf = to_mqtt_app_conf(conf)
+	local mqtt_conf = self:to_mqtt_app_conf(conf)
 	if not mqtt_conf.username then
 		mqtt_conf.username = "dev="..sys_id.."|time="..os.time()
 		mqtt_conf.password = hmac:new(sha1, mqtt_secret, id):hexdigest()
@@ -67,6 +71,11 @@ function app:initialize(name, sys, conf)
 	if not mqtt_conf.client_id then
 		mqtt_conf.client_id = sys_id
 	end
+	--[[
+	--- DEBUG
+	self._disable_compress = true
+	self._enable_devices[sys_id] = true
+	]]--
 
 	--- 基础类初始化
 	mqtt_app.initialize(self, name, sys, mqtt_conf)
@@ -214,7 +223,7 @@ function app:on_mqtt_message(mid, topic, data, qos, retained)
 
 	if t == 'output' then
 		self:on_mqtt_output(string.sub(sub or '/', 2), data.id, data.data)
-	else if t == 'command' then
+	elseif t == 'command' then
 		self:on_mqtt_command(string.sub(sub or '/', 2), data.id, data.data)
 	else
 		self._log:error("MQTT recevied incorrect topic", t, sub)
