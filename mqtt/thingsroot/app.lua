@@ -19,7 +19,7 @@ local function to_mqtt_app_conf(conf)
 		password = conf.mqtt.password and conf.mqtt.password ~= '' and conf.mqtt.password or nil,
 		server = conf.mqtt.server,
 		port = conf.mqtt.port,
-		enable_tls = conf.auth_type == 'tls',
+		enable_tls = conf.mqt.enable_tls,
 		tls_cert = conf.tls_cert_path,
 	}
 	for k, v in pairs(conf.options or {}) do

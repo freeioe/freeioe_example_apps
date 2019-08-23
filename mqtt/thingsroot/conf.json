@@ -17,46 +17,32 @@
 				"default": 1883
 			},
 			{
-				"name": "username(留空使用标准规则)",
-				"desc": "MQTT用户",
+				"name": "username",
+				"desc": "MQTT用户(留空使用标准规则)",
 				"type": "string"
 			},
 			{
-				"name": "password(留空使用标准规则)",
-				"desc": "MQTT密码",
+				"name": "password",
+				"desc": "MQTT密码(留空使用标准规则)",
 				"type": "string"
 			},
 			{
 				"name": "client_id",
 				"desc": "客户端ID(留空使用标准规则)",
 				"type": "string"
-			}
-		]
-	},
-	{
-		"name": "auth_type",
-		"desc": "开启TLS",
-		"type": "dropdown",
-		"default": "none",
-		"values": [
-			{
-				"name": "不使用",
-				"value": "none"
 			},
 			{
-				"name": "使用",
-				"value": "tls"
+				"name": "enable_tls",
+				"desc": "使用TLS",
+				"type": "boolean",
+				"default": false
+			},
+			{
+				"name": "tls_cert",
+				"desc": "CA证书(文本)",
+				"type": "text"
 			}
-		],
-		"depends": {
-			"none": "none_object",
-			"tls": "tls_cert"
-		}
-	},
-	{
-		"name": "tls_cert",
-		"desc": "CA证书(文本)",
-		"type": "text"
+		]
 	},
 	{
 		"name": "options",
