@@ -1,7 +1,5 @@
 local cjson = require 'cjson.safe'
 local mqtt_app = require 'app.base.mqtt'
-local sha1 = require 'hashings.sha1'
-local hmac = require 'hashings.hmac'
 local ioe = require 'ioe'
 
 --- 注册对象(请尽量使用唯一的标识字符串)
@@ -9,19 +7,19 @@ local app = mqtt_app:subclass("THINGSROOT_MQTT_APP")
 --- 设定应用最小运行接口版本(目前版本为1,为了以后的接口兼容性)
 app.static.API_VER = 5
 
-local mqtt_secret = "VEhJTkdTUk9PVAo="
-
-function app:to_mqtt_app_conf(conf)
-	conf.mqtt = conf.mqtt or {}
+function app:to_mqtt_app_conf(conf, sys_id)
+	local client_id = conf.project_code..'@'..conf.product_code..'@'..sys_id
 	local new_conf = {
 		--- mqtt
-		client_id = conf.mqtt.client_id and conf.mqtt.client_id ~= '' and conf.mqtt.client_id or nil,
-		username = conf.mqtt.username and conf.mqtt.username ~= '' and conf.mqtt.username or nil,
-		password = conf.mqtt.password and conf.mqtt.password ~= '' and conf.mqtt.password or nil,
-		server = conf.mqtt.server or '172.30.11.199',
-		port = conf.mqtt.port,
-		enable_tls = conf.mqtt.enable_tls,
-		tls_cert = conf.tls_cert_path,
+		client_id = client_id,
+		username = sys_id,
+		password = '',
+		server = conf.server or '117.73.3.68',
+		port = conf.port,
+		enable_tls = true,
+		tls_cert = conf.tls_cert,
+		client_cert = conf.client_cert,
+		client_key = conf.client_key,
 	}
 	for k, v in pairs(conf.options or {}) do
 		new_conf[k] = v
@@ -41,6 +39,18 @@ function app:to_mqtt_app_conf(conf)
 	return new_conf
 end
 
+function app:text2file(text, filename)
+	if not text or string.len(text) == 0 then
+		return nil
+	end
+
+	local full_path = self._sys:app_dir()..filename
+	local f = assert(io.open(full_path), 'w+')
+	f:write(text or '')
+	f:close()
+	return filename 
+end
+
 ---
 -- 应用对象初始化函数
 -- @param name: 应用本地安装名称。 如modbus_com_1
@@ -48,38 +58,28 @@ end
 -- @param conf: 应用配置参数。由安装配置中的json数据转换出来的数据对象
 function app:initialize(name, sys, conf)
 	self._prv_conf = conf
-	-- TODO: tls_certs saving file
-	if conf.tls_cert and string.len(conf.tls_cert) > 0 then
-		local ca_path = sys:app_dir()..'ca.crt'
-		local f = assert(io.open(ca_path, 'w+'))
-		f:write(conf.tls_cert)
-		f:close()
-		conf.tls_cert_path = ca_path
-	end
-	self._enable_devices = {}
+
+	conf.tls_cert = self:text2file(conf.tls_cert, 'ca.crt')
+	conf.client_cert = self:text2file(conf.client_cert, 'client_cert.crt')
+	conf.client_key = self:text2file(conf.client_key, 'client_key.crt')
+
+	conf.tls_cert = conf.tls_cert or 'certs/IoTRootCA.crt'
+	conf.client_cert = conf.client_cert or 'certs/iotmpsp3i1t-qxcf6rtc-IDIDIDIDID.crt'
+	conf.client_key = conf.client_key or 'certs/iotmpsp3i1t-qxcf6rtc-IDIDIDIDID.key'
+	conf.project_code = conf.project_code or 'iotmpsp3i1t'
+	conf.product_code = conf.product_code or 'qxcf6rtc'
+
+	self._devices_map = {}
 	for _, v in ipairs(conf.devs or {}) do
 		if v.sn and string.len(v.sn) > 0 then
-			self._enable_devices[v.sn] = true
+			self._devices_map[v.sn] = v.code
 		else
 			self._log:warning("Device missing sn in conf.devs item")
 		end
 	end
 
 	local sys_id = sys:id()
-
-	local mqtt_conf = self:to_mqtt_app_conf(conf)
-	if not mqtt_conf.username then
-		mqtt_conf.username = "dev="..sys_id.."|time="..os.time()
-		mqtt_conf.password = hmac:new(sha1, mqtt_secret, sys_id):hexdigest()
-	end
-	if not mqtt_conf.client_id then
-		mqtt_conf.client_id = sys_id
-	end
-	--[[
-	--- DEBUG
-	self._disable_compress = true
-	self._enable_devices[sys_id] = true
-	]]--
+	local mqtt_conf = self:to_mqtt_app_conf(conf, sys_id)
 
 	--- 基础类初始化
 	mqtt_app.initialize(self, name, sys, mqtt_conf)
@@ -87,25 +87,27 @@ function app:initialize(name, sys, conf)
 	self._mqtt_id = mqtt_conf.client_id
 end
 
-function app:pack_key(app_src, device_sn, ...)
+function app:pack_key(app_src, device_sn, input, prop)
 	-- if data upload disabled
 	if self._disable_data then
 		return
 	end
 
+	local dev_code = self._device_map[device_sn]
 	--- if deivce not in allowed list
-	if not self._enable_devices[device_sn] then
+	if not dev_code then
 		return
 	end
 
-	--- using the base pack key
-	return mqtt_app.pack_key(self, app_src, device_sn, ...)
+	return dev_code .. '/' .. input .. '/' .. prop
 end
 
 function app:on_publish_data(key, value, timestamp, quality)
-	--local sn, input, prop = string.match(key, '^([^/]+)/([^/]+)/(.+)$')
+	local sn, input, prop = string.match(key, '^([^/]+)/([^/]+)/(.+)$')
 	local msg = {
-		key = key,
+		sn = sn,
+		input = input,
+		prop = prop,
 		value = value,
 		timestamp = timestamp,
 		quality = quality
@@ -145,7 +147,7 @@ function app:on_event(app, sn, level, type_, info, data, timestamp)
 	if self._disable_event then
 		return true
 	end
-	if not self._enable_devices[sn] then
+	if not self._device_map[sn] then
 		return true
 	end
 
@@ -182,7 +184,7 @@ function app:on_publish_devices(devices)
 		return true
 	end
 	local new_devices = {}
-	for k, v in pairs(self._enable_devices) do
+	for k, v in pairs(self._device_map) do
 		if v then
 			new_devices[k] = devices[k]
 		end
@@ -203,17 +205,31 @@ function app:on_publish_devices(devices)
 end
 
 function app:on_mqtt_connect_ok()
-	local sub_topics = {}
-	if not self._disable_output then
-		table.insert(sub_topics, '/output/#')
-	end
-	if not self._disable_command then
-		table.insert(sub_topics, '/command/#')
+	local sub_topics = {
+		'/shadow/get/accepted',
+		'/shadow/update/rejected',
+		'/thing/topo/get_reply'
+	}
+	if not self._disable_output or not self._disable_command then
+		table.insert(sub_topics, '/control')
 	end
 	for _, v in ipairs(sub_topics) do
 		self:subscribe(self._mqtt_id..v, 1)
 	end
-	return self:publish(self._mqtt_id.."/status", "ONLINE", 1, true)
+	---[[sub devices online]]--
+	for k, v in pairs(self._devices_map) do
+		local data = {
+			id = os.time(),
+			param = {
+				IotModelCode = v.model,
+				IotDeviceCode = v.device,
+				clientId = v.device,
+				timestamp = ioe.time(),
+				signMethod
+			}
+		}
+		return self:publish(self._mqtt_id.."/status", "ONLINE")
+	end
 end
 
 function app:mqtt_will()
@@ -256,7 +272,7 @@ function app:on_mqtt_output(topic, id, data)
 	if self._disable_output then
 		return self:on_mqtt_result(id, false, 'Device output disabled!')
 	end
-	if not self._enable_devices[data.device] then
+	if not self._device_map[data.device] then
 		return self:on_mqtt_result(id, false, 'Device not allowed!')
 	end
 
@@ -286,7 +302,7 @@ function app:on_mqtt_command(topic, id, data)
 	if self._disable_command then
 		return self:on_mqtt_result(id, false, 'Device command disabled!')
 	end
-	if not self._enable_devices[data.device] then
+	if not self._device_map[data.device] then
 		return self:on_mqtt_result(id, false, 'Device not allowed!')
 	end
 

@@ -1,0 +1,123 @@
+[
+	{
+		"name": "server",
+		"desc": "MQTT地址",
+		"type": "string",
+		"default":"117.73.3.68"
+	},
+	{
+		"name": "port",
+		"desc": "MQTT端口",
+		"type": "number",
+		"default": 31183
+	},
+	{
+		"name": "tls_cert",
+		"desc": "CA证书(文本)",
+		"type": "text"
+	},
+	{
+		"name": "client_cert",
+		"desc": "Client证书(文本)",
+		"type": "text"
+	},
+	{
+		"name": "client_key",
+		"desc": "Client密钥(文本)",
+		"type": "text"
+	},
+	{
+		"name": "project_code",
+		"desc": "项目编码",
+		"type": "string"
+	},
+	{
+		"name": "product_code",
+		"desc": "产品编码",
+		"type": "string"
+	},
+	{
+		"name": "fake_devices",
+		"desc": "设备列表",
+		"type": "fake_section"
+	},
+	{
+		"name": "devs",
+		"desc": "需要上传的设备列表",
+		"type": "table",
+		"cols": [
+			{
+				"name": "sn",
+				"desc": "设备序号",
+				"type": "string"
+			},
+			{
+				"name": "code",
+				"desc": "云平台子设备编码",
+				"type": "string"
+			}
+		]
+	},
+	{
+		"name": "has_options_ex",
+		"desc": "开启高级选项",
+		"type": "dropdown",
+		"values": [
+			"no",
+			"yes"
+		],
+		"depends": {
+			"no": "_no_options_ex",
+			"yes": "options_ex"
+		}
+	},
+	{
+		"name": "options_ex",
+		"desc": "高级选项",
+		"type": "section",
+		"child": [
+			{
+				"name": "diable_data",
+				"desc": "禁止数据上送",
+				"type": "boolean",
+				"default": false
+			},
+			{
+				"name": "upload_event",
+				"desc": "事件上送(最小等级)",
+				"type": "number",
+				"default": 0
+			},
+			{
+				"name": "disable_output",
+				"desc": "禁止设备输出",
+				"type": "boolean",
+				"default": false
+			},
+			{
+				"name": "diable_command",
+				"desc": "禁止设备指令",
+				"type": "boolean",
+				"default": false
+			},
+			{
+				"name": "disable_devices",
+				"desc": "禁止设备信息上送",
+				"type": "boolean",
+				"default": false
+			},
+			{
+				"name": "disable_data_em",
+				"desc": "禁止上送紧急数据",
+				"type": "boolean",
+				"default": false
+			},
+			{
+				"name": "disable_compress",
+				"desc": "禁止压缩(调试使用)",
+				"type": "boolean",
+				"default": false
+			}
+		]
+	}
+]
