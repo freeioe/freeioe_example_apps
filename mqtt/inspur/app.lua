@@ -12,8 +12,8 @@ function app:to_mqtt_app_conf(conf, sys_id)
 	local new_conf = {
 		--- mqtt
 		client_id = client_id,
-		username = sys_id,
-		password = '',
+		--username = sys_id,
+		--password = '',
 		server = conf.server or '117.73.3.68',
 		port = conf.port,
 		enable_tls = true,
@@ -69,22 +69,32 @@ function app:initialize(name, sys, conf)
 	conf.project_code = conf.project_code or 'iotmpsp3i1t'
 	conf.product_code = conf.product_code or 'qxcf6rtc'
 
-	self._devices_map = {}
+	local sys_id = sys:id()
+	local mqtt_conf = self:to_mqtt_app_conf(conf, sys_id)
+	mqtt_conf.period = mqtt_conf.period or 5
+
+	--- 基础类初始化
+	mqtt_app.initialize(self, name, sys, mqtt_conf)
+
+	self._device_map = {}
 	for _, v in ipairs(conf.devs or {}) do
 		if v.sn and string.len(v.sn) > 0 then
-			self._devices_map[v.sn] = v.code
+			self._device_map[v.sn] = {
+				model = v.model,
+				device = v.code,
+				topic = string.format('iot/%s/%s/%s/', conf.project_code, v.model, v.code)
+			}
 		else
 			self._log:warning("Device missing sn in conf.devs item")
 		end
 	end
 
-	local sys_id = sys:id()
-	local mqtt_conf = self:to_mqtt_app_conf(conf, sys_id)
-
-	--- 基础类初始化
-	mqtt_app.initialize(self, name, sys, mqtt_conf)
-
-	self._mqtt_id = mqtt_conf.client_id
+	self._device_map[sys_id] = {
+		model = conf.product_code, 
+		device = sys_id,
+		topic = string.format('iot/%s/%s/%s', conf.project_code, conf.product_code, sys_id)
+	}
+	self._sys_id = sys_id
 end
 
 function app:pack_key(app_src, device_sn, input, prop)
@@ -93,26 +103,77 @@ function app:pack_key(app_src, device_sn, input, prop)
 		return
 	end
 
-	local dev_code = self._device_map[device_sn]
-	--- if deivce not in allowed list
-	if not dev_code then
+	if prop ~= 'value' then
 		return
 	end
 
-	return dev_code .. '/' .. input .. '/' .. prop
+	local dev = self._device_map[device_sn]
+	--- if deivce not in allowed list
+	if not dev then
+		return
+	end
+
+	return device_sn .. '/' .. input .. '/' .. prop
+end
+
+function app:escape_input_name(input)
+	return string.gsub(input, '_', '-')
+end
+
+function app:shadow_update(key, value, timestamp, quality)
+	local sn, input, prop = string.match(key, '^([^/]+)/([^/]+)/(.+)$')
+	input = self:escape_input_name(input)
+
+	local reported = {}
+	reported[input] = value
+	local data = {
+		state = {
+			reported = reported
+		}
+	}
+	local dev = self._device_map[sn]
+
+	print('shadow_update', dev.topic..'/shadow/update', cjson.encode(data))
+	return mqtt_app.publish(self, dev.topic..'/shadow/update', cjson.encode(data), 0, false)
+end
+
+function app:shadow_update_list(val_list)
+	local devs = {}
+	for _, v in ipairs(val_list) do
+		local key, value, timestamp, quality = table.unpack(v)
+		local sn, input, prop = string.match(key, '^([^/]+)/([^/]+)/(.+)$')
+		input = self:escape_input_name(input)
+
+		if prop == 'value' then
+			devs[sn] = devs[sn] or {}
+			devs[sn][input] = value
+		end
+	end
+	for k, v in pairs(devs) do
+		local data = {
+			state = {
+				reported = v
+			}
+		}
+		local dev = self._device_map[k]
+		print('shadow_update', dev.topic..'/shadow/update', cjson.encode(data))
+		return mqtt_app.publish(self, dev.topic..'/shadow/update', cjson.encode(data), 0, false)
+	end
+end
+
+function app:publish(topic, data)
+	local dev = self._device_map[self._sys_id]
+	if true then
+		return true
+	end
+
+	return mqtt_app.publish(self, dev.topic..'/'..topic, cjson.encode({topic=topic,data=data}), 0, false)
 end
 
 function app:on_publish_data(key, value, timestamp, quality)
 	local sn, input, prop = string.match(key, '^([^/]+)/([^/]+)/(.+)$')
-	local msg = {
-		sn = sn,
-		input = input,
-		prop = prop,
-		value = value,
-		timestamp = timestamp,
-		quality = quality
-	}
-	return self:publish(self._mqtt_id.."/data", cjson.encode(msg), 0, false)
+	local msg = {key, value, timestamp, quality}
+	return self:shadow_update(key, value, timestamp, quality) and self:publish("data", msg)
 end
 
 function app:on_publish_data_em(key, value, timestamp, quality)
@@ -124,23 +185,19 @@ function app:on_publish_data_em(key, value, timestamp, quality)
 end
 
 function app:on_publish_data_list(val_list)
-    local data=cjson.encode(val_list)
-    if self._disable_compress then
-		return self:publish(self._mqtt_id.."/data", data, 0, false)
-	else
-        data = self:compress(data)
-		return self:publish(self._mqtt_id.."/data_gz", data, 0, false)
-    end
+	return self:shadow_update_list(val_list) and self:publish("data_list", val_list)
+	--[[
+	data = self:compress(data)
+	return self:publish("data_gz", data, 0, false)
+	]]--
 end
 
 function app:on_publish_cached_data_list(val_list)
-	local data=cjson.encode(val_list)
-    if not self._disable_compress then
-		return self:publish(self._mqtt_id.."/cached_data", data, 0, false)
-	else
-        data = self:compress(data)
-		return self:publish(self._mqtt_id.."/cached_data_gz", data, 0, false)
-    end
+	return self:publish("cached_data", val_list)
+	--[[
+	data = self:compress(data)
+	return self:publish("cached_data_gz", data, 0, false)
+	]]--
 end
 
 function app:on_event(app, sn, level, type_, info, data, timestamp)
@@ -158,66 +215,27 @@ function app:on_event(app, sn, level, type_, info, data, timestamp)
 		data = data,
 		app = app
 	}
-	return self:publish(self._mqtt_id.."/event", cjson.encode({sn, event, timestamp} ), 1, false)
-end
-
---[[
-function app:on_stat(app, sn, stat, prop, value, timestamp)
-	if self._disable_stat then
-		return true
-	end
-
-	local msg = {
-		app = app,
-		sn = sn,
-		stat = stat,
-		prop = prop,
-		value = value,
-		timestamp = timestamp,
-	}
-	return self:publish(self._mqtt_id.."/stat", cjson.encode(msg), 1, false)
-end
-]]--
-
-function app:on_publish_devices(devices)
-	if self._disable_devices then
-		return true
-	end
-	local new_devices = {}
-	for k, v in pairs(self._device_map) do
-		if v then
-			new_devices[k] = devices[k]
-		end
-	end
-
-	local data, err = cjson.encode(new_devices)
-	if not data then
-		self._log:error("Devices data json encode failed", err)
-		return false
-	end
-
-	if self._disable_compress then
-		return self:publish(self._mqtt_id.."/devices", data, 1, true)
-	else
-		data = self:compress(data)
-		return self:publish(self._mqtt_id.."/devices_gz", data, 1, true)
-	end
+	return self:publish("event", {sn, event, timestamp} )
 end
 
 function app:on_mqtt_connect_ok()
 	local sub_topics = {
+		'/control',
 		'/shadow/get/accepted',
 		'/shadow/update/rejected',
+		'/shadow/update/documents',
 		'/thing/topo/get_reply'
 	}
-	if not self._disable_output or not self._disable_command then
-		table.insert(sub_topics, '/control')
-	end
+	local sys_id = self._sys:id()
+	local conf = self._conf
+	local topic_base = string.format('iot/%s/%s/%s', conf.project_code, conf.product_code, sys_id)
 	for _, v in ipairs(sub_topics) do
-		self:subscribe(self._mqtt_id..v, 1)
+		self:subscribe(topic_base..v, 1)
 	end
+
 	---[[sub devices online]]--
-	for k, v in pairs(self._devices_map) do
+	-- TODO:
+	for k, v in pairs(self._device_map) do
 		local data = {
 			id = os.time(),
 			param = {
@@ -228,12 +246,7 @@ function app:on_mqtt_connect_ok()
 				signMethod
 			}
 		}
-		return self:publish(self._mqtt_id.."/status", "ONLINE")
 	end
-end
-
-function app:mqtt_will()
-	return self._mqtt_id.."/status", "OFFLINE", 1, true
 end
 
 function app:on_mqtt_message(mid, topic, payload, qos, retained)
@@ -248,85 +261,8 @@ function app:on_mqtt_message(mid, topic, payload, qos, retained)
 		return
 	end
 
-	if t == 'output' then
-		self:on_mqtt_output(string.sub(sub or '/', 2), data.id, data.data)
-	elseif t == 'command' then
-		self:on_mqtt_command(string.sub(sub or '/', 2), data.id, data.data)
-	else
-		self._log:error("MQTT recevied incorrect topic", t, sub)
-	end
+	self._log:info("Recevied", mid, topic, payload)
+	return
 end
-
-function app:on_mqtt_result(id, result, message)
-	local data = {
-		id = id,
-		result = result,
-		message = message,
-		timestamp = ioe.time(),
-		timestamp_str = os.date()
-	}
-	self:publish(self._mqtt_id..'/result/output', cjson.encode(data), 0, false)
-end
-
-function app:on_mqtt_output(topic, id, data)
-	if self._disable_output then
-		return self:on_mqtt_result(id, false, 'Device output disabled!')
-	end
-	if not self._device_map[data.device] then
-		return self:on_mqtt_result(id, false, 'Device not allowed!')
-	end
-
-	local device, err = self._api:get_device(data.device)
-	if not device then
-		return self:on_mqtt_result(id, false, err or 'Device missing!')
-	end
-
-	local priv = {id = id, data = data}
-	local r, err = device:set_output_prop(data.output, data.prop or 'value', data.value, ioe.time(), priv)
-	if not r then
-		self._log:error('Set output prop failed!', err)
-		return self:on_mqtt_result(id, false, err or 'Set output prop failed')
-	end
-end
-
-function app:on_output_result(app_src, priv, result, err)
-	if not result then
-		self._log:error('Set output prop failed!', err)
-		return self:on_mqtt_result(priv.id, false, err or 'Set output prop failed')
-	else
-		return self:on_mqtt_result(priv.id, true, 'Set output prop done!!')
-	end
-end
-
-function app:on_mqtt_command(topic, id, data)
-	if self._disable_command then
-		return self:on_mqtt_result(id, false, 'Device command disabled!')
-	end
-	if not self._device_map[data.device] then
-		return self:on_mqtt_result(id, false, 'Device not allowed!')
-	end
-
-	local device, err = self._api:get_device(data.device)
-	if not device then
-		return self:on_mqtt_result(id, false, err or 'Device missing!')
-	end
-
-	local priv = {id = id, data = data}
-	local r, err = device:send_command(data.cmd, data.param or {}, priv)
-	if not r then
-		self._log:error('Device command execute failed!', err)
-		return self:on_mqtt_result(id, false, err or 'Device command execute failed!')
-	end
-end
-
-function app:on_command_result(app_src, priv, result, err)
-	if not result then
-		self._log:error('Device command execute failed!', err)
-		return self:on_mqtt_result(priv.id, false, err or 'Device command execute failed!')
-	else
-		return self:on_mqtt_result(priv.id, true, 'Device command execute done!!')
-	end
-end
-
 --- 返回应用对象
 return app

@@ -52,8 +52,13 @@
 				"type": "string"
 			},
 			{
-				"name": "code",
-				"desc": "云平台子设备编码",
+				"name": "model",
+				"desc": "子设备产品编码",
+				"type": "string"
+			},
+			{
+				"name": "device",
+				"desc": "子设备编码",
 				"type": "string"
 			}
 		]
