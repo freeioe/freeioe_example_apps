@@ -104,12 +104,7 @@ end
 
 function app:on_publish_data(key, value, timestamp, quality)
 	--local sn, input, prop = string.match(key, '^([^/]+)/([^/]+)/(.+)$')
-	local msg = {
-		key = key,
-		value = value,
-		timestamp = timestamp,
-		quality = quality
-	}
+	local msg = {{ key, value, timestamp, quality}}
 	return self:publish(self._mqtt_id.."/data", cjson.encode(msg), 0, false)
 end
 
