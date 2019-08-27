@@ -39,7 +39,7 @@ function app:to_mqtt_app_conf(conf, sys_id)
 	return new_conf
 end
 
-function app:text2file(text, filename)
+function app:text2file(sys, text, filename)
 	if not text or string.len(text) == 0 then
 		return nil
 	end
@@ -58,6 +58,7 @@ end
 -- @param conf: 应用配置参数。由安装配置中的json数据转换出来的数据对象
 function app:initialize(name, sys, conf)
 	self._prv_conf = conf
+	self._sys = sys
 
 	conf.tls_cert = self:text2file(conf.tls_cert, 'ca.crt')
 	conf.client_cert = self:text2file(conf.client_cert, 'client_cert.crt')

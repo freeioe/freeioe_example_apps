@@ -34,6 +34,7 @@ RELEASE_APP mqtt/baidu
 RELEASE_APP mqtt/huawei
 RELEASE_APP mqtt/telit
 RELEASE_APP mqtt/citic
+RELEASE_APP mqtt/inspur
 
 # CNC
 RELEASE_APP cnc/focas
