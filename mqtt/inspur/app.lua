@@ -80,22 +80,23 @@ function app:initialize(name, sys, conf)
 	self._device_map = {}
 	for _, v in ipairs(conf.devs or {}) do
 		if v.sn and string.len(v.sn) > 0 then
+			self._log:info("Device mapping", v.sn, v.model, v.device)
 			self._device_map[v.sn] = {
 				model = v.model,
-				device = v.code,
-				topic = string.format('iot/%s/%s/%s/', conf.project_code, v.model, v.code)
+				device = v.device,
+				topic = string.format('iot/%s/%s/%s/', conf.project_code, v.model, v.device)
 			}
 		else
 			self._log:warning("Device missing sn in conf.devs item")
 		end
 	end
 
-	--[[
-	self._device_map[sys_id] = {
+	self._device_map[sys_id] = self._device_map[sys_id] or {
 		model = conf.product_code, 
 		device = sys_id,
 		topic = string.format('iot/%s/%s/%s', conf.project_code, conf.product_code, sys_id)
 	}
+	--[[
 	local gl_product_code = 'yxzt3yaf'
 	self._device_map[sys_id..'.GL'] = {
 		model = gl_product_code,
@@ -142,7 +143,7 @@ function app:shadow_update(key, value, timestamp, quality)
 	}
 	local dev = self._device_map[sn]
 
-	print('shadow_update', sn, dev.topic..'/shadow/update', cjson.encode(data))
+	--print('shadow_update', sn, dev.topic..'/shadow/update', cjson.encode(data))
 	return mqtt_app.publish(self, dev.topic..'/shadow/update', cjson.encode(data), 0, false)
 end
 
@@ -152,7 +153,7 @@ function app:shadow_update_dev(dev, data)
 			reported = data
 		}
 	}
-	print('shadow_update', dev.topic..'/shadow/update', cjson.encode(data))
+	--print('shadow_update', dev.topic..'/shadow/update', cjson.encode(data))
 	return mqtt_app.publish(self, dev.topic..'/shadow/update', cjson.encode(data), 0, false)
 
 end
