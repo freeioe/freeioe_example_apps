@@ -39,7 +39,7 @@ function app:to_mqtt_app_conf(conf, sys_id)
 	return new_conf
 end
 
-function app:text2file(sys, text, filename)
+function app:text2file(text, filename)
 	if not text or string.len(text) == 0 then
 		return nil
 	end
