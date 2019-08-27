@@ -89,11 +89,19 @@ function app:initialize(name, sys, conf)
 		end
 	end
 
+	--[[
 	self._device_map[sys_id] = {
 		model = conf.product_code, 
 		device = sys_id,
 		topic = string.format('iot/%s/%s/%s', conf.project_code, conf.product_code, sys_id)
 	}
+	local gl_product_code = 'yxzt3yaf'
+	self._device_map[sys_id..'.GL'] = {
+		model = gl_product_code,
+		device = sys_id..'GL',
+		topic = string.format('iot/%s/%s/%s', conf.project_code, gl_product_code, sys_id..'GL')
+	}
+	]]--
 	self._sys_id = sys_id
 end
 
@@ -133,8 +141,19 @@ function app:shadow_update(key, value, timestamp, quality)
 	}
 	local dev = self._device_map[sn]
 
+	print('shadow_update', sn, dev.topic..'/shadow/update', cjson.encode(data))
+	return mqtt_app.publish(self, dev.topic..'/shadow/update', cjson.encode(data), 0, false)
+end
+
+function app:shadow_update_dev(dev, data)
+	local data = {
+		state = {
+			reported = data
+		}
+	}
 	print('shadow_update', dev.topic..'/shadow/update', cjson.encode(data))
 	return mqtt_app.publish(self, dev.topic..'/shadow/update', cjson.encode(data), 0, false)
+
 end
 
 function app:shadow_update_list(val_list)
@@ -146,19 +165,22 @@ function app:shadow_update_list(val_list)
 
 		if prop == 'value' then
 			devs[sn] = devs[sn] or {}
+			if devs[sn][input] then
+				self:shadow_update_dev(self._device_map[sn], devs[sn])
+				devs[sn] = {}
+			end
 			devs[sn][input] = value
 		end
 	end
 	for k, v in pairs(devs) do
-		local data = {
-			state = {
-				reported = v
-			}
-		}
 		local dev = self._device_map[k]
-		print('shadow_update', dev.topic..'/shadow/update', cjson.encode(data))
-		return mqtt_app.publish(self, dev.topic..'/shadow/update', cjson.encode(data), 0, false)
+
+		local r, err = self:shadow_update_dev(dev, v)
+		if not r then
+			return false, err
+		end
 	end
+	return true
 end
 
 function app:publish(topic, data)
