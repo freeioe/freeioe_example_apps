@@ -15,7 +15,7 @@ function app:to_mqtt_app_conf(conf, sys_id)
 		--username = sys_id,
 		--password = '',
 		server = conf.server or '117.73.3.68',
-		port = conf.port,
+		port = conf.port or 31183,
 		enable_tls = true,
 		tls_cert = conf.tls_cert,
 		client_cert = conf.client_cert,
