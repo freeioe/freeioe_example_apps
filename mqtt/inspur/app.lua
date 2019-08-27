@@ -84,7 +84,7 @@ function app:initialize(name, sys, conf)
 			self._device_map[v.sn] = {
 				model = v.model,
 				device = v.device,
-				topic = string.format('iot/%s/%s/%s/', conf.project_code, v.model, v.device)
+				topic = string.format('iot/%s/%s/%s', conf.project_code, v.model, v.device)
 			}
 		else
 			self._log:warning("Device missing sn in conf.devs item")
