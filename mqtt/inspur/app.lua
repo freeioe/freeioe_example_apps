@@ -45,8 +45,8 @@ function app:text2file(text, filename)
 	end
 
 	local full_path = self._sys:app_dir()..filename
-	local f = assert(io.open(full_path), 'w+')
-	f:write(text or '')
+	local f = assert(io.open(full_path, 'w+'))
+	f:write(text)
 	f:close()
 	return filename 
 end
