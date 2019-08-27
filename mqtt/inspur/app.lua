@@ -72,7 +72,7 @@ function app:initialize(name, sys, conf)
 
 	local sys_id = sys:id()
 	local mqtt_conf = self:to_mqtt_app_conf(conf, sys_id)
-	mqtt_conf.period = mqtt_conf.period or 5
+	mqtt_conf.period = mqtt_conf.period or 1
 
 	--- 基础类初始化
 	mqtt_app.initialize(self, name, sys, mqtt_conf)
