@@ -1,5 +1,26 @@
 [
 	{
+		"name": "device_sn",
+		"desc": "设备序列号",
+		"type": "string"
+	},
+	{
+		"name": "tpl",
+		"desc": "模板ID",
+		"type": "string"
+	},
+	{
+		"name": "ver",
+		"desc": "模板版本",
+		"type": "number"
+	},
+	{
+		"name": "enable_sub",
+		"desc": "启动订阅模式",
+		"type": "boolean",
+		"default": true
+	},
+	{
 		"name": "loop_gap",
 		"desc": "采集周期(ms)",
 		"type": "number",

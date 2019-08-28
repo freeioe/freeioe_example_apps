@@ -64,7 +64,9 @@ function app:on_start()
 	local conf = self._conf
 
 	conf.endpoint = conf.endpoint or 'opc.tcp://localhost:4840'
-	conf.enable_sub = true
+	if conf.enable_sub == nil then
+		conf.enable_sub = true
+	end
 
 	local tpl_id = conf.tpl
 	local tpl_ver = conf.ver
@@ -80,9 +82,7 @@ function app:on_start()
 		tpl_file = tpl_id..'_'..tpl_ver
 	end
 
-	---获取设备序列号和应用配置
-	local sys_id = self._sys:id()
-
+	-- 加载模板
 	csv_tpl.init(self._sys:app_dir())
 	local tpl = csv_tpl.load_tpl(tpl_file)
 
@@ -103,7 +103,11 @@ function app:on_start()
 		}
 	end
 	self._tpl = tpl
-	self._dev = self._api:add_device(sys_id..'.'..meta.name, meta, inputs)
+	local dev_sn = conf.device_sn
+	if dev_sn == nil or string.len(conf.device_sn) == 0 then
+		dev_sn = sys_id..'.'..meta.name
+	end
+	self._dev = self._api:add_device(dev_sn, meta, inputs)
 
 	self._client = opcua_client:new(self, conf)
 	self._client.on_connected = function(client)
