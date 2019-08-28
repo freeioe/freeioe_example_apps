@@ -176,7 +176,7 @@ end
 --- 应用退出函数
 function app:on_close(reason)
 	if self._modbus then
-		self._modbus:close()
+		self._modbus:stop()
 		self._modbus = nil
 	end
 	print(self._name, reason)
