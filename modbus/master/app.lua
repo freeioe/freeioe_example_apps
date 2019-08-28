@@ -128,9 +128,9 @@ function app:on_start()
 	self._loop_gap = conf.loop_gap or self._conf.loop_gap
 
 	if conf.channel_type == 'socket' then
-		self._modbus = modbus_master(conf.apdu_type or 'tcp', {link='tcp', tcp=conf.opt})
+		self._modbus = modbus_master(string.lower(conf.apdu_type or 'tcp'), {link='tcp', tcp=conf.opt})
 	else
-		self._modbus = modbus_master(conf.apdu_type or 'rtu', {link='serial', serial=conf.opt})
+		self._modbus = modbus_master(string.lower(conf.apdu_type or 'rtu'), {link='serial', serial=conf.opt})
 	end
 
 	--- 设定通讯口数据回调
