@@ -47,12 +47,14 @@ function app:on_start()
 	self._data_unpack = data_unpack:new()
 	self._split = packet_split:new(self._data_pack, self._data_unpack)
 
+	local dev_sn_prefix = config.dev_sn_prefix
+
 	self._devs = {}
 	for _, v in ipairs(helper:devices()) do
 		assert(v.sn and v.name and v.unit and v.tpl)
 
 		--- 生成设备的序列号
-		local dev_sn = sys_id.."."..v.sn
+		local dev_sn = dev_sn_prefix and sys_id.."."..v.sn or v.sn
 		self._log:debug("Loading template file", v.tpl)
 		local tpl, err = csv_tpl.load_tpl(v.tpl)
 		if not tpl then
