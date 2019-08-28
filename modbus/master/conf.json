@@ -26,10 +26,15 @@
 		}
 	},
 	{
-		"name": "ascii",
-		"desc": "ASCII Prootcol (only for serial link)",
-		"type": "boolean",
-		"default": false
+		"name": "apdu_type",
+		"desc": "协议类型",
+		"type": "dropdown",
+		"default": "RTU",
+		"values": [
+			"RTU",
+			"TCP",
+			"ASCII"
+		]
 	},
 	{
 		"name": "socket_opt",
