@@ -71,18 +71,19 @@ function app:initialize(name, sys, conf)
 	conf.product_code = conf.product_code or 'qxcf6rtc'
 
 	local sys_id = sys:id()
+	local log = sys:logger()
 
 	self._device_map = {}
 	for _, v in ipairs(conf.devs or {}) do
 		if v.sn and string.len(v.sn) > 0 then
-			self._log:info("Device mapping", v.sn, v.model, v.device)
+			log:info("Device mapping", v.sn, v.model, v.device)
 			self._device_map[v.sn] = {
 				model = v.model,
 				device = v.device,
 				topic = string.format('iot/%s/%s/%s', conf.project_code, v.model, v.device)
 			}
 		else
-			self._log:warning("Device missing sn in conf.devs item")
+			log:warning("Device missing sn in conf.devs item")
 		end
 	end
 
