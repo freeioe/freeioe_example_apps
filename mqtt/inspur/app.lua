@@ -7,8 +7,8 @@ local app = mqtt_app:subclass("THINGSROOT_MQTT_APP")
 --- 设定应用最小运行接口版本(目前版本为1,为了以后的接口兼容性)
 app.static.API_VER = 5
 
-function app:to_mqtt_app_conf(conf, sys_id)
-	local client_id = conf.project_code..'@'..conf.product_code..'@'..sys_id
+function app:to_mqtt_app_conf(conf, cloud_id)
+	local client_id = conf.project_code..'@'..conf.product_code..'@'..cloud_id
 	local new_conf = {
 		--- mqtt
 		client_id = client_id,
@@ -71,11 +71,6 @@ function app:initialize(name, sys, conf)
 	conf.product_code = conf.product_code or 'qxcf6rtc'
 
 	local sys_id = sys:id()
-	local mqtt_conf = self:to_mqtt_app_conf(conf, sys_id)
-	mqtt_conf.period = mqtt_conf.period or 1
-
-	--- 基础类初始化
-	mqtt_app.initialize(self, name, sys, mqtt_conf)
 
 	self._device_map = {}
 	for _, v in ipairs(conf.devs or {}) do
@@ -105,6 +100,13 @@ function app:initialize(name, sys, conf)
 	}
 	]]--
 	self._sys_id = sys_id
+
+	local cloud_id = self._device_map[sys_id].device
+	local mqtt_conf = self:to_mqtt_app_conf(conf, cloud_id)
+	mqtt_conf.period = mqtt_conf.period or 1
+
+	--- 基础类初始化
+	mqtt_app.initialize(self, name, sys, mqtt_conf)
 end
 
 function app:pack_key(app_src, device_sn, input, prop)
