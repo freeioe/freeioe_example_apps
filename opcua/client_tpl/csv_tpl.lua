@@ -33,7 +33,7 @@ local function load_tpl(name)
 				else
 					input.i = -1
 				end
-				assert(input.i >= 0, "ID index missing")
+				assert(input.i, "ID index missing")
 				if string.len(input.desc) == 0 then
 					input.desc = nil -- will auto load the display name for description
 				end
