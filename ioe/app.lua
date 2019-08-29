@@ -422,19 +422,27 @@ end
 
 --- For cloud led
 function app:check_cloud_status()
+	local cloud = snax.queryservice('cloud')
+	local cloud_status, cloud_status_last = cloud.req.get_status()
+
+	-- Cloud status info
+	if self._cloud_status ~= cloud_status or self._cloud_status_last ~= cloud_status_last then
+		self._cloud_status = cloud_status
+		self._cloud_status_last = cloud_status_last
+		local r, err = sysinfo.update_cloud_status(cloud_status, cloud_status_last)
+		if not r then
+			self._log:warning("Update cloud status failed", err)
+		end
+	end
+
+	--- Skip cloud led control if symlink is there
 	if self:check_symlink() then
 		return
 	end
 
 	-- Cloud LED
 	if leds.cloud then
-		local cloud = snax.queryservice('cloud')
-		local cloud_status, cloud_status_last = cloud.req.get_status()
-		if cloud_status then
-			leds.cloud:brightness(1)
-		else
-			leds.cloud:brightness(0)
-		end
+		leds.cloud:brightness(cloud_status and 1 or 0)
 	end
 end
 
