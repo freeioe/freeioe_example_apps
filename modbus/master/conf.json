@@ -6,6 +6,17 @@
 		"default": 1000
 	},
 	{
+		"name": "apdu_type",
+		"desc": "协议类型",
+		"type": "dropdown",
+		"default": "RTU",
+		"values": [
+			"RTU",
+			"TCP",
+			"ASCII"
+		]
+	},
+	{
 		"name": "channel_type",
 		"desc": "通讯类型",
 		"type": "dropdown",
@@ -24,17 +35,6 @@
 			"socket": "socket_opt",
 			"serial": "serial_opt"
 		}
-	},
-	{
-		"name": "apdu_type",
-		"desc": "协议类型",
-		"type": "dropdown",
-		"default": "RTU",
-		"values": [
-			"RTU",
-			"TCP",
-			"ASCII"
-		]
 	},
 	{
 		"name": "socket_opt",
