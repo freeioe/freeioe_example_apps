@@ -129,13 +129,15 @@ function app:pack_key(app_src, device_sn, input, prop)
 	return device_sn .. '/' .. input .. '/' .. prop
 end
 
+--[[
 function app:escape_input_name(input)
 	return string.gsub(input, '_', '-')
 end
+]]--
 
 function app:shadow_update(key, value, timestamp, quality)
 	local sn, input, prop = string.match(key, '^([^/]+)/([^/]+)/(.+)$')
-	input = self:escape_input_name(input)
+	--input = self:escape_input_name(input)
 
 	local reported = {}
 	reported[input] = value
@@ -166,7 +168,7 @@ function app:shadow_update_list(val_list)
 	for _, v in ipairs(val_list) do
 		local key, value, timestamp, quality = table.unpack(v)
 		local sn, input, prop = string.match(key, '^([^/]+)/([^/]+)/(.+)$')
-		input = self:escape_input_name(input)
+		--input = self:escape_input_name(input)
 
 		if prop == 'value' then
 			devs[sn] = devs[sn] or {}
