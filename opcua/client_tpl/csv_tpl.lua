@@ -26,9 +26,13 @@ local function load_tpl(name)
 					desc = v[3],
 					vt = v[4],
 					ns = tonumber(v[5] and v[5] or 0) or 0,
-					i = tonumber(v[6] and v[6] or -1) or -1,
 					rate = tonumber(v[7] and v[7] or 1) or 1,
 				}
+				if v[6] and string.len(v[6]) > 0 then
+					input.i = tonumber(v[6]) or v[6]
+				else
+					input.i = -1
+				end
 				assert(input.i >= 0, "ID index missing")
 				if string.len(input.desc) == 0 then
 					input.desc = nil -- will auto load the display name for description
