@@ -93,6 +93,24 @@ function client:read_value(node, vt)
 	return self:parse_value(dv, vt)
 end
 
+function client:write_value(node, vt, val)
+	local val = val
+	if vt == 'int' then
+		val = math.floor(tonumber(val))
+	elseif vt == 'float' then
+		val = tonumber(val)
+	else
+		val = tostring(val)
+	end
+	if not val then
+		return nil, "Value incorrect!!"
+	end
+	--- Write the value to node
+	node.dataValue = opcua.DataValue.new(opcua.Variant.new(val))
+
+	return true
+end
+
 function client:parse_value(data_value, vt)
 	local dv = data_value
 
@@ -155,12 +173,12 @@ function client:parse_value(data_value, vt)
 end
 
 function client:on_connected()
-	log:debug("default on connected callback")
+	self._log:debug("default on connected callback")
 	return true
 end
 
 function client:on_disconnected()
-	log:debug("default on disconnected callback")
+	self._log:debug("default on disconnected callback")
 end
 
 ---

@@ -2,7 +2,6 @@
 local app_base = require 'app.base'
 local opcua_client = require 'base.client'
 local csv_tpl = require 'csv_tpl'
-local cjson = require 'cjson.safe'
 
 --- 注册对象(请尽量使用唯一的标识字符串)
 local app = app_base:subclass("FREEIOE_OPCUA_CLIENT_APP")
@@ -41,9 +40,9 @@ function app:on_connected(client)
 				if input.vt ~= 'string' and input.rate ~= 1 then
 					value = value * input.rate
 				end
-				dev:set_input_prop(input.name, "value", value, now, 0)
+				dev:set_input_prop(input.name, "value", value, nil, 0)
 			else
-				dev:set_input_prop(input.name, "value", 0, now, -1)
+				dev:set_input_prop(input.name, "value", 0, nil, -1)
 			end
 		end)
 		if not r then
@@ -102,12 +101,23 @@ function app:on_start()
 			vt = v.vt
 		}
 	end
+
+	local outputs = {}
+	for _, v in ipairs(tpl.outputs) do
+		outputs[#outputs + 1] = {
+			name = v.name,
+			desc = v.desc or v.name,
+			vt = v.vt
+		}
+	end
+
 	self._tpl = tpl
 	local dev_sn = conf.device_sn
 	if dev_sn == nil or string.len(conf.device_sn) == 0 then
 		dev_sn = sys_id..'.'..meta.name
 	end
-	self._dev = self._api:add_device(dev_sn, meta, inputs)
+	self._dev_sn = dev_sn
+	self._dev = self._api:add_device(dev_sn, meta, inputs, outputs)
 
 	self._client = opcua_client:new(self, conf)
 	self._client.on_connected = function(client)
@@ -122,7 +132,9 @@ end
 function app:on_close(reason)
 	self._log:warning('Application closing', reason)
 	--- 清理OpcUa客户端连接
-	self._client:disconnect()
+	if self._client then
+		self._client:disconnect()
+	end
 end
 
 --- 应用运行入口
@@ -174,6 +186,32 @@ function app:on_run(tms)
 
 	local next_tms = (self._conf.loop_gap or 1000) - ((self._sys:time() - begin_time) * 1000)
 	return next_tms > 0 and next_tms or 0
+end
+
+function app:on_output(app_src, sn, output, prop, value, timestamp)
+	if not self:connected() then
+		return nil, "OPCUA not connected to server!"
+	end
+	if sn ~= self._dev_sn then
+		return nil, "Device Serial Number incorrect!"
+	end
+
+	for _, v in ipairs(self._tpl.outputs) do
+		if v.name == output then
+			local node, err = self._client:get_node(v.ns, v.i)
+			if not node then
+				return nil, err
+			end
+			local val = v.rate == 1 and value or (value / v.rate)
+			local r, err = self._client:write_value(node, v.vt, val)
+			if not r then
+				return nil, err
+			end
+			return true, "Write value done!"
+		end
+	end
+
+	return nil, "Output not found!"
 end
 
 --- 返回应用对象

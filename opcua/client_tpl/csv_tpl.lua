@@ -8,9 +8,7 @@ local function load_tpl(name)
 
 	local meta = {}
 	local inputs = {}
-	local map_inputs = {}
-	local calc_inputs = {}
-	local alarms = {}
+	local outputs = {}
 
 	for k,v in ipairs(t) do
 		if #v > 1 then
@@ -24,7 +22,7 @@ local function load_tpl(name)
 				local input = {
 					name = v[2],
 					desc = v[3],
-					vt = v[4],
+					vt = string.len(v[4]) > 0 and v[4] or 'float',
 					ns = tonumber(v[5] and v[5] or 0) or 0,
 					rate = tonumber(v[7] and v[7] or 1) or 1,
 				}
@@ -33,11 +31,30 @@ local function load_tpl(name)
 				else
 					input.i = -1
 				end
-				assert(input.i, "ID index missing")
+				assert(input.i, "INPUT NodeID index missing")
 				if string.len(input.desc) == 0 then
 					input.desc = nil -- will auto load the display name for description
 				end
 				inputs[#inputs + 1] = input
+			end
+			if v[1] == 'OUTPUT' then
+				local output = {
+					name = v[2],
+					desc = v[3],
+					vt = string.len(v[4]) > 0 and v[4] or 'float',
+					ns = tonumber(v[5] and v[5] or 0) or 0,
+					rate = tonumber(v[7] and v[7] or 1) or 1,
+				}
+				if v[6] and string.len(v[6]) > 0 then
+					output.i = tonumber(v[6]) or v[6]
+				else
+					output.i = -1
+				end
+				assert(output.i, "OUTPUT NodeID index missing")
+				if string.len(output.desc) == 0 then
+					output.desc = nil -- will auto load the display name for description
+				end
+				outputs[#outputs + 1] = output
 			end
 		end
 	end
@@ -45,9 +62,7 @@ local function load_tpl(name)
 	return {
 		meta = meta,
 		inputs = inputs,
-		map_inputs = map_inputs,
-		calc_inputs = calc_inputs,
-		alarms = alarms,
+		outputs = outputs,
 	}
 end
 
