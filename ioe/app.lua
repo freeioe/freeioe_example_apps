@@ -26,11 +26,11 @@ end
 
 function app:start()
 	self._api:set_handler({
-		on_output = function(app, sn, output, prop, value, timestamp, priv)
-			print('on_output', app, sn, output, prop, value)
+		on_output = function(app_src, sn, output, prop, value, timestamp, priv)
+			self._log:trace('on_output', app_src, sn, output, prop, value)
 			return true, "done"
 		end,
-		on_command = function(app, sn, command, param, priv)
+		on_command = function(app_src, sn, command, param, priv)
 			if command == 'cfg_crash_ack' then
 				return self:cfg_crash_ack()
 			end
@@ -40,11 +40,14 @@ function app:start()
 			if command == 'ext_upgrade' then
 				return self:ext_upgrade(param)
 			end
-			print('on_command', app, sn, command, param)
+			if command == 'disable_symlink' then
+				return self:disable_symlink(param)
+			end
+			self._log:trace('on_command', app_src, sn, command, param)
 			return true, "eee"
 		end,
-		on_ctrl = function(app, command, param, priv)
-			print('on_ctrl', app, command, param, priv)
+		on_ctrl = function(app_src, command, param, priv)
+			self._log:trace('on_ctrl', app_src, command, param, priv)
 		end,
 	})
 
@@ -186,6 +189,11 @@ function app:start()
 			desc = "Device beta mode",
 			vt = "int",
 		},
+		{
+			name = "symlink_service",
+			desc = "Symlink service enabled",
+			vt = "int",
+		},
 		--[[
 		{
 			name = 'disk_tmp_used',
@@ -232,6 +240,10 @@ function app:start()
 		{
 			name = "ext_auto_clean",
 			desc = "Auto cleanup extensions",
+		},
+		{
+			name = "disable_symlink",
+			desc = "Disable Symlink Service",
 		},
 	}
 
@@ -503,6 +515,7 @@ function app:run(tms)
 	self._dev:set_input_prop('log_upload', 'value', enable_log_upload or 0)
 	self._dev:set_input_prop('event_upload', 'value', enable_event_upload or 99)
 	self._dev:set_input_prop('enable_beta', 'value', enable_beta and 1 or 0)
+	self._dev:set_input_prop('symlink_service', 'value', self._symlink and 1 or 0)
 
 	-- Application run status
 	local appmgr = snax.queryservice('appmgr')
@@ -549,6 +562,19 @@ end
 function app:ext_auto_clean(param)
 	local skynet = require 'skynet'
 	return skynet.call(".ioe_ext", "lua", "auto_clean", '__from_ioe_app'..os.time(), {})
+end
+
+function app:disable_symlink(param)
+	if lfs.attributes("/etc/rc.d/S22symlink", 'mode') then
+		os.execute("/etc/init.d/symlink stop")
+		os.execute("/etc/init.d/symlink disable")
+	end
+	if lfs.attributes("/etc/rc.d/S22symlink", 'mode') then
+		return false, "Disable Symlink service failed!"
+	else
+		self._symlink = false
+		return true, "Disable Symlink service done!"
+	end
 end
 
 return app
