@@ -86,7 +86,10 @@ function split:split(inputs)
 		local max_len = assert(MAX_COUNT['MC_0x'..string.format('%02X', v.fc)], 'function code '..v.fc..' not supported!')
 
 		local input_end = v.addr + DT.len
+
+		--- If bit unpack on non-bit function code, then skip the offset
 		if v.dt ~= 'bit' then
+			--- If there is offset needs to be added to index
 			input_end = input_end + v.offset
 		end
 
@@ -97,10 +100,12 @@ function split:split(inputs)
 			pack.inputs = {}
 		end
 
-		if v.dt ~= 'bit' then
-			v.pack_index = v.addr - pack.start + v.offset +1
-		else
+		if v.dt == 'bit' and (pack.fc ~= 0x01 and pack.fc ~= 0x02) then
+			--- The bit unpack using bitwise index
 			v.pack_index = (v.addr - pack.start) * 8 + v.offset + 1
+		else
+			--- Index is native for 0x01 or 0x03
+			v.pack_index = v.addr - pack.start + v.offset +1
 		end
 
 		table.insert(pack.inputs, v)

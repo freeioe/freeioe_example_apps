@@ -52,6 +52,10 @@ local function load_tpl(name)
 				input.rate = tonumber(v[10]) or 1
 				input.offset = tonumber(v[11]) or 0
 
+				if input.fc == 1 or input.fc == 2 then
+					input.offset = 0 --- Offset disabled on 0x01 and 0x02
+				end
+
 				if v[12] and string.len(v[12]) > 0 then
 					input.wfc = tonumber(v[12])
 				else

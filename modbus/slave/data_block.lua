@@ -5,10 +5,10 @@ local block = class('MODBUS_APP_DATA_BLOCK')
 function block:initialize(data_pack, max_lens)
 	self._pack = data_pack
 	self._data = {}
-	self._data[0x01] = string.rep('\0', 1024)
-	self._data[0x02] = string.rep('\0', 1024)
-	self._data[0x03] = string.rep('\0\0', 1024)
-	self._data[0x04] = string.rep('\0\0', 1024)
+	self._data[0x01] = string.rep('\0', 10240)
+	self._data[0x02] = string.rep('\0', 10240)
+	self._data[0x03] = string.rep('\0\0', 10240)
+	self._data[0x04] = string.rep('\0\0', 10240)
 end
 
 function block:write(input, value)
@@ -28,38 +28,48 @@ function block:write(input, value)
 		val = math.floor(val)
 	end
 	if input.dt == 'bit' then
-		val = val ~= 0
-	end
+		local index = 0
+		local bit_offset = 0
+		if fc == 0x01 or fc == 0x02 then
+			index = addr // 8 -- addresss start from zore
+			bit_offset = addr % 8
+		else
+			index = addr + (offset // 8)
+			bit_offset = offset % 8
+		end
 
-	local dpack = self._pack
-	local df = dpack[input.dt]
-	if not df then
-		return nil, 'Data type not supported!'
-	end
-	local data, err = df(dpack, val)
-	if not data then
-		return nil, err
-	end
-	--[[
-	if fc == 0x01 or fc == 0x02 then
-		local basexx = require 'basexx'
-		print(input.name, basexx.to_hex(data), offset, value, val)
-	end
-	]]--
+		local bd = string.sub(d, 1, index)
+		local rd = string.sub(d, index + 1, index + 1)
+		local ed = string.sub(d, index + 2)
 
-	local index = addr + offset -- addresss start from zore
+		if val ~= 0 then
+			local dv = string.byte(rd) | (1 << bit_offset)
+			rd = string.char(dv)
+		else
+			local dv = string.byte(rd) & ~( 1 << bit_offset)
+			rd = string.char(dv)
+		end
 
-	local bd = string.sub(d, 1, index)
-	local ed = string.sub(d, index + string.len(data) + 1)
-	--
-	self._data[fc] = bd..data..ed
+		self._data[fc] == bd..data.ed
+	else
+		local dpack = self._pack
+		local df = dpack[input.dt]
+		if not df then
+			return nil, 'Data type not supported!'
+		end
+		local data, err = df(dpack, val)
+		if not data then
+			return nil, err
+		end
 
-	--[[
-	if fc == 0x01 or fc == 0x02 then
-		local basexx = require 'basexx'
-		print( basexx.to_hex(string.sub(self._data[fc], 1, 4)))
+		local index = addr + offset -- addresss start from zore
+
+		local bd = string.sub(d, 1, index)
+		local ed = string.sub(d, index + string.len(data) + 1)
+		--
+		self._data[fc] = bd..data..ed
+
 	end
-	]]--
 
 	return true
 end

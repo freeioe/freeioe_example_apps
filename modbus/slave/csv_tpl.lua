@@ -43,6 +43,10 @@ local function load_tpl(name)
 					input.vt = 'float'
 				end
 
+				if input.fc == 1 or input.fc == 2 then
+					input.offset = 0 --- Offset disabled on 0x01 and 0x02
+				end
+
 				input.fc = tonumber(v[8]) or 0x03
 				input.addr = tonumber(v[9]) or 0
 				input.rate = tonumber(v[10]) or 1
