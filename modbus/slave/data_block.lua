@@ -50,7 +50,7 @@ function block:write(input, value)
 			rd = string.char(dv)
 		end
 
-		self._data[fc] == bd..data.ed
+		self._data[fc] = bd..rd..ed
 	else
 		local dpack = self._pack
 		local df = dpack[input.dt]

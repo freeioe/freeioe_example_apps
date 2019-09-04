@@ -143,13 +143,11 @@ function app:on_start()
 
 	--- 设定通讯口数据回调
 	self._modbus:set_io_cb(function(io, unit, msg)
-		--[[
 		if conf.ascii then
 			self._log:trace(io, msg)
 		else
 			self._log:trace(io, basexx.to_hex(msg))
 		end
-		]]--
 		local dev = nil
 		for _, v in ipairs(self._devs) do
 			if v.unit == unit then
@@ -236,7 +234,7 @@ function app:on_close(reason)
 		self._modbus:stop()
 		self._modbus = nil
 	end
-	print(self._name, reason)
+	--print(self._name, reason)
 end
 
 function app:handle_cov_data(key, value, timestamp, quality)
@@ -246,6 +244,7 @@ function app:handle_cov_data(key, value, timestamp, quality)
 			local block = dev.block
 			for _, v in ipairs(dev.inputs) do
 				if input == v.name then
+					--print('write value to block', v.name, value)
 					local r, err = block:write(v, value)
 					if not r then
 						self._log:debug('Value write failed!', err)

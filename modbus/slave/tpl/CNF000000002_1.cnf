@@ -1,6 +1,6 @@
 {
 	"channel_type": "serial",
-	"ascii": true,
+	"ascii": false,
 	"serial_opt": {
 		"port": "/tmp/ttyS10",
 		"baudrate": 9600

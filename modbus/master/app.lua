@@ -47,7 +47,7 @@ function app:on_start()
 	self._data_unpack = data_unpack:new()
 	self._split = packet_split:new(self._data_pack, self._data_unpack)
 
-	local dev_sn_prefix = config.dev_sn_prefix
+	local dev_sn_prefix = config.dev_sn_prefix ~= nil and config.dev_sn_prefix or true
 
 	self._devs = {}
 	for _, v in ipairs(helper:devices()) do

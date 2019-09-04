@@ -98,6 +98,9 @@ function split:split(inputs)
 			pack = { fc=v.fc }
 			pack.start = v.addr
 			pack.inputs = {}
+			pack.unpack = function(input, data, index)
+				return self:unpack(input, data, index)
+			end
 		end
 
 		if v.dt == 'bit' and (pack.fc ~= 0x01 and pack.fc ~= 0x02) then
@@ -127,6 +130,7 @@ function split:unpack(input, data, index, offset)
 	local index = index or input.pack_index
 	local offset = offset or input.offset
 	local dtf = assert(self._unpack[input.dt])
+	--print(input.name, index, offset, string.byte(data, 1, 1))
 	return dtf(self._unpack, data, index, offset)
 end
 

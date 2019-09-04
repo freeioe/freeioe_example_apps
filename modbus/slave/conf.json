@@ -63,5 +63,11 @@
 				"type": "template"
 			}
 		]
+	},
+	{
+		"name": "dev_sn_prefix",
+		"desc": "Use gateway sn as prefix for device sn",
+		"type": "boolean",
+		"default": true
 	}
 ]
