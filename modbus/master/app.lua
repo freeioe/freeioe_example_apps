@@ -98,7 +98,7 @@ function app:on_start()
 			local stat = dev:stat('port')
 
 			table.insert(self._devs, {
-				unit = v.unit,
+				unit = tonumber(v.unit) or 0,
 				sn = dev_sn,
 				dev = dev,
 				tpl = tpl,
