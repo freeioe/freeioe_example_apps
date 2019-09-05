@@ -103,12 +103,16 @@ function split:split(inputs)
 			end
 		end
 
-		if v.dt == 'bit' and (pack.fc ~= 0x01 and pack.fc ~= 0x02) then
-			--- The bit unpack using bitwise index
-			v.pack_index = (v.addr - pack.start) * 8 + v.offset + 1
-		else
-			--- Index is native for 0x01 or 0x03
-			v.pack_index = v.addr - pack.start + v.offset +1
+		if pack.fc == 0x01 and pack.fc == 0x02 then
+			v.pack_index = v.addr - pack.start + v.offset + 1
+		elseif pack.fc == 0x03 or pack.fc == 0x04 then
+			if v.dt == 'bit' then
+				--- The bit unpack using bitwise index
+				v.pack_index = (v.addr - pack.start) * 2 * 8 + v.offset + 1
+			else
+				--- Index is native for 0x01 or 0x03
+				v.pack_index = (v.addr - pack.start) * 2 + v.offset + 1
+			end
 		end
 
 		table.insert(pack.inputs, v)
