@@ -10,10 +10,14 @@ local DATA_TYPES = {
 	int16 = { len = 2 },
 	uint32 = { len = 4 },
 	int32 = { len = 4 },
+	uint32_r = { len = 4 },
+	int32_r = { len = 4 },
 	uint64 = { len = 8 },
 	int64 = { len = 8 },
 	float = { len = 4 },
+	float_r = { len = 4 },
 	double = { len = 8 },
+	double_r = { len = 8 },
 }
 
 local MAX_COUNT = {
@@ -85,7 +89,8 @@ function split:split(inputs)
 		local DT = assert(DATA_TYPES[v.dt], 'data_type '..v.dt..' not supported!')
 		local max_len = assert(MAX_COUNT['MC_0x'..string.format('%02X', v.fc)], 'function code '..v.fc..' not supported!')
 
-		local input_end = v.addr + DT.len
+		--- slen is the raw string length which
+		local input_end = v.addr + ( (DT and DT.len or v.slen) or 1 )
 
 		--- If bit unpack on non-bit function code, then skip the offset
 		if v.dt ~= 'bit' then
@@ -126,16 +131,21 @@ function split:split(inputs)
 end
 
 function split:pack(input, value)
+	if input.dt == 'raw' then
+		assert(input.slen == string.len(value), "Raw length not equal value length")
+	end
 	local dtf = assert(self._pack[input.dt])
 	return dtf(self._pack, value)
 end
 
-function split:unpack(input, data, index, offset)
+function split:unpack(input, data, index)
 	local index = index or input.pack_index
-	local offset = offset or input.offset
 	local dtf = assert(self._unpack[input.dt])
-	--print(input.name, index, offset, string.byte(data, 1, 1))
-	return dtf(self._unpack, data, index, offset)
+	--print(input.name, index, string.byte(data, 1, 1))
+	if input.dt == 'raw' then
+		return dtf(self._unpack, data, index, input.slen)
+	end
+	return dtf(self._unpack, data, index)
 end
 
 
