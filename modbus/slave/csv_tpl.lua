@@ -25,7 +25,7 @@ local function valid_prop(prop, err_cb)
 		end
 		return false
 	end
-	if not valid_dt(prop.dt) then
+	if not valid_dt[prop.dt] then
 		return log_cb('Invalid prop data type found', prop.name, prop.dt)
 	end
 
@@ -96,7 +96,7 @@ local function load_tpl(name, err_cb)
 				end
 
 				if prop.dt == 'string' then
-					prop.dt == 'raw'
+					prop.dt = 'raw'
 					prop.slen = prop.slen or 1
 				end
 

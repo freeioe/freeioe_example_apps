@@ -50,3 +50,4 @@ PROP,Cleft,剩余容量,,RW,int32,float,3,35,0.001,,16,
 PROP,BNo,电池组号,,WO,int16,int,3,37,1,,,
 PROP,Cleft_2,剩余容量_2,,RW,int32,float,3,185,0.001,,16,
 PROP,BNo_2,电池组号_2,,WO,int16,int,3,187,1,,,
+PROP,BNAME,电池名称,,WO,string,string,3,188,1,,,8
