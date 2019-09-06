@@ -1,4 +1,4 @@
-# Modbus Master application
+# Modbus Slave 
 
 Export device sensors data via modbus protocol (rtu, tcp, ascii), over Serial or Socket connection.
 通过Modbus协议发布设备数据，支持RTU, TCP, ASCII协议，支持串口、TCP套接字连接
