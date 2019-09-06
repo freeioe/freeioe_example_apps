@@ -24,6 +24,8 @@ local valid_dt = {
 	raw = true,
 }
 
+local NAME_CHECKING = {}
+
 local function valid_prop(prop, err_cb)
 	local log_cb = function(...)
 		if err_cb then
@@ -41,6 +43,11 @@ local function valid_prop(prop, err_cb)
 		end
 	end
 
+	if NAME_CHECKING[prop.name] then
+		return log_cb("Duplicated name found", prop.name)
+	end
+	NAME_CHECKING[prop.name] = true
+
 	return true
 end
 
@@ -50,6 +57,8 @@ local function load_tpl(name, err_cb)
 
 	local meta = {}
 	local props = {}
+
+	NAME_CHECKING = {}
 
 	for k,v in ipairs(t) do
 		if #v > 1 then
