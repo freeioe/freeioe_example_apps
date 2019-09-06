@@ -86,7 +86,7 @@ function split:split(inputs)
 		end
 		v.offset = v.offset or 0
 
-		local DT = assert(DATA_TYPES[v.dt], 'data_type '..v.dt..' not supported!')
+		local DT = DATA_TYPES[v.dt]
 		local max_len = assert(MAX_COUNT['MC_0x'..string.format('%02X', v.fc)], 'function code '..v.fc..' not supported!')
 
 		--- slen is the raw string length which
