@@ -64,11 +64,19 @@ function block:write(input, value)
 
 		local index = addr + offset -- addresss start from zore
 
+		if input.dt == 'string' then
+			if input.slen > string.len(data) then
+				data = data..string.rep('\0', input.slen - string.len(data))
+			end
+			if input.slen < string.len(data) then
+				data = string.sub(1, input.slen)
+			end
+		end
+
 		local bd = string.sub(d, 1, index)
 		local ed = string.sub(d, index + string.len(data) + 1)
 		--
 		self._data[fc] = bd..data..ed
-
 	end
 
 	return true

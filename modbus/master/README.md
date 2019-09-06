@@ -50,10 +50,18 @@ Reading sensors data from device via modbus protocol (rtu, tcp, ascii), over Ser
 * int16
 * uint16
 * int32
+* int32_r
 * uint32
+* uint32_r
 * float
+* float_r
 * double
+* double_r
+* string
 
+其中int32_r uint32_r float_r double_r表示使用内存数据是反向排序（排序单位是两个字节)，例如:
+int32的值为A1B2C3D4
+int32_r的值为D4C3B2A1
 
 #### vt
 

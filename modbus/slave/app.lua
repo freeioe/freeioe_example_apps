@@ -61,7 +61,7 @@ function app:on_start()
 		--- 生成设备的序列号
 		local dev_sn = sys_id.."."..v.sn
 		self._log:debug("Loading template file", v.tpl)
-		local tpl, err = csv_tpl.load_tpl(v.tpl)
+		local tpl, err = csv_tpl.load_tpl(v.tpl, function(...) self._log:error(...) end)
 		if not tpl then
 			self._log:error("loading csv tpl failed", err)
 		else
@@ -75,7 +75,7 @@ function app:on_start()
 			local outputs = {}
 			local tpl_inputs = {}
 			local tpl_outputs = {}
-			for _, v in ipairs(tpl.inputs) do
+			for _, v in ipairs(tpl.props) do
 				if string.find(v.rw, '[Rr]') then
 					inputs[#inputs + 1] = {
 						name = v.name,
@@ -89,6 +89,7 @@ function app:on_start()
 					outputs[#outputs + 1] = {
 						name = v.name,
 						desc = v.desc,
+						vt = v.vt,
 						unit = v.unit,
 					}
 					tpl_outputs[#tpl_outputs + 1] = v

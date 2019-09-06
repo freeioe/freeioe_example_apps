@@ -50,9 +50,18 @@ Export device sensors data via modbus protocol (rtu, tcp, ascii), over Serial or
 * int16
 * uint16
 * int32
+* int32_r
 * uint32
+* uint32_r
 * float
+* float_r
 * double
+* double_r
+* string
+
+其中int32_r uint32_r float_r double_r表示使用内存数据是反向排序（排序单位是两个字节)，例如:
+int32的值为A1B2C3D4
+int32_r的值为D4C3B2A1
 
 
 #### vt
@@ -81,3 +90,11 @@ Modbus读取指令码的十进制，支持01, 02, 03, 04。 01, 02功能码的da
 在03, 04功能码读取寄存器时，可以指定offset. （01, 02不支持指定offset操作)
 
 在data_type为bit的时候offset是指位偏移个数，其他类型时是指字节便宜个数。
+
+#### write_function_code
+
+Slave模式下不使用
+
+#### string_length
+
+当data_type 为string/raw时使用此参数标记长度

@@ -132,7 +132,13 @@ end
 
 function split:pack(input, value)
 	if input.dt == 'raw' then
-		assert(input.slen == string.len(value), "Raw length not equal value length")
+		value = tostring(value)
+		if string.len(value) > input.slen then
+			value = string.sub(value, 1, input.slen)
+		end
+		if string.len(value) < input.slen then
+			value = value .. string.rep('\0', input.slen - string.len(value))
+		end
 	end
 	local dtf = assert(self._pack[input.dt])
 	return dtf(self._pack, value)
