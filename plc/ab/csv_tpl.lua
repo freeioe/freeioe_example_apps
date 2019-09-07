@@ -9,6 +9,8 @@ local valid_dt = {
 	uint16 = true,
 	int32 = true,
 	uint32 = true,
+	int64 = true,
+	uint64 = true,
 	float32 = true,
 	float64 = true
 }

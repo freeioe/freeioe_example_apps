@@ -15,9 +15,6 @@ local ELEM_SIZE = {
 	float64 = 8,
 }
 
-function split:initialize()
-end
-
 function split:sort(props)
 	return table.sort(props, function(a, b)
 		local dta = ELEM_SIZE[a.dt]
@@ -29,7 +26,7 @@ function split:sort(props)
 			return true
 		end
 
-		if a.elem_name != b.elem_name then
+		if a.elem_name ~= b.elem_name then
 			return false
 		end
 
@@ -57,7 +54,7 @@ function split:split(props)
 		v.offset = v.offset or 0
 		v.elem_size = assert(ELEM_SIZE[v.dt], 'data_type '..v.dt..' not supported!')
 
-		if pack.elem_size ~= v.elem_size or pack.elem_name != v.elem_name then
+		if pack.elem_size ~= v.elem_size or pack.elem_name ~= v.elem_name then
 			if pack.elem_size ~= nil then
 				table.insert(packets, pack)
 			end

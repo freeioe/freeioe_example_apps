@@ -36,6 +36,9 @@ RELEASE_APP mqtt/telit
 RELEASE_APP mqtt/citic
 RELEASE_APP mqtt/inspur
 
+# PLC
+RELEASE_APP plc/ab
+
 # CNC
 RELEASE_APP cnc/focas
 

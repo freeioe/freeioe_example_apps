@@ -2,6 +2,7 @@
 local app_base = require 'app.base'
 local csv_tpl = require 'csv_tpl'
 local plctag = require 'plctag'
+local packet_split = require 'packet_split'
 
 --- 注册对象(请尽量使用唯一的标识字符串)
 local app = app_base:subclass("FREEIOE_PLC_AB_PLCTAG_APP")
@@ -29,10 +30,10 @@ function app:on_start()
 		AB_LGX: compactlogix, clgx, lgx, controllogix, contrologix, flexlogix, flgx
 	]]--
 
-	local path_fmt = string.format('protocol=%s&gateway=%s&path=%s&cpu=%s', protocol, host, path, cpu)
+	local path_base = string.format('protocol=%s&gateway=%s&path=%s&cpu=%s', protocol, host, path, cpu)
 	local port = tonumber(conf.port)
 	if port then
-		path_fmt = path_fmt..'&gateway_port='..math.floor(port)
+		path_base = path_base..'&gateway_port='..math.floor(port)
 	end
 
 	local tpl_id = conf.tpl
@@ -57,7 +58,7 @@ function app:on_start()
 	local sys_id = self._sys:id()
 	local meta = self._api:default_meta()
 	meta.name = tpl.meta.name
-	meta.manufacturer = tpl.meta.manufacturer
+	meta.manufacturer = tpl.meta.manufacturer or "Allen-Bradley"
 	meta.description = tpl.meta.desc
 	meta.series = tpl.meta.series
 
@@ -94,9 +95,12 @@ function app:on_start()
 	self._dev_sn = dev_sn
 	self._dev = self._api:add_device(dev_sn, meta, inputs, outputs)
 
-	local packets = self._split:split(tpl.props)
+	local split = packet_split:new()
+	local packets = split:split(tpl.props)
 	for _, v in ipairs(packets) do
-		v.tag = plctag.create(string.format('%s&elem_size=%d&elem_count=%d&name=%s', v.elem_size, v.elem_count, v.elem_name))
+		--print(v.elem_size, v.elem_count, v.elem_name)
+		local path = string.format('&elem_size=%d&elem_count=%d&name=%s', v.elem_size, v.elem_count, v.elem_name)
+		v.tag = plctag.create(path_base .. path, self._conf.timeout or 5000)
 	end
 	
 	self._tpl = tpl
@@ -149,9 +153,9 @@ function app:on_run(tms)
 		end
 	end
 
-	for _, v in ipairs(self.packets) do
+	for _, v in ipairs(self._packets) do
 		if v.tag then
-			read_tag(v.tag)
+			read_tag(v)
 		end
 	end
 
