@@ -90,6 +90,9 @@ local function load_tpl(name, err_cb)
 				prop.elem_name = v[8]
 				prop.offset = tonumber(v[9]) or 0
 				prop.rate = tonumber(v[10]) or 1
+				if v[11] and string.len(v[11]) > 0 then
+					prop.path = v[11]
+				end
 
 				if valid_prop(prop, err_cb) then
 					props[#props + 1] = prop

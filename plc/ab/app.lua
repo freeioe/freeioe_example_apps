@@ -30,10 +30,13 @@ function app:on_start()
 		AB_LGX: compactlogix, clgx, lgx, controllogix, contrologix, flexlogix, flgx
 	]]--
 
-	local path_base = string.format('protocol=%s&gateway=%s&path=%s&cpu=%s', protocol, host, path, cpu)
-	local port = tonumber(conf.port)
-	if port then
-		path_base = path_base..'&gateway_port='..math.floor(port)
+	local function get_path_base(prop_path)
+		local path_base = string.format('protocol=%s&gateway=%s&path=%s&cpu=%s', protocol, host, prop_path or path, cpu)
+		local port = tonumber(conf.port)
+		if port then
+			path_base = path_base..'&gateway_port='..math.floor(port)
+		end
+		return path_base
 	end
 
 	local tpl_id = conf.tpl
@@ -99,7 +102,8 @@ function app:on_start()
 	local packets = split:split(tpl.props)
 	for _, v in ipairs(packets) do
 		--print(v.elem_size, v.elem_count, v.elem_name)
-		local path = string.format('&elem_size=%d&elem_count=%d&name=%s', v.elem_size, v.elem_count, v.elem_name)
+		local path_base = get_path_base(v.path)
+		local tag_path = string.format('&elem_size=%d&elem_count=%d&name=%s', v.elem_size, v.elem_count, v.elem_name)
 		v.tag = plctag.create(path_base .. path, self._conf.timeout or 5000)
 	end
 	
