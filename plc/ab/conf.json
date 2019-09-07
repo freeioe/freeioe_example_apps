@@ -1,0 +1,52 @@
+[
+	{
+		"name": "协议",
+		"desc": "通讯协议",
+		"type": "dropdown",
+		"default": "ab_eip",
+		"values": [
+			"ab_eip"
+		]
+	},
+	{
+		"name": "cpu",
+		"desc": "处理器型号",
+		"type": "dropdown",
+		"default": "disable",
+		"values": [
+			"PLC",
+			"LGX_PCCC",
+			"MLGX800",
+			"MLGX",
+			"LGX"
+		]
+	},
+	{
+		"name": "host",
+		"desc": "设备地址",
+		"type": "string",
+		"default": "10.206.1.27"
+	},
+	{
+		"name": "path",
+		"desc": "默认数据路径",
+		"type": "string",
+		"default": "1,0"
+	},
+	{
+		"name": "loop_gap",
+		"desc": "采集周期(ms)",
+		"type": "number",
+		"default": 1000
+	},
+	{
+		"name": "tpl",
+		"desc": "设备模板ID",
+		"type": "string"
+	},
+	{
+		"name": "ver",
+		"desc": "模板版本",
+		"type": "number"
+	}
+]

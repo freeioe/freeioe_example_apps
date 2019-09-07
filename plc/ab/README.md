@@ -26,3 +26,14 @@
 * rate - 数据计算系数，默认为1
 
 
+## 应用配置
+
+## 处理器型号
+
+PLC: plc5, plc, slc, slc500
+LGX_PCCC: lgxpccc, logixpccc, lgxplc5, logixplc5, lgx-pccc, logix-pccc, lgx-plc5, logix-plc5
+MLGX800: micrologix800, mlgx800, micro800
+MLGX: mricrologix, mlgx
+LGX: compactlogix, clgx, lgx, controllogix, contrologix, flexlogix, flgx
+
+
