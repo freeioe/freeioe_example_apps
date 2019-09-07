@@ -24,5 +24,5 @@ This application builds on [libplctag](https://github.com/kyle-github/libplctag)
 * elem_name - PLC Element Name
 * offset - Element offset index
 * rate - value rate that converts to true value
-
+* path - the property path in device, default will be the path configured in application settings
 
