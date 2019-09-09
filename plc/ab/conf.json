@@ -29,7 +29,7 @@
 		"name": "host",
 		"desc": "设备地址",
 		"type": "string",
-		"default": "10.206.1.27"
+		"default": "127.0.0.1"
 	},
 	{
 		"name": "path",

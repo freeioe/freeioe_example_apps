@@ -14,8 +14,10 @@ function app:connected()
 end
 
 function app:get_tag_path(elem_size, elem_count, elem_name)
+	local conf = self._conf
+
 	local protocol = conf.protocol or 'ab_eip'  -- ab-eip ab_eip
-	local host = conf.host or '10.206.1.27' -- 'ip'
+	local host = conf.host or '127.0.0.1' --'10.206.1.27' -- 'ip'
 	local path = conf.path or '1,0'
 	local cpu = string.lower(conf.cpu or 'LGX')
 	--[[ 
@@ -40,6 +42,8 @@ end
 function app:on_start()
 	local sys = self._sys
 	local conf = self._conf
+
+	self._log:info("AB PLC Host", conf.host, conf.port)
 
 	local tpl_id = conf.tpl
 	local tpl_ver = conf.ver
@@ -141,7 +145,7 @@ function app:on_run(tms)
 		if status == plctag.Status.OK then
 			local rc = plctag.read(tag, self._conf.timeout or 5000)
 			if rc == plctag.Status.OK then
-				for _, input in ipairs(pack.inputs) do
+				for _, input in ipairs(pack.props) do
 					local f = assert(plctag['get_'..input.dt], "Not supported read function")
 					local val = f(tag, input.offset)
 

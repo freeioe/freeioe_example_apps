@@ -13,6 +13,7 @@ local ELEM_SIZE = {
 	int64 = 8,
 	float32 = 4,
 	float64 = 8,
+	string = 88
 }
 
 function split:sort(props)

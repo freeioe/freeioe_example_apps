@@ -477,8 +477,12 @@ function app:run(tms)
 	self._dev:set_input_prop('firmware_version', "value", self._firmware_version or "UNKNOWN")
 
 	--- CPU load avg
-	local loadavg = sysinfo.loadavg()
-	self._dev:set_input_prop('cpuload', "value", loadavg.lavg_15)
+	local loadavg, err = sysinfo.loadavg()
+	if loadavg then
+		self._dev:set_input_prop('cpuload', "value", loadavg.lavg_15)
+	else
+		self._log:debug("Failed to read load avg")
+	end
 
 	-- cloud flags
 	--

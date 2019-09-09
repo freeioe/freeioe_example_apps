@@ -12,7 +12,8 @@ local valid_dt = {
 	int64 = true,
 	uint64 = true,
 	float32 = true,
-	float64 = true
+	float64 = true,
+	string = true
 }
 
 local NAME_CHECKING = {}
