@@ -13,11 +13,7 @@ function app:connected()
 	return self._client ~= nil and self._client:connected()
 end
 
---- 应用启动函数
-function app:on_start()
-	local sys = self._sys
-	local conf = self._conf
-
+function app:get_tag_path(elem_size, elem_count, elem_name)
 	local protocol = conf.protocol or 'ab_eip'  -- ab-eip ab_eip
 	local host = conf.host or '10.206.1.27' -- 'ip'
 	local path = conf.path or '1,0'
@@ -30,14 +26,20 @@ function app:on_start()
 		AB_LGX: compactlogix, clgx, lgx, controllogix, contrologix, flexlogix, flgx
 	]]--
 
-	local function get_path_base(prop_path)
-		local path_base = string.format('protocol=%s&gateway=%s&path=%s&cpu=%s', protocol, host, prop_path or path, cpu)
-		local port = tonumber(conf.port)
-		if port then
-			path_base = path_base..'&gateway_port='..math.floor(port)
-		end
-		return path_base
+	local path_base = string.format('protocol=%s&gateway=%s&path=%s&cpu=%s', protocol, host, prop_path or path, cpu)
+	local port = tonumber(conf.port)
+	if port then
+		path_base = path_base..'&gateway_port='..math.floor(port)
 	end
+	local elem_path = string.format('&elem_size=%d&elem_count=%d&name=%s', elem_size, elem_count, elem_name)
+
+	return path_base .. elem_path
+end
+
+--- 应用启动函数
+function app:on_start()
+	local sys = self._sys
+	local conf = self._conf
 
 	local tpl_id = conf.tpl
 	local tpl_ver = conf.ver
@@ -102,9 +104,8 @@ function app:on_start()
 	local packets = split:split(tpl.props)
 	for _, v in ipairs(packets) do
 		--print(v.elem_size, v.elem_count, v.elem_name)
-		local path_base = get_path_base(v.path)
-		local tag_path = string.format('&elem_size=%d&elem_count=%d&name=%s', v.elem_size, v.elem_count, v.elem_name)
-		v.tag = plctag.create(path_base .. path, self._conf.timeout or 5000)
+		local tag_path = self:get_tag_path(v.elem_size, v.elem_count, v.elem_name)
+		v.tag = plctag.create(tag_path, self._conf.timeout or 5000)
 	end
 	
 	self._tpl = tpl
@@ -176,7 +177,12 @@ function app:on_output(app_src, sn, output, prop, value, timestamp)
 
 	for _, v in ipairs(self._tpl_outputs) do
 		if v.name == output then
-			local tag = nil  ---TODO: How to write one single value if offset is not zero
+			local tag_path = self:get_tag_path(v.elem_size, v.elem_count, v.elem_name)
+			local tag = plctag.create(tag_path, self._conf.timeout or 5000)
+			local rc = plctag.read(tag, self._conf.timeout or 5000)
+			if not rc then
+				return nil, "failed to read tag before write"
+			end
 
 			local f = plctag['set_'..v.dt]
 			if not f then

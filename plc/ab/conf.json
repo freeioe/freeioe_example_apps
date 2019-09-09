@@ -19,7 +19,11 @@
 			"MLGX800",
 			"MLGX",
 			"LGX"
-		]
+		],
+		"depends": {
+			"PLC": "path",
+			"LGX": "path"
+		}
 	},
 	{
 		"name": "host",
@@ -29,7 +33,7 @@
 	},
 	{
 		"name": "path",
-		"desc": "默认数据路径",
+		"desc": "数据路径",
 		"type": "string",
 		"default": "1,0"
 	},
