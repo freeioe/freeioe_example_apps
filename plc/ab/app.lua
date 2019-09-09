@@ -84,7 +84,7 @@ function app:on_start()
 				vt = v.vt,
 				unit = v.unit,
 			}
-			tpl_inputs[#tpl_inputs] = v
+			tpl_inputs[#tpl_inputs + 1] = v
 		end
 		if string.find(v.rw, '[Ww]') then
 			outputs[#outputs + 1] = {
@@ -93,7 +93,7 @@ function app:on_start()
 				vt = v.vt,
 				unit = v.unit,
 			}
-			tpl_outputs[#tpl_outputs] = v
+			tpl_outputs[#tpl_outputs + 1] = v
 		end
 	end
 
@@ -110,11 +110,16 @@ function app:on_start()
 		--print(v.elem_size, v.elem_count, v.elem_name)
 		local tag_path = self:get_tag_path(v.elem_size, v.elem_count, v.elem_name)
 		v.tag = plctag.create(tag_path, self._conf.timeout or 5000)
+		v.tag_path = tag_path
+		if v.tag < 0 then
+			self._log:error("Failed to open tag, path", tag_path)
+			self.tag = nil
+		end
 	end
 	
 	self._tpl = tpl
-	self._tpl_inputs = inputs
-	self._tpl_outputs = outputs
+	self._tpl_inputs = tpl_inputs
+	self._tpl_outputs = tpl_outputs
 	self._packets = packets
 
 	return true
@@ -141,30 +146,30 @@ function app:on_run(tms)
 
 	local function read_tag(pack)
 		local tag = pack.tag
-		local status = plctag.status(tag)
-		if status == plctag.Status.OK then
-			local rc = plctag.read(tag, self._conf.timeout or 5000)
-			if rc == plctag.Status.OK then
-				for _, input in ipairs(pack.props) do
-					local f = assert(plctag['get_'..input.dt], "Not supported read function")
-					local val = f(tag, input.offset)
+		local rc = plctag.read(tag, self._conf.timeout or 5000)
+		if rc == plctag.Status.OK then
+			self._log:debug("Readed tag path", pack.tag_path)
+			for _, input in ipairs(pack.props) do
+				local f = assert(plctag['get_'..input.dt], "Not supported read function:"..input.dt)
+				local val = f(tag, input.offset * pack.elem_size)
 
-					print(input.name, val)
+				print(input.name, val)
 
-					if input.rate and input.rate ~= 1 then
-						val = val * input.rate
-					end
-					dev:set_input_prop(input.name, "value", val)
+				if input.rate and input.rate ~= 1 then
+					val = val * input.rate
 				end
-			else
-				self._log:error("Read PLC Error", plctag.decode_error(rc))
+				dev:set_input_prop(input.name, "value", val)
 			end
+		else
+			self._log:error("Read PLC Error", plctag.decode_error(rc), pack.tag_path)
 		end
 	end
 
 	for _, v in ipairs(self._packets) do
 		if v.tag then
 			read_tag(v)
+		else
+			---
 		end
 	end
 
@@ -181,8 +186,14 @@ function app:on_output(app_src, sn, output, prop, value, timestamp)
 
 	for _, v in ipairs(self._tpl_outputs) do
 		if v.name == output then
-			local tag_path = self:get_tag_path(v.elem_size, v.elem_count, v.elem_name)
+			local split = packet_split:new()
+			local elem_size = split:elem_size(v)
+			local tag_path = self:get_tag_path(elem_size, v.offset + 1, v.elem_name)
+			self._log:info('Write tag', tag_path, tonumber(value))
 			local tag = plctag.create(tag_path, self._conf.timeout or 5000)
+			if tag < 0 then
+				return nil, "Failed to find tag"
+			end
 			local rc = plctag.read(tag, self._conf.timeout or 5000)
 			if not rc then
 				return nil, "failed to read tag before write"
@@ -193,7 +204,8 @@ function app:on_output(app_src, sn, output, prop, value, timestamp)
 				return nil, "Data type not supported"
 			end
 
-			f(tag, v.offset * v.elem_size, tonumber(value))
+			print(output, value)
+			f(tag, v.offset * elem_size, tonumber(value))
 
 			local rc = plctag.write(tag, self._conf.timeout or 5000)
 			if rc ~= plctag.Status.OK then

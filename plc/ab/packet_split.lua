@@ -16,6 +16,10 @@ local ELEM_SIZE = {
 	string = 88
 }
 
+function split:elem_size(prop)
+	return ELEM_SIZE[prop.dt]
+end
+
 function split:sort(props)
 	return table.sort(props, function(a, b)
 		local dta = ELEM_SIZE[a.dt]
