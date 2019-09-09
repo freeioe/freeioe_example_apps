@@ -12,7 +12,7 @@
 		"name": "cpu",
 		"desc": "处理器型号",
 		"type": "dropdown",
-		"default": "disable",
+		"default": "LGX",
 		"values": [
 			"PLC",
 			"LGX_PCCC",
