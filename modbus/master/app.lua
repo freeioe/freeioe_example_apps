@@ -147,11 +147,13 @@ function app:on_start()
 
 	--- 设定通讯口数据回调
 	self._modbus:set_io_cb(function(io, unit, msg)
+		--[[
 		if string.lower(conf.apdu_type) == 'ascii' then
 			self._log:trace(io, msg)
 		else
 			self._log:trace(io, basexx.to_hex(msg))
 		end
+		]]--
 		local dev = nil
 		for _, v in ipairs(self._devs) do
 			if v.unit == unit then
@@ -383,7 +385,7 @@ function app:on_run(tms)
 	end
 
 	for _, dev in ipairs(self._devs) do
-		--self:read_dev(dev.dev, dev.stat, dev.unit, dev.packets)
+		self:read_dev(dev.dev, dev.stat, dev.unit, dev.packets)
 	end
 
 	return self._loop_gap or 5000
