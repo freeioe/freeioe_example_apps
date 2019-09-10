@@ -47,7 +47,7 @@ PROP,Ifd,放电电流,I,RO,int16,float,3,32,0.001,,,
 PROP,SOC,剩余容量%,,RO,int16,int,3,33,1,,,
 PROP,Cmax,额定容量Ah,,RO,int16,float,3,34,0.001,,,
 PROP,Cleft,剩余容量,,RW,int32,float,3,35,0.001,,16,
-PROP,BNo,电池组号,,WO,int16,int,3,37,1,,,
+PROP,BNo,电池组号,,RW,int16,int,3,37,1,,,
 PROP,Cleft_2,剩余容量_2,,RW,int32,float,3,185,0.001,,16,
-PROP,BNo_2,电池组号_2,,WO,int16,int,3,187,1,,,
-PROP,BNAME,电池名称,,WO,string,string,3,188,1,,,8
+PROP,BNo_2,电池组号_2,,RW,int16,int,3,187,1,,,
+PROP,BNAME,电池名称,,RW,string,string,3,188,1,,,8

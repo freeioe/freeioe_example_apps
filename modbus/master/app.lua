@@ -3,6 +3,7 @@ local modbus_master = require 'modbus.master.skynet'
 local modbus_pdu = require 'modbus.pdu.init'
 local data_pack = require 'modbus.data.pack'
 local data_unpack = require 'modbus.data.unpack'
+local queue = require 'skynet.queue'
 
 local csv_tpl = require 'csv_tpl'
 local packet_split = require 'packet_split'
@@ -129,19 +130,27 @@ function app:on_start()
 
 	if conf.channel_type == 'socket' then
 		self._modbus = modbus_master(string.lower(conf.apdu_type or 'tcp'), {link='tcp', tcp=conf.opt})
+		self._block = string.lower(conf.apdu_type or 'tcp') ~= 'tcp'
 	else
 		self._modbus = modbus_master(string.lower(conf.apdu_type or 'rtu'), {link='serial', serial=conf.opt})
+		self._block = true
+	end
+	if self._block then
+		self._queue = queue()
+	else
+		-- fake queue
+		self._queue = function(f, ...)
+			return f(...)
+		end
 	end
 
 	--- 设定通讯口数据回调
 	self._modbus:set_io_cb(function(io, unit, msg)
-		--[[
 		if string.lower(conf.apdu_type) == 'ascii' then
 			self._log:trace(io, msg)
 		else
 			self._log:trace(io, basexx.to_hex(msg))
 		end
-		]]--
 		local dev = nil
 		for _, v in ipairs(self._devs) do
 			if v.unit == unit then
@@ -205,7 +214,7 @@ function app:on_output(app_src, sn, output, prop, value, timestamp)
 		return false, "Cannot write property which is not value"
 	end
 	
-	local r, err = self:write_packet(dev.dev, dev.stat, dev.unit, tpl_output, value)
+	local r, err = self._queue(self.write_packet, self, dev.dev, dev.stat, dev.unit, tpl_output, value)
 	--[[
 	if not r then
 		local info = "Write output failure!"
@@ -213,7 +222,7 @@ function app:on_output(app_src, sn, output, prop, value, timestamp)
 		self._dev:fire_event(event.LEVEL_ERROR, event.EVENT_DEV, info, data)
 	end
 	]]--
-	return r, err
+	return r, err or "Done"
 end
 
 function app:write_packet(dev, stat, unit, output, value)
@@ -258,7 +267,7 @@ function app:write_packet(dev, stat, unit, output, value)
 	--- 统计数据
 	stat:inc('packets_in', 1)
 
-	return true
+	return true, "Write Done!"
 end
 
 function app:read_packet(dev, stat, unit, pack)
@@ -322,7 +331,7 @@ end
 
 function app:read_dev(dev, stat, unit, packets)
 	for _, pack in ipairs(packets) do
-		self:read_packet(dev, stat, unit, pack)
+		self._queue(self.read_packet, self, dev, stat, unit, pack)
 	end
 end
 
@@ -336,7 +345,6 @@ function app:on_run(tms)
 		self:read_dev(dev.dev, dev.stat, dev.unit, dev.packets)
 	end
 
-	--- 返回下一次调用run之前的时间间隔
 	return self._loop_gap or 5000
 end
 

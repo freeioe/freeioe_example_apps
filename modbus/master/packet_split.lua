@@ -108,7 +108,7 @@ function split:split(inputs)
 			end
 		end
 
-		if pack.fc == 0x01 and pack.fc == 0x02 then
+		if pack.fc == 0x01 or pack.fc == 0x02 then
 			v.pack_index = v.addr - pack.start + v.offset + 1
 		elseif pack.fc == 0x03 or pack.fc == 0x04 then
 			if v.dt == 'bit' then

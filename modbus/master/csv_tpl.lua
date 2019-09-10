@@ -9,6 +9,7 @@ WRITE_FUNC_MAP[0x03] = 0x06
 WRITE_FUNC_MAP[0x04] = 0x06
 
 local valid_dt = {
+	bit = true,
 	int8 = true,
 	uint8 = true,
 	int16 = true,
