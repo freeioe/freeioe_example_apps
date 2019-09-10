@@ -7,6 +7,7 @@ local queue = require 'skynet.queue'
 
 local csv_tpl = require 'csv_tpl'
 local packet_split = require 'packet_split'
+local valid_value = require 'valid_value'
 local conf_helper = require 'app.conf_helper'
 local base_app = require 'app.base'
 local basexx = require 'basexx'
@@ -188,6 +189,10 @@ function app:on_close(reason)
 end
 
 function app:on_output(app_src, sn, output, prop, value, timestamp)
+	if prop ~= 'value' then
+		return false, "Cannot write property which is not value"
+	end
+
 	local dev = nil
 	for _, v in ipairs(self._devs) do
 		if v.sn == sn then
@@ -210,11 +215,54 @@ function app:on_output(app_src, sn, output, prop, value, timestamp)
 		return false, "Cannot find output "..sn.."."..output
 	end
 
-	if prop ~= 'value' then
-		return false, "Cannot write property which is not value"
+	local val = value
+	if tpl_output.rate and tpl_output.rate ~= 1 then
+		val = val / tpl_output.rate
 	end
-	
-	local r, err = self._queue(self.write_packet, self, dev.dev, dev.stat, dev.unit, tpl_output, value)
+
+	local val, err = valid_value(tpl_output.dt, val)
+	if not val then
+		self._log:error("Write value validation", err)
+		return false, err
+	end
+
+	--- UINT8, INT8 hacks
+	if tpl_output.dt == 'int8' or tpl_output.dt == 'uint8' then
+		local link_val = 0
+		local link_offset = tpl_output.offset == 1 and 0 or 1
+		for _, v in ipairs(dev.inputs) do
+			--- Check function code and addr and offset
+			if v.fc == tpl_output.fc and v.addr == tpl_output.addr and v.offset == link_offset then
+				-- check data type
+				if v.dt == 'uint8' or v.dt == 'int8' then
+					link_val = dev.dev:get_input_prop(v.name, 'value')
+					if v.rate ~= 1 then
+						link_val = link_val / v.rate
+					end
+					if tpl_output.dt ~= v.dt then
+						if tpl_output.dt == 'uint8' then
+							link_val = (link_val + 256) % 256
+						else
+							link_val = (link_val - 128) % 256 - 128
+						end
+					end
+				end
+			end
+		end
+		--- TODO: Take care about little endian stuff?????
+		if link_offset == 1 then
+			val = (val << 8 ) + link_val
+		else
+			val = (link_val << 8) + val
+		end
+	end
+	--- hacks end
+
+	if tpl_output.dt == 'bit' and tpl_output.wfc == 0x06 then
+		return nil, "Bit value readed from 0x03/0x04 cannot be write to device"
+	end
+
+	local r, err = self._queue(self.write_packet, self, dev.dev, dev.stat, dev.unit, tpl_output, val)
 	--[[
 	if not r then
 		local info = "Write output failure!"
@@ -232,21 +280,14 @@ function app:write_packet(dev, stat, unit, output, value)
 
 	local timeout = output.timeout or 5000
 
-	local val = value / output.rate
-	if output.dt ~= 'float' and output.dt ~= 'double' then
-		val = math.floor(val + 0.5)
-	end
-
 	local req = nil
 	local err = nil
 
-	if output.wfc == 0x06 then
-		req, err = self._pdu:make_request(func, addr, val)
-	elseif output.wfc == 0x05 then
-		req, err = self._pdu:make_request(func, addr, val ~= 0)
+	if output.wfc == 0x06 or output.wfc == 0x05 then
+		req, err = self._pdu:make_request(func, addr, value)
 	else
 		local dpack = self._data_pack
-		local data = dpack[output.dt](dpack, val)
+		local data = dpack[output.dt](dpack, value)
 		req, err = self._pdu:make_request(func, addr, string.len(data), data)
 	end
 
