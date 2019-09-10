@@ -288,7 +288,7 @@ function app:write_packet(dev, stat, unit, output, value)
 	else
 		local dpack = self._data_pack
 		local data = dpack[output.dt](dpack, value)
-		req, err = self._pdu:make_request(func, addr, string.len(data), data)
+		req, err = self._pdu:make_request(func, addr, data)
 	end
 
 	if not req then
@@ -383,7 +383,7 @@ function app:on_run(tms)
 	end
 
 	for _, dev in ipairs(self._devs) do
-		self:read_dev(dev.dev, dev.stat, dev.unit, dev.packets)
+		--self:read_dev(dev.dev, dev.stat, dev.unit, dev.packets)
 	end
 
 	return self._loop_gap or 5000
