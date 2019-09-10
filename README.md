@@ -1,46 +1,46 @@
-FreeIOE Example Applications
+FreeIOE 示例应用
 =============================
 
-# What is FreeIOE
+# 什么是 FreeIOE
 
 [FreeIOE](http://github.com/freeioe/freeioe)
 
-# Application Categories
+# 应用分类
 
 
-## Modbus Applications
+## Modbus 应用
 
-### Modbus Data Collection Application
+### Modbus 数据采集
 
-Modbus Master mode application, which can access modbus slave(device) registers
+Modbus 数据采集应用 (Master 模式）, 从Modbus设备(Slave)读写寄存器
 
-### Modbus Gateway
+### Modbus 网关
 
-Modbus TCP/RTU gateway
+Modbus TCP/RTU 网关
 
-### Modbus Data Provider Application
+### Modbus 数据发布
 
-Modbus Slave mode application, which provide the data to other software via modbus protocol
-
-
-## OPCUA Applications
-
-### OPCUA Server
-
-This application creates an opcua server, which offer all devices data from FreeIOE
-
-### OPCUA Client
-
-This application connect to an exists opcua server, then create device nodes and provide data from FreeIOE
-
-### OPCUA Client data collection
-
-This application connect to an device/software which is opcua server, reads the selected node's data value to FreeIOE
+Modbus 数据发布应用（Slave模式), 将FreeIOE网关设备数据通过Modbus协议进行发布，方便其他应用或设备通过Modbus协议获取数据
 
 
-## MQTT Applications
+## OPCUA 应用
 
-Those application are MQTT client application
+### OPCUA 服务器
+
+应用创建OPCUA服务器，将设备数据发布到OPCUA服务器
+
+### OPCUA 客户端
+
+应用连接到其他OPCUA服务器程序/设备，将数据发布到OPCUA服务器
+
+### OPCUA 数据采集应用
+
+应用连接到OPCUA设备/软件(服务器)，从OPCUA设备/软件读取数据
+
+
+## MQTT 应用
+
+连接MQTT服务器，将网关中的设备数据上传至服务器
 
 ### Aliyun
 
@@ -57,17 +57,17 @@ Those application are MQTT client application
 
 ## CNC
 
-### Fanuc Focas application
+### 发那科机床数据采集(Fanuc Focas协议)
 
 
 ## DLT645
 
-Reading Meter devices data via dlt645 protocol
+通过DLT 645协议读取电表数据
 
 ## PLC
 
 ### AB
 
-AB PLC device data collection
+AB PLC 设备数据采集应用
 
 
