@@ -153,7 +153,7 @@ function app:on_run(tms)
 				local f = assert(plctag['get_'..input.dt], "Not supported read function:"..input.dt)
 				local val = f(tag, input.offset * pack.elem_size)
 
-				print(input.name, val)
+				--print(input.name, val)
 
 				if input.rate and input.rate ~= 1 then
 					val = val * input.rate
@@ -204,7 +204,7 @@ function app:on_output(app_src, sn, output, prop, value, timestamp)
 				return nil, "Data type not supported"
 			end
 
-			print(output, value)
+			--print(output, value)
 			f(tag, v.offset * elem_size, tonumber(value))
 
 			local rc = plctag.write(tag, self._conf.timeout or 5000)

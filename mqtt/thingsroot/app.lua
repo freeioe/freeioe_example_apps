@@ -22,6 +22,8 @@ function app:to_mqtt_app_conf(conf)
 		port = conf.mqtt.port,
 		enable_tls = conf.mqtt.enable_tls,
 		tls_cert = conf.tls_cert_path,
+		client_cert = conf.client_cert_path,
+		client_key = conf.client_key_path,
 	}
 	for k, v in pairs(conf.options or {}) do
 		new_conf[k] = v
@@ -41,6 +43,18 @@ function app:to_mqtt_app_conf(conf)
 	return new_conf
 end
 
+function app:text2file(text, filename)
+	if not text or string.len(text) == 0 then
+		return nil
+	end
+
+	local full_path = self._sys:app_dir()..filename
+	local f = assert(io.open(full_path, 'w+'))
+	f:write(text)
+	f:close()
+	return filename
+end
+
 ---
 -- 应用对象初始化函数
 -- @param name: 应用本地安装名称。 如modbus_com_1
@@ -49,13 +63,10 @@ end
 function app:initialize(name, sys, conf)
 	self._prv_conf = conf
 	-- TODO: tls_certs saving file
-	if conf.tls_cert and string.len(conf.tls_cert) > 0 then
-		local ca_path = sys:app_dir()..'ca.crt'
-		local f = assert(io.open(ca_path, 'w+'))
-		f:write(conf.tls_cert)
-		f:close()
-		conf.tls_cert_path = ca_path
-	end
+	conf.tls_cert_path = self:text2file(conf.tls_cert, 'ca.crt')
+	conf.client_cert_path = self:text2file(conf.client_cert, 'client_cert.crt')
+	conf.client_key_path = self:text2file(conf.client_key, 'client_key.crt')
+
 	self._enable_devices = {}
 	for _, v in ipairs(conf.devs or {}) do
 		if v.sn and string.len(v.sn) > 0 then
