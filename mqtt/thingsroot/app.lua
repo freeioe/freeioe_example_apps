@@ -63,9 +63,9 @@ end
 function app:initialize(name, sys, conf)
 	self._prv_conf = conf
 	-- TODO: tls_certs saving file
-	conf.tls_cert_path = self:text2file(conf.tls_cert, 'ca.crt')
-	conf.client_cert_path = self:text2file(conf.client_cert, 'client_cert.crt')
-	conf.client_key_path = self:text2file(conf.client_key, 'client_key.crt')
+	conf.tls_cert_path = self:text2file(conf.mqtt.tls_cert, 'ca.crt')
+	conf.client_cert_path = self:text2file(conf.mqtt.client_cert, 'client_cert.crt')
+	conf.client_key_path = self:text2file(conf.mqtt.client_key, 'client_key.crt')
 
 	self._enable_devices = {}
 	for _, v in ipairs(conf.devs or {}) do
