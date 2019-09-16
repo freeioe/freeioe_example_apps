@@ -21,17 +21,8 @@ function app:to_mqtt_app_conf(conf)
 		server = conf.mqtt.server or '172.30.11.199',
 		port = conf.mqtt.port,
 		enable_tls = conf.mqtt.enable_tls,
-		tls_insecure = conf.mqtt.tls_insecure ~= nil and conf.mqtt_tls_insecure or false,
+		tls_insecure = conf.mqtt.tls_insecure ~= nil and conf.mqtt.tls_insecure or false,
 		tls_cert = conf.tls_cert_path,
-		--[[
-		username = 'viccom',
-		password = 2623824,
-		server = 'dongbala.top',
-		port = 8883,
-		enable_tls = true,
-		tls_insecure = true,
-		tls_cert = conf.tls_cert_path,
-		]]--
 		client_cert = conf.client_cert_path,
 		client_key = conf.client_key_path,
 	}
@@ -62,7 +53,6 @@ function app:text2file(text, filename)
 	local f = assert(io.open(full_path, 'w+'))
 	f:write(text)
 	f:close()
-	print(filename)
 	return filename
 end
 
@@ -74,10 +64,16 @@ end
 function app:initialize(name, sys, conf)
 	self._prv_conf = conf
 	self._sys = sys
-	conf.mqtt = conf.mqtt or {}
-	--[[
 
-	conf.mqtt.tls_cert = [[-----BEGIN CERTIFICATE-----
+	--[[
+	conf.mqtt = conf.mqtt or {
+		username = 'viccom',
+		password = 2623824,
+		server = 'dongbala.top',
+		port = 8883,
+		enable_tls = true,
+		tls_insecure = true
+		tls_cert = [[-----BEGIN CERTIFICATE-----
 MIICxjCCAa6gAwIBAgIJAJk1DbZBu8FDMA0GCSqGSIb3DQEBCwUAMBMxETAPBgNV
 BAMMCE15VGVzdENBMB4XDTE3MTEwMjEzNDI0N1oXDTE5MTEwMjEzNDI0N1owEzER
 MA8GA1UEAwwITXlUZXN0Q0EwggEiMA0GCSqGSIb3DQEBAQUAA4IBDwAwggEKAoIB
@@ -94,8 +90,8 @@ LqKX6CWTlmKWe182MhFPpZYxZQLGapti4R4mb5QusUbc6tXbkcX82GjDPTOuAw7b
 mWpzVd5xnlp7Vz+50u+YaAYUmCobg0hR/AuTrA4GDMlgzTnuZQhF6o8iVkypXOtS
 Ufz6X3tVVErVVc7UUfzSnupHj1M2h4rzlQ3oqHoAEnXcJmV4f/Pf/6FW
 -----END CERTIFICATE-----]]
+--]]--
 
-	--]]--
 	-- TODO: tls_certs saving file
 	conf.tls_cert_path = self:text2file(conf.mqtt.tls_cert, 'ca.crt')
 	conf.client_cert_path = self:text2file(conf.mqtt.client_cert, 'client_cert.crt')
