@@ -62,6 +62,7 @@ end
 -- @param conf: 应用配置参数。由安装配置中的json数据转换出来的数据对象
 function app:initialize(name, sys, conf)
 	self._prv_conf = conf
+	self._sys = sys
 	-- TODO: tls_certs saving file
 	conf.tls_cert_path = self:text2file(conf.mqtt.tls_cert, 'ca.crt')
 	conf.client_cert_path = self:text2file(conf.mqtt.client_cert, 'client_cert.crt')
