@@ -38,6 +38,12 @@
 				"default": false
 			},
 			{
+				"name": "tls_insecure",
+				"desc": "非安全TLS",
+				"type": "boolean",
+				"default": false
+			},
+			{
 				"name": "tls_cert",
 				"desc": "CA证书(文本)",
 				"type": "text"
