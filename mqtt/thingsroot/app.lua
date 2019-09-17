@@ -65,6 +65,7 @@ function app:initialize(name, sys, conf)
 	self._prv_conf = conf
 	self._sys = sys
 
+	conf.mqtt = conf.mqtt or {}
 	--[[
 	conf.mqtt = conf.mqtt or {
 		username = 'viccom',
