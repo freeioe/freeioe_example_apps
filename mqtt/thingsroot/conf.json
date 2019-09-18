@@ -47,6 +47,16 @@
 				"name": "tls_cert",
 				"desc": "CA证书(文本)",
 				"type": "text"
+			},
+			{
+				"name": "client_cert",
+				"desc": "设备证书(文本)",
+				"type": "text"
+			},
+			{
+				"name": "client_key",
+				"desc": "设备密钥(文本)",
+				"type": "text"
 			}
 		]
 	},
