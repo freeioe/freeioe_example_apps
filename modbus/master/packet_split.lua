@@ -90,15 +90,18 @@ function split:split(inputs)
 		local max_len = assert(MAX_COUNT['MC_0x'..string.format('%02X', v.fc)], 'function code '..v.fc..' not supported!')
 
 		--- slen is the raw string length which
-		local input_end = v.addr + ( (DT and DT.len or v.slen) or 1 )
+		local input_len = (DT and DT.len or v.slen) or 1
 
 		--- If bit unpack on non-bit function code, then skip the offset
 		if v.dt ~= 'bit' then
 			--- If there is offset needs to be added to index
-			input_end = input_end + v.offset
+			input_len = input_len + v.offset
+		end
+		if pack.fc ~= 0x01 and pack.fc ~= 0x02 then
+			input_len = math.ceil(input_len / 2)
 		end
 
-		if input_end - pack.start > max_len then
+		if input_len + v.addr - pack.start > max_len then
 			table.insert(packets, pack)
 			pack = { fc=v.fc }
 			pack.start = v.addr
@@ -121,7 +124,7 @@ function split:split(inputs)
 		end
 
 		table.insert(pack.inputs, v)
-		pack.len = input_end - pack.start
+		pack.len = input_len + v.addr - pack.start
 	end
 	if pack.fc then
 		table.insert(packets, pack)
