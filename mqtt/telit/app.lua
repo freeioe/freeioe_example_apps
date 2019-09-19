@@ -7,17 +7,31 @@ local telit_helper = require 'telit_helper'
 local app = base_mqtt:subclass("_TELIT_CLOUD_MQTT")
 app.static.API_VER = 4
 
-function app:initialize(name, sys, conf)
-	base_mqtt.initialize(self, name, sys, conf)
+function app:on_init(name, sys, conf)
+	for k, v in pairs(conf.options or {}) do
+		conf[k] = v
+	end
 	self._log:debug("Telit app intialize!!!")
+end
 
-	self._def_keys = conf.def_keys or {}
-	self._def_key_default = string.lower(conf.def_key_default or 'ThingsLinkSimDevice')
+function app:on_start()
+	local conf = self._conf
+	self._log:debug(conf.application_id, conf.application_token, self._sys:id())
+	self._def_keys ={}
+	for _,v in ipairs(conf.def_keys or {}) do
+		self._def_keys[v.sn] = v.thing_key
+		self._log:info("Thingkey Map", v.sn, v.thing_key)
+	end
+	self._def_keys['GL'] = 'freeioe_guolu'
+	self._def_key_default = string.lower(conf.def_key_default or 'freeioe_gw')
 	self._key_created = {}
+
+	return base_mqtt.on_start(self)
 end
 
 function app:mqtt_auth()
 	local conf = self._conf
+	self._log:debug(conf.application_id, conf.application_token, self._sys:id())
 	return {
 		client_id = conf.application_id or 'APPLICATION_ID',
 		username = self._sys:id(),
@@ -38,6 +52,25 @@ function app:unsubscribe_device(dev_sn)
 	return self:unsubscribe(topic)
 end
 
+function app:find_thing_def_key(sn)
+	local sysid = self._sys:id()
+	if sysid == sn then
+		return self._def_key_default
+	end
+
+	local def_key = self._def_keys[sn]
+
+	if not def_key and sysid == string.sub(sn, 1, string.len(sysid)) then
+		local ssn = string.sub(sn, string.len(sysid) + 1)
+		if string.sub(ssn, 1, 1) == '.' then
+			ssn = string.sub(ssn, 2)
+		end
+		def_key = self._def_keys[ssn]
+	end
+
+	return def_key and string.lower(def_key) or nil
+end
+
 function app:on_add_device(src_app, sn, props)
 	self._log:debug("Telit on_add_device", src_app, sn)
 
@@ -53,15 +86,12 @@ function app:on_add_device(src_app, sn, props)
 
 	local sysid = self._sys:id()
 	if sn ~= sysid then
-		local def_key = self._def_keys[sn]
-		if not def_key and sysid == string.sub(sn, 1, string.len(sysid)) then
-			local ssn = string.sub(sn, string.len(sysid) + 1)
-			if ssn[1] == '.' then
-				ssn = string.sub(ssn, 2)
-			end
-			def_key = self._def_keys[ssn]
+		local def_key = self:find_thing_def_key(sn)
+		if not def_key then
+			self._log:debug("Device skipped!!", sn)
+			return true, "Device skipped!!"
 		end
-		def_key = def_key or self._def_key_default
+
 		--[[ thing.create.json ]]--
 		local tags = {}
 		local tag_map = {}
@@ -123,7 +153,13 @@ function app:pack_key(src_app, sn, input, prop)
 		return nil
 	end
 
-	return telit_helper.escape_key(sn)..'/'..telit_helper.escape_key(input)
+	local def_key = self:find_thing_def_key(sn)
+	if not def_key then
+		--- If there is no thing def key then skip device
+		return nil
+	end
+
+	return sn .. '/'.. input
 end
 
 function app:on_publish_devices(devices)
@@ -164,6 +200,9 @@ function app:on_publish_data(key, value, timestamp, quality)
 	end
 
 	local sn, input = string.match(key, '^([^/]+)/(.+)$')
+	sn = telit_helper.escape_key(sn)
+	input = telit_helper.escape_key(input)
+
 	assert(key and sn and input)
     local cmd = {
 		command = "property.publish",
@@ -205,7 +244,10 @@ function app:on_publish_data_list(val_list)
 	local data_list = {}
 	local attr_list = {}
 	for _, v in ipairs(val_list) do
-		local sn, input = string.match(v[1], '^([^%.]+)/(.+)$')
+		local sn, input = string.match(v[1], '^([^/]+)/(.+)$')
+		--print(sn, input)
+		sn = telit_helper.escape_key(sn)
+		input = telit_helper.escape_key(input)
 
 		if type(v[2]) ~= 'string' then
 			if not data_list[sn] then

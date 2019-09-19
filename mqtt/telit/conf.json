@@ -1,0 +1,85 @@
+[
+	{
+		"name": "server",
+		"desc": "MQTT地址",
+		"type": "string",
+		"default":"device1-api.10646.cn"
+	},
+	{
+		"name": "port",
+		"desc": "MQTT端口",
+		"type": "number",
+		"default": 1883
+	},
+	{
+		"name": "application_id",
+		"desc": "应用ID",
+		"type": "string",
+		"default": "FreeIOE"
+	},
+	{
+		"name": "application_token",
+		"desc": "应用令牌",
+		"type": "string",
+		"default": "8z2f5dd68tlejg7R"
+	},
+	{
+		"name": "def_key_default",
+		"desc": "网关物模型名称",
+		"type": "string",
+		"default": "freeioe_gw"
+	},
+	{
+		"name": "options",
+		"desc": "数据传输选项",
+		"type": "section",
+		"child": [
+			{
+				"name": "period",
+				"desc": "上送周期(秒)",
+				"type": "number",
+				"default": 10
+			},
+			{
+				"name": "ttl",
+				"desc": "最大数据间隔(秒)",
+				"type": "number",
+				"default": 300
+			},
+			{
+				"name": "data_upload_dpp",
+				"desc": "最大打包数量",
+				"type": "number",
+				"default": 1024
+			},
+			{
+				"name": "enable_data_cache",
+				"desc": "开启短线缓存",
+				"type": "boolean",
+				"default": false
+			}
+		]
+	},
+	{
+		"name": "fake_def_keys",
+		"desc": "物模型对应表",
+		"type": "fake_section"
+	},
+	{
+		"name": "def_keys",
+		"desc": "设备物模型对应表",
+		"type": "table",
+		"cols": [
+			{
+				"name": "sn",
+				"desc": "设备序号",
+				"type": "string"
+			},
+			{
+				"name": "thing_key",
+				"desc": "物模型名称",
+				"type": "string"
+			}
+		]
+	}
+]
