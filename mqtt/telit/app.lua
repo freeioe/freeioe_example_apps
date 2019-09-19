@@ -7,7 +7,8 @@ local telit_helper = require 'telit_helper'
 local app = base_mqtt:subclass("_TELIT_CLOUD_MQTT")
 app.static.API_VER = 4
 
-function app:on_init(name, sys, conf)
+function app:on_init()
+	local conf = self._conf
 	for k, v in pairs(conf.options or {}) do
 		conf[k] = v
 	end
