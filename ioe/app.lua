@@ -43,6 +43,9 @@ function app:start()
 			if command == 'disable_symlink' then
 				return self:disable_symlink(param)
 			end
+			if command == 'reboot_device' then
+				return self:reboot_device(param)
+			end
 			self._log:trace('on_command', app_src, sn, command, param)
 			return true, "eee"
 		end,
@@ -247,6 +250,10 @@ function app:start()
 		{
 			name = "disable_symlink",
 			desc = "Disable Symlink Service",
+		},
+		{
+			name = "reboot_device",
+			desc = "Reboot hardware device",
 		},
 	}
 
@@ -543,12 +550,10 @@ function app:run(tms)
 		if v.inst and (self._sys:time() - v.last < 180) then
 			run = 1
 		end
-		print('app_run', k, run)
 		self._dev:set_input_prop('app_run_'..k, 'value', run)
 	end
 	for k, v in pairs(self._apps_cache) do
 		if not applist[k] then
-			print('app_run', k, '00')
 			self._dev:set_input_prop('app_run_'..k, 'value', 0)
 		end
 	end
@@ -583,6 +588,18 @@ function app:disable_symlink(param)
 	else
 		self._symlink = false
 		return true, "Disable Symlink service done!"
+	end
+end
+
+function app:reboot_device(param)
+	local md5 = require 'md5'
+	if md5.sumhexa(param.pwd or '') == 'bf526ab1fdc29ce3f7097f28c9117cd3' then
+		self._sys:timeout(1000, function()
+			os.execute("reboot &")
+		end)
+		return true, "Device will be reboot after one second"
+	else
+		return false, "Invalid pwd provided"
 	end
 end
 
