@@ -222,11 +222,14 @@ function app:start()
 			vt = "int",
 		}
 	end
+	--[[
 	if not self._apps_cache['ioe'] then
 		self._apps_cache['ioe'] = {
 			name = 'freeioe',
 		}
 	end
+	]]--
+	self._apps_cache['ioe'] = nil
 
 	local cmds = {
 		{
@@ -537,13 +540,15 @@ function app:run(tms)
 			self._dev:add({{name = "app_run_"..k, desc = 'Application status for '..k, vt="int"}})
 		end
 		local run = 0
-		if v.inst and (self._sys:time() - v.last < 10) then
+		if v.inst and (self._sys:time() - v.last < 180) then
 			run = 1
 		end
+		print('app_run', k, run)
 		self._dev:set_input_prop('app_run_'..k, 'value', run)
 	end
 	for k, v in pairs(self._apps_cache) do
 		if not applist[k] then
+			print('app_run', k, '00')
 			self._dev:set_input_prop('app_run_'..k, 'value', 0)
 		end
 	end
