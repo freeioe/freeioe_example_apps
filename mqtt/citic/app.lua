@@ -10,7 +10,7 @@ function app:initialize(name, sys, conf)
 	--conf.ttl = nil --- 禁止TTL
 	conf.period = 1
 	--conf.period = 0 --- 数据不打包
-	conf.enable_data_cache = nil --- 不开启短线缓存
+	conf.enable_data_cache = nil --- 不开启断线缓存
 	conf.up_topic = conf.up_topic or "6pmux/p_6pmv9"
 	conf.down_topic = conf.down_topic or "6pmux/s_6pmv8"
 

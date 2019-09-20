@@ -85,7 +85,7 @@
 			},
 			{
 				"name": "enable_data_cache",
-				"desc": "开启短线缓存",
+				"desc": "开启断线缓存",
 				"type": "boolean",
 				"default": false
 			}
