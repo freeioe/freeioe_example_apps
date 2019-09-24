@@ -1,13 +1,13 @@
 [
 	{
 		"name": "loop_gap",
-		"desc": "采集间隔",
+		"desc": "采集间隔(Read Gap)",
 		"type": "number",
 		"default": 1000
 	},
 	{
 		"name": "apdu_type",
-		"desc": "协议类型",
+		"desc": "协议类型(Protocol Type)",
 		"type": "dropdown",
 		"default": "RTU",
 		"values": [
@@ -18,16 +18,16 @@
 	},
 	{
 		"name": "channel_type",
-		"desc": "通讯类型",
+		"desc": "通讯类型(Stream Type)",
 		"type": "dropdown",
 		"default": "serial",
 		"values": [
 			{
-				"name": "TCP连接",
+				"name": "TCP连接(TCP Client)",
 				"value": "socket"
 			},
 			{
-				"name": "串口",
+				"name": "串口(Serial)",
 				"value": "serial"
 			}
 		],
@@ -55,22 +55,22 @@
 		"cols": [
 			{
 				"name": "unit",
-				"desc": "Address",
+				"desc": "地址(Address)",
 				"type": "number"
 			},
 			{
 				"name": "name",
-				"desc": "Device Name",
+				"desc": "名称(Device Name)",
 				"type": "string"
 			},
 			{
 				"name": "sn",
-				"desc": "Device Serial Number",
+				"desc": "序列号(Serial Number)",
 				"type": "string"
 			},
 			{
 				"name": "tpl",
-				"desc": "Template",
+				"desc": "模板(Template)",
 				"type": "template"
 			}
 		]
