@@ -71,6 +71,11 @@ function app:on_start()
 	local tpl_ver = conf.ver
 	local tpl_file = 'example'
 
+	if conf.tpls and #conf.tpls >= 1 then
+		tpl_id = conf.tpls[1].id
+		tpl_ver = conf.tpls[1].ver
+	end
+
 	if tpl_id and tpl_ver then
 		local capi = sys:conf_api(tpl_id)
 		local data, err = capi:data(tpl_ver)

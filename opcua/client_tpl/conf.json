@@ -5,26 +5,16 @@
 		"type": "string"
 	},
 	{
-		"name": "tpl",
-		"desc": "模板ID",
-		"type": "string"
-	},
-	{
-		"name": "ver",
-		"desc": "模板版本",
-		"type": "number"
+		"name": "loop_gap",
+		"desc": "采集周期(ms)",
+		"type": "number",
+		"default": 1000
 	},
 	{
 		"name": "enable_sub",
 		"desc": "启动订阅模式",
 		"type": "boolean",
 		"default": true
-	},
-	{
-		"name": "loop_gap",
-		"desc": "采集周期(ms)",
-		"type": "number",
-		"default": 1000
 	},
 	{
 		"name": "endpoint",
@@ -111,5 +101,11 @@
 				"default": "certs/key.der"
 			}
 		]
-	}
+	},
+	{
+		"name": "tpls",
+		"desc": "设备模板",
+		"type": "templates",
+		"limit": 1
+	}	
 ]
