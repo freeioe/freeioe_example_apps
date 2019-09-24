@@ -120,6 +120,7 @@ function app:on_start()
 			self._log:error("Failed to open tag, path", tag_path)
 			self.tag = nil
 		end
+		self._sys:sleep(0)
 	end
 	
 	self._tpl = tpl
@@ -138,6 +139,7 @@ function app:on_close(reason)
 			plctag.destroy(v.tag)
 			v.tag = nil
 		end
+		self._sys:sleep(0)
 	end
 end
 
@@ -173,6 +175,7 @@ function app:on_run(tms)
 	for _, v in ipairs(self._packets) do
 		if v.tag then
 			read_tag(v)
+			self._sys:sleep(0)
 		else
 			---
 		end
