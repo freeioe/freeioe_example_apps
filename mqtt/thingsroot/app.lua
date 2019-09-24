@@ -56,6 +56,11 @@ function app:text2file(text, filename)
 	return filename
 end
 
+local function valid_device_sn(sn)
+	--return nil == string.find(sn, '%s')
+	return nil == string.find(sn, "[^%w_%-%.]")
+end
+
 ---
 -- 应用对象初始化函数
 -- @param name: 应用本地安装名称。 如modbus_com_1
@@ -64,6 +69,7 @@ end
 function app:initialize(name, sys, conf)
 	self._prv_conf = conf
 	self._sys = sys
+	local log = sys:logger()
 
 	conf.mqtt = conf.mqtt or {}
 	--[[
@@ -100,10 +106,14 @@ Ufz6X3tVVErVVc7UUfzSnupHj1M2h4rzlQ3oqHoAEnXcJmV4f/Pf/6FW
 
 	self._enable_devices = {}
 	for _, v in ipairs(conf.devs or {}) do
+		if not valid_device_sn(v.sn) then
+			log:error("Device SN is not valid", v.sn)
+		end
+
 		if v.sn and string.len(v.sn) > 0 then
 			self._enable_devices[v.sn] = true
 		else
-			self._log:warning("Device missing sn in conf.devs item")
+			log:warning("Device missing sn in conf.devs item")
 		end
 	end
 
