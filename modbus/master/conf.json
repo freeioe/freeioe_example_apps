@@ -50,7 +50,7 @@
 	},
 	{
 		"name": "devs",
-		"desc": "Device List",
+		"desc": "设备列表(Device List)",
 		"type": "table",
 		"cols": [
 			{
@@ -60,7 +60,7 @@
 			},
 			{
 				"name": "name",
-				"desc": "名称(Device Name)",
+				"desc": "名称(Name)",
 				"type": "string"
 			},
 			{
