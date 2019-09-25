@@ -135,7 +135,7 @@ end
 function app:on_close(reason)
 	self._log:warning('Application closing', reason)
 	self._closing = {}
-	self._sys:wait(self._closing)
+	self._sys:sleep(5000, self._closing)
 	for _, v in ipairs(self._packets) do
 		if v.tag then
 			plctag.destroy(v.tag)
@@ -178,16 +178,16 @@ function app:on_run(tms)
 	end
 
 	for _, v in ipairs(self._packets) do
-		if v.tag then
-			read_tag(v)
-		else
-			self._log:debug("Tag missing!!!")
-		end
-
 		self._sys:sleep(0)
 
 		if self._closing then
 			break
+		end
+
+		if v.tag then
+			read_tag(v)
+		else
+			self._log:debug("Tag missing!!!")
 		end
 	end
 
