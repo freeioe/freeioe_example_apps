@@ -213,7 +213,7 @@ function app:on_output(app_src, sn, output, prop, value, timestamp)
 			local split = packet_split:new()
 			local elem_size = split:elem_size(v)
 			local tag_path = self:get_tag_path(elem_size, v.offset + 1, v.elem_name)
-			self._log:info('Write tag', tag_path, tonumber(value))
+			self._log:info('Write tag', tag_path, value, type(value))
 			local tag = plctag.create(tag_path, self._conf.timeout or 5000)
 			if tag < 0 then
 				return nil, "Failed to find tag"
@@ -228,8 +228,16 @@ function app:on_output(app_src, sn, output, prop, value, timestamp)
 				return nil, "Data type not supported"
 			end
 
+			if v.dt == 'bool' then
+				value = tonumber(value) == 1 or value == true or false
+			elseif v.dt == 'string' then
+				value = tostring(value)
+			else
+				value = tonumber(value)
+			end
+
 			--print(output, value)
-			f(tag, v.offset * elem_size, tonumber(value))
+			f(tag, v.offset * elem_size, value)
 
 			local rc = plctag.write(tag, self._conf.timeout or 5000)
 			if rc ~= plctag.Status.OK then
