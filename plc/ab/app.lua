@@ -163,6 +163,9 @@ function app:on_run(tms)
 				local val = f(tag, input.offset * pack.elem_size)
 
 				--print(input.name, val)
+				if input.dt == 'bool' then
+					val = val and 1 or 0
+				end
 
 				if input.rate and input.rate ~= 1 then
 					val = val * input.rate
