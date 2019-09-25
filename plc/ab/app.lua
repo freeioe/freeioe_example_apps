@@ -190,6 +190,8 @@ function app:on_run(tms)
 
 	if self._closing then
 		self._sys:wakeup(self._closing)
+		self._log:debug("Closing...")
+		return 10000 --- end this loop
 	end
 
 	self._log:debug('End', os.date())
