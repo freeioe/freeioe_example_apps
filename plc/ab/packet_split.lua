@@ -3,6 +3,7 @@ local class = require 'middleclass'
 local split = class('FREEIOE_PLC_AB_PLCTAG_APS')
 
 local ELEM_SIZE = {
+	bool = 1,
 	uint8 = 1,
 	int8 = 1,
 	uint16 = 2,
