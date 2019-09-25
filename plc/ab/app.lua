@@ -134,6 +134,8 @@ end
 --- 应用退出函数
 function app:on_close(reason)
 	self._log:warning('Application closing', reason)
+	self._closing = {}
+	self._sys:wait(self._closing)
 	for _, v in ipairs(self._packets) do
 		if v.tag then
 			plctag.destroy(v.tag)
@@ -175,10 +177,19 @@ function app:on_run(tms)
 	for _, v in ipairs(self._packets) do
 		if v.tag then
 			read_tag(v)
-			self._sys:sleep(0)
 		else
-			---
+			self._log:debug("Tag missing!!!")
 		end
+
+		self._sys:sleep(0)
+
+		if self._closing then
+			break
+		end
+	end
+
+	if self._closing then
+		self._sys:wakeup(self._closing)
 	end
 
 	self._log:debug('End', os.date())
