@@ -3,6 +3,7 @@ local ftcsv = require 'ftcsv'
 local tpl_dir = 'tpl/'
 
 local valid_dt = {
+	bool = true,
 	int8 = true,
 	uint8 = true,
 	int16 = true,
