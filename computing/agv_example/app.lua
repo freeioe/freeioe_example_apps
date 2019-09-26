@@ -56,7 +56,7 @@ function app:on_start()
 		{ name = 'agv_hour_firing', desc = 'AGV小时放电次数', vt = 'int'},
 	}
 
-	--- 设备指令，这里支持一个重置当前基数的指令
+	--- 设备指令，这里支持一个重置当前记数的指令，用作调试
 	local commands = {
 		{ name = "reset_sum", desc = '重置统计数据（重新计数)' }
 	}
