@@ -1,0 +1,12 @@
+[
+	{
+		"name": "dsn",
+		"desc": "AGV设备序列号",
+		"type": "string"
+	},
+	{
+		"name": "device_sn",
+		"desc": "统计数据设备序列号",
+		"type": "string"
+	}
+]
