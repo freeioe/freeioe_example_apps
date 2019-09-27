@@ -5,7 +5,7 @@ local telit_helper = require 'telit_helper'
 
 --- 创建应用（名称，最小API版本)
 local app = base_mqtt:subclass("_TELIT_CLOUD_MQTT")
-app.static.API_VER = 4
+app.static.API_VER = 5
 
 function app:on_init()
 	local conf = self._conf

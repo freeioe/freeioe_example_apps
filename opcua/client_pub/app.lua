@@ -2,7 +2,7 @@ local app_base = require 'app.base'
 local opcua_client = require 'base.client'
 
 local app = opcua_client:subclass("FREEIOE_OPCUA_CLIENT_APP")
-app.static.API_VER = 4
+app.static.API_VER = 5
 
 local default_vals = {
 	int = 0,

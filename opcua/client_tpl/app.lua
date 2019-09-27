@@ -5,8 +5,8 @@ local csv_tpl = require 'csv_tpl'
 
 --- 注册对象(请尽量使用唯一的标识字符串)
 local app = app_base:subclass("FREEIOE_OPCUA_CLIENT_APP")
---- 设定应用最小运行接口版本(目前版本为4,为了以后的接口兼容性)
-app.static.API_VER = 4
+--- 设定应用最小运行接口版本(目前版本为5,为了以后的接口兼容性)
+app.static.API_VER = 5
 
 function app:connected()
 	return self._client ~= nil and self._client:connected()

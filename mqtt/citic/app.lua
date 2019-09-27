@@ -4,7 +4,7 @@ local base_mqtt = require 'app.base.mqtt'
 
 --- 创建应用（名称，最小API版本)
 local app = base_mqtt:subclass("_CITIC_CLOUD_MQTT")
-app.static.API_VER = 4
+app.static.API_VER = 5
 
 function app:initialize(name, sys, conf)
 	--conf.ttl = nil --- 禁止TTL
