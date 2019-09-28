@@ -156,7 +156,7 @@ function app:on_start()
 		]]--
 		local dev = nil
 		for _, v in ipairs(self._devs) do
-			if v.unit == unit then
+			if v.unit == tonumber(unit) then
 				dev = v
 				break
 			end
