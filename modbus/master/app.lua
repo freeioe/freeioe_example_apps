@@ -154,6 +154,7 @@ function app:on_start()
 			self._log:trace(io, basexx.to_hex(msg))
 		end
 		]]--
+
 		local dev = nil
 		for _, v in ipairs(self._devs) do
 			if v.unit == tonumber(unit) then
