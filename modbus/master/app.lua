@@ -176,18 +176,26 @@ function app:on_start()
 		end
 	end)
 
-	self._modbus:start()
-
-	return true
+	return self._modbus:start()
 end
 
 --- 应用退出函数
 function app:on_close(reason)
-	if self._modbus then
-		self._modbus:stop()
-		self._modbus = nil
+	local close_modbus = function()
+		if self._modbus then
+			self._modbus:stop()
+			self._modbus = nil
+		end
 	end
-	print(self._name, reason)
+	if self._queue then
+		self._log:debug("Wait for reading queue finished")
+		self._queue(function()
+			self._log:debug("Reading queue finished!")
+			close_modbus()
+		end)
+	else
+		close_modbus()
+	end
 end
 
 function app:on_output(app_src, sn, output, prop, value, timestamp)
@@ -385,6 +393,9 @@ function app:on_run(tms)
 	end
 
 	for _, dev in ipairs(self._devs) do
+		if not self._modbus then
+			break
+		end
 		self:read_dev(dev.dev, dev.stat, dev.unit, dev.packets)
 	end
 
