@@ -80,7 +80,7 @@
 		"child": [
 			{
 				"name": "mode",
-				"desc": "UA证书(可选)",
+				"desc": "加密方式",
 				"type": "dropdown",
 				"values": [
 					"None",
