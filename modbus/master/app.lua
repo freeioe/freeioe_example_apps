@@ -33,13 +33,15 @@ function app:on_start()
 	]]--
 
 	--- 获取云配置
-	if not config.devs or config.cnf then
-		if not config.cnf then
-			config = 'CNF000000002.1' -- loading cloud configuration CNF000000002 version 1
-		else
-			config = config.cnf .. '.' .. config.ver
-		end
+	if not config.devs and config.cnf and conf.ver then
+		config = config.cnf .. '.' .. config.ver
 	end
+
+	--[[ test
+	if not config.cnf then
+		config = 'CNF000000003.1' -- loading cloud configuration CNF000000002 version 1
+	end
+	]]--
 
 	local helper = conf_helper:new(self._sys, config)
 	helper:fetch()
