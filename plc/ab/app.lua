@@ -20,7 +20,7 @@ function app:get_tag_path(elem_size, elem_count, elem_name)
 	local host = conf.host or '127.0.0.1' --'10.206.1.27' -- 'ip'
 	local path = conf.path or '1,0'
 	local cpu = string.lower(conf.cpu or 'LGX')
-	--[[ 
+	--[[
 		AB_PLC: plc5, plc, slc, slc500
 		AB_LGX_PCCC: lgxpccc, logixpccc, lgxplc5, logixplc5, lgx-pccc, logix-pccc, lgx-plc5, logix-plc5
 		AB_MLGX800: micrologix800, mlgx800, micro800
@@ -28,7 +28,7 @@ function app:get_tag_path(elem_size, elem_count, elem_name)
 		AB_LGX: compactlogix, clgx, lgx, controllogix, contrologix, flexlogix, flgx
 	]]--
 
-	local path_base = string.format('protocol=%s&gateway=%s&path=%s&cpu=%s', protocol, host, prop_path or path, cpu)
+	local path_base = string.format('protocol=%s&gateway=%s&path=%s&cpu=%s', protocol, host, path, cpu)
 	local port = tonumber(conf.port)
 	if port then
 		path_base = path_base..'&gateway_port='..math.floor(port)
@@ -122,7 +122,7 @@ function app:on_start()
 		end
 		self._sys:sleep(0)
 	end
-	
+
 	self._tpl = tpl
 	self._tpl_inputs = tpl_inputs
 	self._tpl_outputs = tpl_outputs
@@ -145,17 +145,10 @@ function app:on_close(reason)
 	end
 end
 
---- 应用运行入口
-function app:on_run(tms)
-	local begin_time = self._sys:time()
-
-	local dev = self._dev
-
-	self._log:debug('Start', os.date())
-
+function app:block_read(dev)
 	local function read_tag(pack)
 		local tag = pack.tag
-		local rc = plctag.read(tag, self._conf.timeout or 5000)
+		local rc = plctag.read(tag, self._conf.timeout or 2000)
 		if rc == plctag.Status.OK then
 			self._log:debug("Readed tag path", pack.tag_path)
 			for _, input in ipairs(pack.props) do
@@ -190,6 +183,81 @@ function app:on_run(tms)
 			self._log:debug("Tag missing!!!")
 		end
 	end
+end
+
+function app:async_read(dev)
+	local function parse_tag(pack)
+		local tag = pack.tag
+		for _, input in ipairs(pack.props) do
+			local f = assert(plctag['get_'..input.dt], "Not supported read function:"..input.dt)
+			local val = f(tag, input.offset * pack.elem_size)
+
+			--print(input.name, val)
+			if input.dt == 'bool' then
+				val = val and 1 or 0
+			end
+
+			if input.rate and input.rate ~= 1 then
+				val = val * input.rate
+			end
+			dev:set_input_prop(input.name, "value", val)
+		end
+	end
+
+	local packs = {}
+	for _, v in ipairs(self._packets) do
+		self._sys:sleep(0)
+		if self._closing then
+			return --- Return
+		end
+		--
+		if v.tag then
+			local rc = plctag.read(v.tag, 0)
+			if rc ~= plctag.Status.OK and rc ~= plctag.Status.PENDING then
+				self._log:error("Async Read Pre Error", plctag.decode_error(rc), v.tag_path)
+			else
+				packs[#packs + 1] = v
+			end
+		end
+	end
+	local be_time = self._sys:time()
+	while #packs > 1 do
+		self._sys.sleep(20)
+		if self._closing then
+			return --- Return
+		end
+		if (self._sys:time() - be_time) > (self._conf.timeout or 2000) then
+			self._log:error("Async Read Timeout!!!")
+			return --- Return
+		end
+
+		for i, v in ipairs(packs) do
+			local rc = plctag.read(v.tag, 0)
+			if rc ~= plctag.Status.PENDING then
+				if rc == plctag.Status.OK then
+					parse_tag(v)
+				else
+					self._log:error("Async Read Data Error", plctag.decode_error(rc), v.tag_path)
+				end
+				table.remove(packs, i)
+			end
+		end
+	end
+end
+
+--- 应用运行入口
+function app:on_run(tms)
+	local begin_time = self._sys:time()
+
+	local dev = self._dev
+
+	--self._log:debug('Start', os.date())
+
+	if self._conf.block_read then
+		self:block_read(dev)
+	else
+		self:async_read(dev)
+	end
 
 	if self._closing then
 		self._sys:wakeup(self._closing)
@@ -197,7 +265,7 @@ function app:on_run(tms)
 		return 10000 --- end this loop
 	end
 
-	self._log:debug('End', os.date())
+	--self._log:debug('End', os.date())
 
 	local next_tms = (self._conf.loop_gap or 1000) - ((self._sys:time() - begin_time) * 1000)
 	return next_tms > 0 and next_tms or 0
@@ -239,11 +307,11 @@ function app:on_output(app_src, sn, output, prop, value, timestamp)
 			--print(output, value)
 			f(tag, v.offset * elem_size, value)
 
-			local rc = plctag.write(tag, self._conf.timeout or 5000)
+			rc = plctag.write(tag, self._conf.timeout or 5000)
 			if rc ~= plctag.Status.OK then
 				return nil, plctag.decode_error(rc)
 			end
-			
+
 			return true, "Write value done!"
 		end
 	end
