@@ -253,7 +253,7 @@ function app:on_run(tms)
 
 	--self._log:debug('Start', os.date())
 
-	if self._conf.block_read then
+	if not self._conf.async_read then
 		self:block_read(dev)
 	else
 		self:async_read(dev)
