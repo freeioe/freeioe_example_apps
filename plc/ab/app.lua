@@ -226,7 +226,7 @@ function app:async_read(dev)
 		if self._closing then
 			return --- Return
 		end
-		if (self._sys:time() - be_time) > (self._conf.timeout or 2000) then
+		if (self._sys:time() - be_time) > (self._conf.timeout or 2000) / 1000 then
 			self._log:error("Async Read Timeout!!!")
 			return --- Return
 		end

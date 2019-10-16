@@ -1,6 +1,6 @@
 [
 	{
-		"name": "协议",
+		"name": "protocol",
 		"desc": "通讯协议",
 		"type": "dropdown",
 		"default": "ab_eip",
