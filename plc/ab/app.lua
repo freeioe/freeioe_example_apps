@@ -222,7 +222,7 @@ function app:async_read(dev)
 	end
 	local be_time = self._sys:time()
 	while #packs > 1 do
-		self._sys.sleep(20)
+		self._sys:sleep(20)
 		if self._closing then
 			return --- Return
 		end
