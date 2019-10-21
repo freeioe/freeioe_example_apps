@@ -28,6 +28,7 @@ function app:get_tag_path(elem_size, elem_count, elem_name)
 		AB_LGX: compactlogix, clgx, lgx, controllogix, contrologix, flexlogix, flgx
 	]]--
 
+	--local path_base = string.format('protocol=%s&gateway=%s&path=%s&cpu=%s&debug=2', protocol, host, path, cpu)
 	local path_base = string.format('protocol=%s&gateway=%s&path=%s&cpu=%s', protocol, host, path, cpu)
 	local port = tonumber(conf.port)
 	if port then
@@ -104,6 +105,7 @@ function app:on_start()
 
 	local dev_sn = conf.device_sn
 	if dev_sn == nil or string.len(conf.device_sn) == 0 then
+		--dev_sn = sys_id..'.'..self._name..'.'..meta.name
 		dev_sn = sys_id..'.'..meta.name
 	end
 	self._dev_sn = dev_sn
@@ -145,10 +147,14 @@ function app:on_close(reason)
 	end
 end
 
-function app:block_read(dev)
+function app:block_read_2(dev)
 	local function read_tag(pack)
 		local tag = pack.tag
-		local rc = plctag.read(tag, self._conf.timeout or 2000)
+		if plctag.Status.OK ~= plctag.lock(tag) then
+			self._log:error("Failed to lock tag", pack.tag_path)
+			return
+		end
+		local rc = plctag.read(tag, self._conf.timeout or 5000)
 		if rc == plctag.Status.OK then
 			self._log:debug("Readed tag path", pack.tag_path)
 			for _, input in ipairs(pack.props) do
@@ -168,6 +174,7 @@ function app:block_read(dev)
 		else
 			self._log:error("Read PLC Error", plctag.decode_error(rc), pack.tag_path)
 		end
+		plctag.unlock(tag)
 	end
 
 	for _, v in ipairs(self._packets) do
@@ -185,9 +192,10 @@ function app:block_read(dev)
 	end
 end
 
-function app:async_read(dev)
+function app:block_read(dev)
 	local function parse_tag(pack)
 		local tag = pack.tag
+		--self._log:debug("Block readed tag path", pack.tag_path)
 		for _, input in ipairs(pack.props) do
 			local f = assert(plctag['get_'..input.dt], "Not supported read function:"..input.dt)
 			local val = f(tag, input.offset * pack.elem_size)
@@ -204,7 +212,46 @@ function app:async_read(dev)
 		end
 	end
 
-	local packs = {}
+	local function block_read_tag(pack)
+		local tag = pack.tag
+		if plctag.Status.OK ~= plctag.lock(tag) then
+			self._log:error("Failed to lock tag", pack.tag_path)
+			return
+		end
+		--- Start async read
+		local rc = plctag.read(tag, 0)
+		if rc ~= plctag.Status.OK and rc ~= plctag.Status.PENDING then
+			self._log:error("Failed to start reading", plctag.decode_error(rc), pack.tag_path)
+			plctag.unlock(tag)
+			return
+		end
+
+		--- Record start time
+		local be_time = self._sys:time()
+		while true do
+			self._sys:sleep(5)
+			if self._closing then
+				break
+			end
+			if (self._sys:time() - be_time) > (self._conf.timeout or 5000) / 1000 then
+				self._log:error("Async Read Timeout!!!", pack.tag_path)
+				break
+			end
+
+			local rc = plctag.status(tag)
+			if rc ~= plctag.Status.PENDING then
+				if rc == plctag.Status.OK then
+					parse_tag(pack)
+				else
+					self._log:error("Async Read Data Error", plctag.decode_error(rc), pack.tag_path)
+				end
+				break
+			end
+		end
+		plctag.unlock(tag)
+	end
+
+	self._log:debug("Block Read Start!!!")
 	for _, v in ipairs(self._packets) do
 		self._sys:sleep(0)
 		if self._closing then
@@ -212,6 +259,50 @@ function app:async_read(dev)
 		end
 		--
 		if v.tag then
+			block_read_tag(v)
+		end
+	end
+	self._log:debug("Block Read End!!!")
+end
+
+function app:async_read(dev)
+	local function parse_tag(pack)
+		local tag = pack.tag
+		--self._log:debug("Async Readed tag path", pack.tag_path)
+		for _, input in ipairs(pack.props) do
+			local f = assert(plctag['get_'..input.dt], "Not supported read function:"..input.dt)
+			local val = f(tag, input.offset * pack.elem_size)
+
+			--print(input.name, val)
+			if input.dt == 'bool' then
+				val = val and 1 or 0
+			end
+
+			if input.rate and input.rate ~= 1 then
+				val = val * input.rate
+			end
+			dev:set_input_prop(input.name, "value", val)
+		end
+	end
+
+	self._log:debug("Async Read Start!!!")
+	local packs = {}
+	local locked = {}
+	local be_time = nil
+	for _, v in ipairs(self._packets) do
+		self._sys:sleep(0)
+		if self._closing then
+			return --- Return
+		end
+		--
+		if v.tag then
+			if plctag.Status.OK == plctag.lock(v.tag) then
+				table.insert(locked, v.tag)
+			else
+				self._log:error("Failed to lock tag", v.tag_path)
+				goto read_end
+			end
+
 			local rc = plctag.read(v.tag, 0)
 			if rc ~= plctag.Status.OK and rc ~= plctag.Status.PENDING then
 				self._log:error("Async Read Pre Error", plctag.decode_error(rc), v.tag_path)
@@ -220,19 +311,20 @@ function app:async_read(dev)
 			end
 		end
 	end
-	local be_time = self._sys:time()
+	be_time = self._sys:time()
 	while #packs > 1 do
-		self._sys:sleep(20)
+		self._sys:sleep(5)
+		--plctag.sleep(50)
 		if self._closing then
-			return --- Return
+			goto read_end
 		end
-		if (self._sys:time() - be_time) > (self._conf.timeout or 2000) / 1000 then
+		if (self._sys:time() - be_time) > (self._conf.timeout or 5000) / 1000 then
 			self._log:error("Async Read Timeout!!!")
-			return --- Return
+			goto read_end
 		end
 
 		for i, v in ipairs(packs) do
-			local rc = plctag.read(v.tag, 0)
+			local rc = plctag.status(v.tag)
 			if rc ~= plctag.Status.PENDING then
 				if rc == plctag.Status.OK then
 					parse_tag(v)
@@ -243,6 +335,12 @@ function app:async_read(dev)
 			end
 		end
 	end
+
+	::read_end::
+	for _, v in ipairs(locked) do
+		plctag.unlock(v)
+	end
+	self._log:debug("Async Read End!!!")
 end
 
 --- 应用运行入口
@@ -258,6 +356,7 @@ function app:on_run(tms)
 	else
 		self:async_read(dev)
 	end
+	--self:async_read(dev)
 
 	if self._closing then
 		self._sys:wakeup(self._closing)
