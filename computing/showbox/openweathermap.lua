@@ -1,4 +1,4 @@
-local restful = require 'restful'
+local restful = require 'http.restful'
 local cjson = require 'cjson.safe'
 --[[
 * Guangzhou: 1809858
