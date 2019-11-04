@@ -5,6 +5,7 @@ local sysinfo = require 'utils.sysinfo'
 local leds = require 'utils.leds'
 local event = require 'app.event'
 local lte_wan = require 'lte_wan'
+local sbat = require 'standby_battery'
 local ioe = require 'ioe'
 local lfs = require 'lfs'
 -- own libs
@@ -22,6 +23,7 @@ function app:initialize(name, sys, conf)
 	self._cancel_timers = {}
 	self._apps_cache = {}
 	self._lte_wan = lte_wan:new(self, sys, self._conf.lte_wan_freq)
+	self._sbat = sbat:new(self, sys)
 end
 
 function app:start()
@@ -210,6 +212,11 @@ function app:start()
 		inputs[#inputs + 1] = v
 	end
 
+	local sbat_inputs = self._sbat:inputs()
+	for _,v in ipairs(sbat_inputs) do
+		inputs[#inputs + 1] = v
+	end
+
 	-- for apps
 	local apps = datacenter.get("APPS")
 	for k, v in pairs(apps) do
@@ -296,6 +303,7 @@ end
 
 function app:close(reason)
 	--print(self._name, reason)
+	self._sbat:stop()
 	self._lte_wan:stop()
 	for name, cancel_timer in pairs(self._cancel_timers) do
 		cancel_timer()
@@ -387,10 +395,15 @@ function app:first_run()
 				self._tmp_event_fired = os.time()
 			end
 		end
+
+		--- time check
+		--
+		self:check_time_diff()
 	end
 	calc_tmp_disk()
 
 	self._lte_wan:start(self._dev)
+	self._sbat:start(self._dev)
 
 	self._sys:timeout(100, function()
 		self._log:debug("Fire system started event")
@@ -413,6 +426,9 @@ function app:first_run()
 end
 
 function app:check_time_diff()
+	--- pause and resume current coroutine
+	self._sys:sleep(1)
+	--- check the time right after the coroutine resume
 	local os_time = os.time()
 	local sys_time = self._sys:time()
 
@@ -473,9 +489,9 @@ function app:run(tms)
 		self:first_run()
 		--self._log:debug("System started!!!")
 	end
-	self:check_time_diff()
 	--- LTE WAN
 	self._lte_wan:run()
+	-- self._sbat:run() -- there is no run in sbat module
 
 	self._dev:set_input_prop('starttime', "value", self._start_time)
 	self._dev:set_input_prop('version', "value", self._version)
