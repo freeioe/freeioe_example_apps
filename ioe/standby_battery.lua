@@ -31,8 +31,9 @@ function sbat_pwr:inputs()
 		return {
 			{
 				name = 'sbat_pwr',
-				desc = 'Standby battery power status',
+				desc = 'Standby battery power time',
 				vt = "int",
+				unit = 'sec'
 			}
 		}
 	else
