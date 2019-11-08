@@ -20,7 +20,9 @@ function sbat_pwr:initialize(app, sys)
 			span = 'never',
 			path = sysinfo.data_dir()
 		})
-		self._start_time = ioe.time()
+
+		self._start_time = nil
+		self._last_update = nil
 	end
 end
 
@@ -48,7 +50,13 @@ function sbat_pwr:read_status()
 			self._sum:reset()
 			self._last_update = now - 9 -- next second will upload 0
 		end
+		if self._start_time then
+			self._start_time = nil --- clear the start time
+		end
 	else
+		if not self._start_time then
+			self._start_time = now --- set the start time
+		end
 		self._sum:set('pwr', math.floor(now - self._start_time))
 	end
 
