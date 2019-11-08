@@ -298,6 +298,10 @@ function app:start()
 		--local ubus = snax.uniqueservice('ubus', '/tmp/ubus.sock')
 	end
 
+	self._sys:fork(function()
+		self._lte_wan:start(self._dev)
+		self._sbat:start(self._dev)
+	end)
 	return true
 end
 
@@ -401,9 +405,6 @@ function app:first_run()
 		self:check_time_diff()
 	end
 	calc_tmp_disk()
-
-	self._lte_wan:start(self._dev)
-	self._sbat:start(self._dev)
 
 	self._sys:timeout(100, function()
 		self._log:debug("Fire system started event")
