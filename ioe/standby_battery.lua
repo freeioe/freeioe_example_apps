@@ -1,5 +1,7 @@
 local class = require 'middleclass'
 local sysinfo = require 'utils.sysinfo'
+local sum = require 'summation'
+local ioe = require 'ioe'
 
 local sbat_pwr = class("FREEIOE_STANDBY_POWER_STATUS_CLASS")
 
@@ -10,6 +12,15 @@ function sbat_pwr:initialize(app, sys)
 	self._sys = sys
 	if lfs.attributes(sbat_power_fp, "mode") then
 		self._enabled = true
+
+		self._sum = sum:new({
+			file = true,
+			save_span = 60 * 5,
+			key = 'standby_battery',
+			span = 'never',
+			path = sysinfo.data_dir()
+		})
+		self._start_time = ioe.time()
 	end
 end
 
@@ -29,10 +40,22 @@ end
 
 function sbat_pwr:read_status()
 	local s = sysinfo.cat_file(sbat_power_fp)
+	local now = ioe.time()
+
 	if tonumber(s) == 0 then
-		self._dev:set_input_prop('sbat_pwr', 'value', 0)
+		if self._sum:get('pwr') ~= 0 then
+			self._dev:set_input_prop('sbat_pwr', 'value', self._sum:get('pwr'))
+			self._sum:reset()
+			self._last_update = now - 9 -- next second will upload 0
+		end
 	else
-		self._dev:set_input_prop('sbat_pwr', 'value', 1)
+		self._sum:set('pwr', math.floor(now - self._start_time))
+	end
+
+	--- Update the value every ten seconds
+	if not self._last_update or now - self._last_update >= 10 then
+		self._dev:set_input_prop('sbat_pwr', 'value', self._sum:get('pwr'))
+		self._last_update = now
 	end
 
 	self._cancel_timer = self._sys:cancelable_timeout(1000, function()
@@ -52,6 +75,7 @@ function sbat_pwr:stop()
 		self._cancel_timer()
 		self._cancel_timer = nil
 	end
+	self._sum:save()
 end
 
 return sbat_pwr

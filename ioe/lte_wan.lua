@@ -234,6 +234,7 @@ function lte_wan:stop()
 		self._lte_wan_cancel_timer()
 		self._lte_wan_cancel_timer = nil
 	end
+	self._wan_sum:save()
 end
 
 return lte_wan
