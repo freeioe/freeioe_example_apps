@@ -296,21 +296,21 @@ function client:load_encryption(conf)
 		end
 	end
 
-	local cert_file = sys:client_dir()..(conf.encryption.cert or "certs/cert.der")
-	local key_file = sys:client_dir()..(conf.encryption.key or "certs/key.der")
+	local cert_file = sys:app_dir()..(conf.encryption.cert or "certs/cert.der")
+	local key_file = sys:app_dir()..(conf.encryption.key or "certs/key.der")
 
 	local cert_fn = "certs/certt.der"
 	if conf.encryption.cert and string.len(conf.encryption.cert) > 0 then
 		cert_fn = conf.encryption.cert
 	end
-	local cert_file = sys:client_dir()..cert_fn
+	local cert_file = sys:app_dir()..cert_fn
 
 	local key_fn = "certs/key.der"
 	if conf.encryption.key and string.len(conf.encryption.key) > 0 then
 		key_fn = conf.encryption.key
 	end
 
-	local key_file = sys:client_dir()..key_fn
+	local key_file = sys:app_dir()..key_fn
 
 	return {
 		cert = cert_file,
