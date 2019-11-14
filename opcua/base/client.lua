@@ -1,8 +1,6 @@
 --- 导入需求的模块
 local opcua = require 'opcua'
 local class = require 'middleclass'
-local skynet = require 'skynet'
-
 
 local client = class("APP_OPCUA_CLIENT_BASE")
 
@@ -21,7 +19,7 @@ function client:connected()
 	return self._client ~= nil
 end
 
---- 
+---
 -- Get the objects node (ns=0, i=85)
 --
 function client:get_objects_node()
@@ -53,10 +51,10 @@ function client:get_child(node, child_name, ...)
 end
 
 function client:get_node(ns, i)
-	local client = self._client
+	local opc_client = self._client
 
-	if not client then
-		self._log:warning('no client', ns, i)
+	if not opc_client then
+		self._log:warning('no opc client', ns, i)
 		return nil
 	end
 
@@ -64,7 +62,7 @@ function client:get_node(ns, i)
 	self._sys:sleep(0)
 
 	local id = opcua.NodeId.new(ns, i)
-	local obj, err = client:getNode(id)
+	local obj, err = opc_client:getNode(id)
 	if not obj then
 		self._log:warning("Cannot get OPCUA node", ns, i)
 	end
@@ -94,7 +92,8 @@ function client:read_value(node, vt)
 end
 
 function client:write_value(node, vt, val)
-	local val = val
+	self._log:debug('writing node', node, vt, node and node.id)
+	local val = assert(val, "value is missing")
 	if vt == 'int' then
 		val = math.floor(tonumber(val))
 	elseif vt == 'float' then
@@ -135,7 +134,8 @@ function client:parse_value(data_value, vt)
 				return value
 			end
 		else
-			--print('asValue failed', err)
+			--self._log:debug('asValue failed', err)
+			return nil, err
 		end
 	end
 
@@ -150,7 +150,6 @@ function client:parse_value(data_value, vt)
 			return nil, "Cannot convert to number"
 		end
 
-		local value = tonumber(value)
 		return math.floor(value), dv.sourceTimestamp, dv.serverTimestamp
 	end
 
@@ -235,7 +234,7 @@ function client:connect_proc()
 				return true
 			end
 		else
-			local err = err or opcua.getStatusCodeName(r)
+			err = err or opcua.getStatusCodeName(r)
 			if self._client then
 				log:error("OPC Client connect failure!", err)
 				self._client = nil
@@ -250,6 +249,7 @@ function client:connect_proc()
 		local r, err = connect_opc()
 		if not r then
 			--- Connection Failed
+			log:error("OPC Client disconnected!", err)
 			sys:sleep(connect_delay)
 			connect_delay = connect_delay * 2
 			if connect_delay > 64000 then
@@ -281,10 +281,9 @@ function client:connect_proc()
 end
 
 function client:load_encryption(conf)
-	local sys = self._sys
-
 	local securityMode = nil
 	if (conf.encryption.mode) then
+		local mode = conf.encryption.mode
 		if mode == 'SignAndEncrypt' then
 			securityMode = opcua.UA_MessageSecurityMode.UA_MESSAGESECURITYMODE_SIGNANDENCRYPT
 		end
@@ -296,21 +295,9 @@ function client:load_encryption(conf)
 		end
 	end
 
+	local sys = self._sys
 	local cert_file = sys:app_dir()..(conf.encryption.cert or "certs/cert.der")
 	local key_file = sys:app_dir()..(conf.encryption.key or "certs/key.der")
-
-	local cert_fn = "certs/certt.der"
-	if conf.encryption.cert and string.len(conf.encryption.cert) > 0 then
-		cert_fn = conf.encryption.cert
-	end
-	local cert_file = sys:app_dir()..cert_fn
-
-	local key_fn = "certs/key.der"
-	if conf.encryption.key and string.len(conf.encryption.key) > 0 then
-		key_fn = conf.encryption.key
-	end
-
-	local key_file = sys:app_dir()..key_fn
 
 	return {
 		cert = cert_file,
@@ -321,29 +308,28 @@ end
 
 --- 应用启动函数
 function client:connect()
-	local sys = self._sys
 	local conf = self._conf
 	--conf.modal = conf.modal or default_modal
 
-	local client = nil
+	local client_obj = nil
 
 	if conf.encryption then
 		local cp = self:load_encryption(conf)
-		self._log:info("Create client with entryption", cp.mode, cp.cert, cp.key)
-		client = opcua.Client.new(cp.mode, cp.cert, cp.key)
+		self._log:info("Create client with encryption", cp.mode, cp.cert, cp.key)
+		client_obj = opcua.Client.new(cp.mode, cp.cert, cp.key)
 	else
-		self._log:info("Create client without entryption.")
-		client = opcua.Client.new()
+		self._log:info("Create client without encryption.")
+		client_obj = opcua.Client.new()
 	end
 
-	local config = client.config
+	local config = client_obj.config
 	config:setTimeout(5000)
 	config:setSecureChannelLifeTime(10 * 60 * 1000)
 
 	local client_uri = conf.client_uri or "urn:freeioe:opcuaclient"
 	config:setApplicationURI(client_uri)
 
-	self._client_obj = client
+	self._client_obj = client_obj
 
 	--- 发起OpcUa连接
 	self._sys:fork(function() self:connect_proc() end)
@@ -369,8 +355,6 @@ function client:create_subscription(inputs, callback)
 		end
 		local input = m[mon_id]
 		if input then
-			local input = input
-			local data_value = data_value
 			--- TODO: Using better way to implement this co tasks
 			table.insert(self._co_tasks, function()
 				local r, err = xpcall(callback, debug.traceback, input, data_value)
@@ -396,6 +380,7 @@ function client:create_subscription(inputs, callback)
 			if mon_id then
 				sub_map[mon_id] = v
 			else
+				self._log:warning("Failed to subscribe node", v.ns, v.i, err)
 				table.insert(failed, v)
 			end
 

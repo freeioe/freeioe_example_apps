@@ -8,6 +8,26 @@ local app = app_base:subclass("FREEIOE_OPCUA_CLIENT_APP")
 --- 设定应用最小运行接口版本(目前版本为5,为了以后的接口兼容性)
 app.static.API_VER = 5
 
+function app:text2file(text, filename)
+	if not text or string.len(text) == 0 then
+		return nil
+	end
+
+	local full_path = self._sys:app_dir()..filename
+	local f = assert(io.open(full_path, 'w+'))
+	f:write(text)
+	f:close()
+	return filename
+end
+
+function app:on_init()
+	local conf = self._conf
+	if conf.encryption then
+		conf.encryption.cert = self:text2file(conf.encryption.cert, '.ca.der')
+		conf.encryption.key = self:text2file(conf.encryption.key, '.key.der')
+	end
+end
+
 function app:connected()
 	return self._client ~= nil and self._client:connected()
 end
@@ -181,7 +201,7 @@ function app:on_run(tms)
 				dev:set_input_prop(input.name, "value", 0, now, 1)
 			end
 		else
-			local now = self._sys:time()
+			--local now = self._sys:time()
 			-- TODO:
 			-- dev:set_input_prop(k, "value", 0, now, 1)
 		end

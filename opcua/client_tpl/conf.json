@@ -91,14 +91,12 @@
 			{
 				"name": "cert",
 				"desc": "UA证书(可选)",
-				"type": "string",
-				"default": "certs/cert.der"
+				"type": "text"
 			},
 			{
-				"name": "key",
+				"name": "cert",
 				"desc": "KEY文件(可选)",
-				"type": "string",
-				"default": "certs/key.der"
+				"type": "text"
 			}
 		]
 	},
