@@ -116,26 +116,34 @@ function client:parse_value(data_value, vt)
 	--- Latest opcua binding support asValue function
 	if dv.value.asValue then
 		local value, err = dv.value:asValue()
-		if value then
-			if vt == 'int' then
-				value = tonumber(value)
-				if value then
-					return math.floor(value)
-				end
-			end
-			if vt == 'string' then
-				value = tostring(value)
-				if value then
-					return value
-				end
+		if value == nil then
+			--self._log:debug('asValue failed', err)
+			return nil, err
+		end
+
+		if vt == 'int' then
+			if type(value) == 'boolean' then
+				value = value and 1 or 0
 			end
 			value = tonumber(value)
 			if value then
+				return math.floor(value)
+			end
+		end
+
+		if vt == 'string' then
+			value = tostring(value)
+			if value then
 				return value
 			end
+		end
+
+		--- float
+		value = tonumber(value)
+		if value then
+			return value
 		else
-			--self._log:debug('asValue failed', err)
-			return nil, err
+			return nil, "Convert to number failed"
 		end
 	end
 
