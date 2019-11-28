@@ -10,8 +10,7 @@ my_app.static.API_VER = 4
 
 
 --- 应用初始化
-function my_app:initialize(name, sys, conf)
-	base_app.initialize(self, name, sys, conf)
+function my_app:on_init()
 	self._devs = {}
 end
 
