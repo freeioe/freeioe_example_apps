@@ -50,7 +50,29 @@ function client:get_child(node, child_name, ...)
 	return node:getChild(child_name, ...)
 end
 
-function client:get_node(ns, i)
+function gen_node_id(ns, i, itype)
+	local id = nil
+	if itype == nil or itype == 'auto' then
+		id = opcua.NodeId.new(ns, i)
+	else
+		if itype == 'hex' then
+			id = opcua.NodeId.new(ns, basexx.from_hex(i))
+		elseif itype == 'base64' then
+			id = opcua.NodeId.new(ns, basexx.from_base64(i))
+		elseif itype == 'guid' or itype == 'uuid' then
+			id = opcua.NodeId.new(ns, opcua.Guid.new(i))
+		elseif itype == 'number' then
+			id = opcua.NodeId.new(ns, tonumber(i))
+		elseif itype == 'string' then
+			id = opcua.NodeId.new(ns, tostring(i))
+		else
+			id = opcua.NodeId.new(ns, i)
+		end
+	end
+	return id
+end
+
+function client:get_node(ns, i, itype)
 	local opc_client = self._client
 
 	if not opc_client then
@@ -61,7 +83,7 @@ function client:get_node(ns, i)
 	-- Make sure all other functions are working well
 	self._sys:sleep(0)
 
-	local id = opcua.NodeId.new(ns, i)
+	local id = gen_node_id(ns, i, itype)
 	local obj, err = opc_client:getNode(id)
 	if not obj then
 		self._log:warning("Cannot get OPCUA node", ns, i)
@@ -381,7 +403,7 @@ function client:create_subscription(inputs, callback)
 	local failed = {}
 	for _, v in ipairs(inputs) do
 		self._sys:sleep(0)
-		local id = opcua.NodeId.new(v.ns, v.i)
+		local id = gen_node_id(v.ns, v.i, v.itype)
 		local node = self:get_node_by_id(id)
 		if node then
 			local mon_id, err = self._client:subscribeNode(sub_id, id)

@@ -43,13 +43,13 @@ function app:on_connected(client)
 	local enable_sub = self._conf.enable_sub
 
 	if not enable_sub then
-		local function get_opcua_node(ns, i)
-			return client:get_node(ns, i)
+		local function get_opcua_node(ns, i, itype)
+			return client:get_node(ns, i, itype)
 		end
 
 		--- 获取节点
 		for _, input in ipairs(self._tpl.inputs) do
-			input.node = input.node or get_opcua_node(input.ns, input.i)
+			input.node = input.node or get_opcua_node(input.ns, input.i, input.itype)
 		end
 	else
 		local r, err = client:create_subscription(self._tpl.inputs, function(input, data_value)
@@ -223,7 +223,7 @@ function app:on_output(app_src, sn, output, prop, value, timestamp)
 
 	for _, v in ipairs(self._tpl.outputs) do
 		if v.name == output then
-			local node, err = self._client:get_node(v.ns, v.i)
+			local node, err = self._client:get_node(v.ns, v.i, v.itype)
 			if not node then
 				return nil, err
 			end
