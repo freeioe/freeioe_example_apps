@@ -198,7 +198,7 @@ function app:on_event(app, sn, level, type_, info, data, timestamp)
 
 	local event = {
 		level = level,
-		['type'] = tyep_,
+		['type'] = type_,
 		info = info,
 		data = data,
 		app = app
