@@ -11,6 +11,7 @@ RELEASE_APP ioe
 RELEASE_APP modbus/master
 RELEASE_APP modbus/slave
 RELEASE_APP modbus/gateway
+RELEASE_APP modbus/smc
 
 # Hardware test
 RELEASE_APP hw_test/reboot 
