@@ -15,6 +15,7 @@ end
 
 function calc:to_value(raw)
 	local val = tonumber(raw)
+	print(val)
 	if val < self._raw_min then
 		return nil, "Out range [min]"
 	end
@@ -22,7 +23,11 @@ function calc:to_value(raw)
 		return nil, "Out range [max]"
 	end
 
-	return (val - self._raw_min) * (self._value_max - self._value_min) / (self._raw_max - self._raw_min)
+	print(val - self._raw_min)
+	print(self._value_max - self._value_min)
+	print(self._raw_max - self._raw_min)
+
+	return (val - self._raw_min) * (self._value_max - self._value_min) / (self._raw_max - self._raw_min) + self._value_min
 end
 
 function calc:to_raw(value)
@@ -34,7 +39,7 @@ function calc:to_raw(value)
 		return nil, "Out range [max]"
 	end
 
-	return (raw - self._value_min) * (self._raw_max - self._raw_min) / (self._value_max - self._value_min)
+	return (raw - self._value_min) * (self._raw_max - self._raw_min) / (self._value_max - self._value_min) + self._raw_min
 end
 
 return  calc

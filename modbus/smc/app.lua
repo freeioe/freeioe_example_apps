@@ -126,8 +126,8 @@ function app:on_start()
 	local conf = helper:config()
 	conf.channel_type = conf.channel_type or 'serial'
 	--[[ test
-	--conf.channel_type = conf.channel_type or 'socket'
-	--conf.apdu_type = 'rtu'
+	conf.channel_type = conf.channel_type or 'socket'
+	conf.apdu_type = 'rtu'
 	--]]--
 	if conf.channel_type == 'socket' then
 		conf.opt = conf.socket_opt or {
