@@ -39,11 +39,11 @@ local function load_tpl(name, err_cb)
 				end
 				calcs[#calcs + 1] = calc
 			end
-			if v[2] == 'PROP' then
+			if v[1] == 'PROP' then
 				local prop = {
 					name = v[2],
 					desc = v[3],
-					enabled = tonumber(v[5]) == 1,
+					enabled = tonumber(v[6]) == 1,
 				}
 				if string.len(v[4]) > 0 then
 					prop.unit = v[4]
@@ -78,6 +78,8 @@ local function map_mode(mode_tpl, dev_tpl, err_cb)
 	for _, prop in ipairs(dev_tpl.props) do
 		if prop.enabled  then
 			dev_props[prop.name] = prop
+		else
+			--print(prop.name, prop.enabled)
 		end
 	end
 	for _, calc in ipairs(dev_tpl.calcs) do
@@ -102,6 +104,7 @@ local function map_mode(mode_tpl, dev_tpl, err_cb)
 		local dp = dev_props[prop.name]
 		if dp and dp.enabled then
 			table.insert(tpl.props, setmetatable(dp, { __index = prop }))
+			--print(prop.name, "enabled")
 		end
 	end
 

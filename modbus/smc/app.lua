@@ -29,13 +29,13 @@ function app:on_start()
 	local config = self._conf or {}
 
 	--- test
-	--[[
 	config.tpls = {
 		{ id = 'TPL_TEST_SMC', name = 'smc', ver = 1 }
 	}
 	config.devs = {
 		{ unit = 1, name = 'smc', sn = 'smc', mode = 'SMC-1', tpl = 'smc' }
 	}
+	--[[
 	]]
 
 	local helper = conf_helper:new(self._sys, config)
