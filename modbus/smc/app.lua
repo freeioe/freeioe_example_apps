@@ -36,7 +36,7 @@ function app:on_start()
 	config.devs = {
 		{ unit = 1, name = 'smc', sn = 'smc', mode = 'SMC-1', tpl = 'smc' }
 	}
-	]]
+	]]--
 
 	local helper = conf_helper:new(self._sys, config)
 	helper:fetch()
@@ -125,10 +125,14 @@ function app:on_start()
 	--- 获取配置
 	local conf = helper:config()
 	conf.channel_type = conf.channel_type or 'serial'
+	--[[ test
+	--conf.channel_type = conf.channel_type or 'socket'
+	--conf.apdu_type = 'rtu'
+	--]]--
 	if conf.channel_type == 'socket' then
 		conf.opt = conf.socket_opt or {
-			host = "127.0.0.1",
-			port = 1503,
+			host = "172.30.11.108",
+			port = 4000,
 			nodelay = true
 		}
 	else
@@ -390,7 +394,11 @@ function app:read_packet(dev, stat, unit, pack)
 		if input.calc then
 			val = input.calc:to_value(val)
 		end
-		dev:set_input_prop(input.name, "value", val)
+		if val then
+			dev:set_input_prop(input.name, "value", val)
+		else
+			dev:set_input_prop(input.name, "value", 0, nil, 1)
+		end
 	end
 end
 

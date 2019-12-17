@@ -90,12 +90,12 @@ local function map_mode(mode_tpl, dev_tpl, err_cb)
 				unit = calc.unit,
 				enabled = calc.enabled,
 				rw = calc.rw,
-				func = load_calc_func(calc.func, table.unpack(calc.args))
+				calc = load_calc_func(calc.func, table.unpack(calc.args))
 			}
-			if calc.func and not prop.func then
+			if calc.func and not prop.calc then
 				err_cb(string.format("Loading function %s failed", calc.func))
 			end
-			dev_props[prop.name] = calc
+			dev_props[prop.name] = prop
 		end
 	end
 
@@ -103,7 +103,8 @@ local function map_mode(mode_tpl, dev_tpl, err_cb)
 	for _, prop in ipairs(mode_tpl.props) do
 		local dp = dev_props[prop.name]
 		if dp and dp.enabled then
-			table.insert(tpl.props, setmetatable(dp, { __index = prop }))
+			local p = setmetatable(dp, { __index = prop })
+			table.insert(tpl.props, p)
 			--print(prop.name, "enabled")
 		end
 	end
