@@ -44,3 +44,5 @@ luac.out
 .~*
 *.swp
 tpl
+
+other/sqlite3/lualib

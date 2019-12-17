@@ -58,7 +58,7 @@ function app:on_start()
 
 		local tpl_err_cb = function(...) self._log:error(...) end
 
-		local mode_tpl, err = csv_tpl.load_tpl(v.mode, tpl_err_cb)
+		local mode_tpl, err = csv_tpl.load_tpl('__mode__'..v.mode, tpl_err_cb)
 		if not mode_tpl then
 			self._log:error("Loading module ["..v.mode.."] template failed", err)
 		end
