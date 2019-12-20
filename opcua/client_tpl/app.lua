@@ -140,6 +140,8 @@ function app:on_start()
 	local dev_sn = conf.device_sn
 	if dev_sn == nil or string.len(conf.device_sn) == 0 then
 		dev_sn = sys_id..'.'..meta.name
+	else
+		dev_sn = conf.with_ioe_sn and sys_id..'.'..dev_sn or dev_sn
 	end
 	self._dev_sn = dev_sn
 	self._dev = self._api:add_device(dev_sn, meta, inputs, outputs)

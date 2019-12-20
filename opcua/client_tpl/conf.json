@@ -5,6 +5,12 @@
 		"type": "string"
 	},
 	{
+		"name": "with_ioe_sn",
+		"desc": "是否使用网关ID作为前缀",
+		"type": "boolean",
+		"default": true
+	},
+	{
 		"name": "loop_gap",
 		"desc": "采集周期(ms)",
 		"type": "number",
