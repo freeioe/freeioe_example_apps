@@ -74,7 +74,7 @@ local function load_tpl(name)
 					errno = tonumber(v[7]) or -1,
 				}
 				if string.len(v[5]) > 0 then
-					alm.i = tonumber(v[5]) or v[5],
+					alm.i = tonumber(v[5]) or v[5]
 				end
 				assert(alm.i, "ID index missing")
 
