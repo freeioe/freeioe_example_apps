@@ -1,11 +1,13 @@
 local class = require 'middleclass'
-local data_area = require 'data_area'
+local data_area = require 'hostlink.data_area'
+local encode = require 'hostlink.encode'
 
 local hl = class("OMRON_HOSTLINK_FRAME")
 
 
 function hl:initialize(dev_addr)
 	self._addr = dev_addr
+	self._encode = encode:new()
 end
 
 local xor_check = function(data)
@@ -76,62 +78,10 @@ function hl:make_write_bit(value)
 end
 
 function hl:make_write_words(area, offset, value_type, value)
-	local value_type = string.lower(value_type)
-	local raw = nil
-	if value_type == 'word' or value_type == 'short' then
-		raw = string.format('%04X', value % 0xFFFF)
-	elseif value_type == 'sbcd' then
-		if value > 9999 or value < 0 then
-			return nil, "SBCD limitation"
-		end
-		raw = string.format('%04d', value % 0xFFFF)
-	elseif value_type == 'dword' or value_type == 'long' then
-		raw = string.format('%08X', value % 0xFFFFFFFF)
-	elseif value_type == 'lbcd' then
-		if value > 99999999 or value < 0 then
-			return nil, "LBCD limitation"
-		end
-		raw = string.format('%08d', value % 0xFFFFFFFF)
-	elseif value_type == 'float' then
-		local fstr = string.pack('<f', value)
-		local sftr = fstr:sub(2,2)..fstr:sub(1,1)..fstr:sub(4,4)..fstr:sub(3,3)
-		local vals = {}
-		for i = 1, #sftr  do
-			vals[#vals + 1] = string.format('%02X', string.byte(sftr, i))
-		end
-		raw = table.concat(frame)
-	elseif value_type == 'fbcd' then
-		if value > 99999999 or value < 0 then
-			return nil, "FBCD limitation"
-		end
-		local nEx = 0
-		local bSign = value >= 0.1 and 0 or 1
-		while true do
-			if value < 1 and value > 0.1 then
-				break
-			end
-			if value >= 1 then
-				value = value / 10
-			else
-				value = value * 10
-			end
-			nEx = nEx + 1
-		end
-		local val = 0
-		val = (bSign << 3 + nEx)
-
-		for i = 1, 7 do
-			value = value * 10
-			val = val << 4 + math.floor(value)
-		end
-
-		raw = string.format('%08X', val)
-	elseif value_type == 'string' then
-		return nil, "String write is not supported"
-	else
-		return nil, "Unknown value type"
+	local raw, err = self._encode(value_type, value)
+	if not raw then
+		return nil, err
 	end
-
 	return self:make_write(area, offset, raw)
 end
 
@@ -143,7 +93,7 @@ end
 function hl:unpack_frame(raw)
 	-- TODO: drop the incorrect raw stream data
 	--
-	local bn, addr, code, raw  = string.find(raw, '^(.-)@(%d)([WR]%W)(.+)%*\r')
+	local bn, addr, code, raw  = string.find(raw, '^(.-)@(%d%d)([WR]%W)(.+)%*\r')
 	if not bn or not addr then
 		return false, 0, "Not valid input"
 	end
@@ -153,6 +103,7 @@ function hl:unpack_frame(raw)
 	if string.len(raw) <= 2 then
 		return false, bn_len + 7, "Invalid Input"
 	end
+
 	if tonumber(addr) ~= tonumber(self._addr) then
 		return false, bn_len + 7, "Not for current device"
 	end
