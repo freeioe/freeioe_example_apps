@@ -1,6 +1,6 @@
 --- 导入需求的模块
 local app_base = require 'app.base'
-local client = require 'enip_client'
+local client = require 'client_sc'
 
 --- 注册对象(请尽量使用唯一的标识字符串)
 local app = app_base:subclass("FREEIOE_PLC_AB_PLCTAG_APP")
