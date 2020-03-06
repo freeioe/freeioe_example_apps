@@ -62,6 +62,11 @@ function app:on_run(tms)
 	for _, v in ipairs(self._inputs) do
 		local r, err = self._client:read_tag(v.name, v.dt, function(val, err)
 			self._log:debug('Value from PLC', val, err)
+			if val then
+				self._dev:set_input_prop(v.name, 'value', val)
+			else
+				self._dev:set_input_prop(v.name, 'value', 0, nil, -1)
+			end
 		end)
 	end
 
