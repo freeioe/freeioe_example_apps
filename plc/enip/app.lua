@@ -60,7 +60,7 @@ end
 function app:on_run(tms)
 
 	for _, v in ipairs(self._inputs) do
-		local r, err = self._client:read_tag(v.name, v.dt, function(val, err)
+		local r, err = self._client:read_tag(v.name, v.dt, 1, function(val, err)
 			if not val then
 				self._log:error('Read PLC tag error:', err)
 			else
@@ -73,6 +73,10 @@ function app:on_run(tms)
 			end
 		end)
 	end
+
+	local r, err = self._client:write_tag('tag1', 'UINT', 111, function(val, err)
+		print(val, err)
+	end)
 
 	return 10000
 end
