@@ -75,7 +75,11 @@ function app:on_run(tms)
 	end
 
 	local r, err = self._client:write_tag('tag1', 'UINT', 111, function(val, err)
-		print(val, err)
+		if not val then
+			self._log:error('Wirte PLC tag error:', err)
+		else
+			self._log:debug('Value from PLC', val, err)
+		end
 	end)
 
 	return 10000
