@@ -1,6 +1,7 @@
 --- 导入需求的模块
 local app_base = require 'app.base'
 local client = require 'client_sc'
+local cip_types = require 'enip.cip.types'
 
 --- 注册对象(请尽量使用唯一的标识字符串)
 local app = app_base:subclass("FREEIOE_PLC_AB_PLCTAG_APP")
@@ -59,6 +60,7 @@ end
 
 function app:on_run(tms)
 
+	--[[
 	for _, v in ipairs(self._inputs) do
 		local r, err = self._client:read_tag(v.name, v.dt, 1, function(val, err)
 			if not val then
@@ -73,6 +75,33 @@ function app:on_run(tms)
 			end
 		end)
 	end
+	]]--
+	local tags = {}
+	for _, v in ipairs(self._inputs) do
+		tags[#tags + 1] = {
+			path = v.name,
+			count = 1,
+			set_value = function(value, quality)
+				self._dev:set_input_prop(v.name, 'value', value, nil, quality)
+			end,
+		}
+	end
+	local r, err = self._client:read_tag_frg(tags, function(val, err)
+		if not val then
+			self._log:error('Read tags error:', err)
+		else
+			for i, v in ipairs(val) do
+				local tag = tags[i]
+				local val, err = self._client:get_reply_value(v)
+				if not val then
+					self._log:error('Get '..tag.path..' error:', err)
+					tag.set_value(0, -1)
+				else
+					tag.set_value(val)
+				end
+			end
+		end
+	end)
 
 	local r, err = self._client:write_tag('tag1', 'UINT', 111, function(val, err)
 		if not val then
