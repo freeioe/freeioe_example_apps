@@ -196,7 +196,7 @@ function lte_wan:start(dev)
 				f:close()
 
 				if str then
-					local info = cjson.decode(str)
+					local info = cjson.decode(str) or {}
 					local ccid = info.ccid
 					if ccid then
 						self._dev:set_input_prop('ccid', "value", ccid)
