@@ -96,14 +96,34 @@ function app:on_start()
 	self._tpl_outputs = tpl_outputs
 	self._packets = packets
 
-	self._client = client:new(conf.host, conf.route)
+	--- Start the connection
+	self:start_connect_proc()
 
-	local r, err = self._client:connect()
-	if not r then
-		self._log:error(tostring(err))
+	return true
+end
+
+function app:start_connect_proc()
+	if self._client then
+		return
 	end
-	
-	return r, err
+
+	local conn_proc = nil
+	conn_proc = function()
+		local conf = self._conf
+		self._client = client:new(conf.host, conf.route)
+
+		local r, err = self._client:connect()
+		if not r then
+			self._log:error(tostring(err))
+			self._client:close()
+			self._client = nil
+			self._sys:fork(conn_proc)
+		end
+
+		return r, err
+
+	end
+	self._sys:fork(conn_proc)
 end
 
 --- 应用退出函数
