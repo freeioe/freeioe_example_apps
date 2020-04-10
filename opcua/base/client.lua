@@ -224,13 +224,19 @@ function client:connect_proc()
 		table.insert(self._co_tasks, function()
 			self._log:trace("Client state changed to", state, cli)
 			if self._client_obj ~= cli then
+				self._log:error("Error client object")
 				return
 			end
 			if state == opcua.UA_ClientState.DISCONNECTED then
 				return self:on_disconnected()
-			end
-			if state == opcua.UA_ClientState.CONNECTED then
+			elseif state == opcua.UA_ClientState.SESSION_DISCONNECTED then
+				return self:on_disconnected()
+			elseif state == opcua.UA_ClientState.CONNECTED then
 				return self:on_connected()
+			elseif state == opcua.UA_ClientState.SESSION then
+				return self:on_connected()
+			else
+				self._log:trace("Not handled state", state)
 			end
 		end)
 	end)
