@@ -90,7 +90,11 @@ local function load_tpl(name, err_cb)
 					prop.vt = 'float'
 				end
 
-				prop.sc_name = tonumber(v[8]) or 0x03
+				if v[8] and string.len(v[8]) > 0 then
+					prop.sc_name = v[8]
+				else
+					assert(nil, "SC Name incorrect1")
+				end
 				prop.index = tonumber(v[9]) or 0
 				prop.rate = tonumber(v[10]) or 1
 				prop.offset = tonumber(v[11]) or 0

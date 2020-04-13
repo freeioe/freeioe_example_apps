@@ -138,38 +138,33 @@ function app:on_close(reason)
 end
 
 function app:read_pack(pack)
-	local inputs = pack.props
+	local inputs = pack.inputs
 	local tags = {}
 	for _, v in ipairs(inputs) do
 		tags[#tags + 1] = {
-			path = v.elem_name,
-			count = 1,
 			set_value = function(value, quality)
 				self._dev:set_input_prop(v.name, 'value', value, nil, quality)
 			end,
 		}
 	end
-	local r, err = self._client:read_tags(tags, function(val, err)
+	print(pack.sc_name, pack.start, pack.len)
+	local r, err = self._client:read_sc(pack.sc_name, pack.start, pack.len, function(val, err)
 		if not val then
-			self._log:error('Read tags error:', err)
+			self._log:error('Read PLC tags error:', err)
 		else
-			for i, v in ipairs(val) do
-				local tag = tags[i]
-				local val, err = self._client:get_reply_value(v)
-				if not val then
-					self._log:error('Get '..tag.path..' error:', err)
-					tag.set_value(0, -1)
-				else
-					tag.set_value(val)
-				end
-			end
+			self._log:debug('Value from PLC', val, err)
 		end
+		local data_paser = require 'melsec.data.parser'
+		local dp = data_paser:new(false)
+
+		print(dp('uint16', val))
 	end)
 end
 
 function app:on_run(tms)
 	local begin_time = self._sys:time()
 
+	--[[
 	local r, err = self._client:read_words('R*', 10400, 480, function(val, err)
 		if not val then
 			self._log:error('Read PLC tag error:', err)
@@ -180,14 +175,8 @@ function app:on_run(tms)
 		local dp = data_paser:new(false)
 
 		print(dp('uint16', val))
-		--[[
-		if val then
-			self._dev:set_input_prop(v.name, 'value', val)
-		else
-			self._dev:set_input_prop(v.name, 'value', 0, nil, -1)
-		end
-		]]--
 	end)
+	]]--
 
 	--[[
 	local r, err = self._client:write_tag('tag1', 'UINT', 111, function(val, err)
@@ -200,7 +189,6 @@ function app:on_run(tms)
 	]]--
 
 
-	--[[
 	for _, v in ipairs(self._packets) do
 		self._sys:sleep(0)
 		if self._closing then
@@ -208,7 +196,6 @@ function app:on_run(tms)
 		end
 		self:read_pack(v)
 	end
-	]]--
 
 	if self._closing then
 		self._sys:wakeup(self._closing)
