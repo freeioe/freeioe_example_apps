@@ -109,10 +109,10 @@ function app:start_connect_proc()
 	local conn_proc = nil
 	conn_proc = function()
 		local conf = self._conf
-		local network = conf.network or 1
-		local index = conf.network or 0
-		local io = conf.io or 0
-		local station = conf.station or 1
+		local network = conf.network or 0
+		local index = conf.index or 0xFF
+		local io = conf.io or 0x03FF
+		local station = conf.station or 0
 		self._client = client:new(conf.host, '4E_BIN', network, index, io, station)
 
 		local r, err = self._client:connect()
@@ -170,17 +170,23 @@ end
 function app:on_run(tms)
 	local begin_time = self._sys:time()
 
-	local r, err = self._client:read_words('R*', 10400, 1, function(val, err)
+	local r, err = self._client:read_words('R*', 10400, 480, function(val, err)
 		if not val then
 			self._log:error('Read PLC tag error:', err)
 		else
 			self._log:debug('Value from PLC', val, err)
 		end
+		local data_paser = require 'melsec.data.parser'
+		local dp = data_paser:new(false)
+
+		print(dp('uint16', val))
+		--[[
 		if val then
 			self._dev:set_input_prop(v.name, 'value', val)
 		else
 			self._dev:set_input_prop(v.name, 'value', 0, nil, -1)
 		end
+		]]--
 	end)
 
 	--[[

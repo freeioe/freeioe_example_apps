@@ -3,22 +3,13 @@
 local class = require 'middleclass'
 local base = require 'melsec.client'
 local socketchannel = require 'socketchannel'
+local stream_buffer = require 'app.utils.stream_buffer'
 
 local client = class('FREEIOE_APP_PLC_MELSEC_CLIENT', base)
 
-local function protect_call(obj, func, ...)
-	assert(obj and func)
-	local f = obj[func]
-	if not f then
-		return nil, "Object has no function "..func
-	end
-
-	local ret = {xpcall(f, debug.traceback, obj, ...)}
-	if not ret[1] then
-		print(table.concat(ret, '', 2))
-		return nil, table.concat(ret, '', 2)
-	end
-	return table.unpack(ret, 2)
+function client:initialize(...)
+	base.initialize(self, ...)
+	self._buf = stream_buffer:new(0xFFFF)
 end
 
 function client:connect()
@@ -37,23 +28,30 @@ function client:connect()
 end
 
 function client:sock_process(req, sock)
-	--print('sock_dispath start')
-	local hdr_raw = sock:read(24)
-	local basexx = require 'basexx'
-	print(basexx.to_hex(hdr_raw))
 
-	--[[
-	local header = enip_header:new()
-	header:from_hex(hdr_raw)
-	local session = header:session()
+	while true do
+		local data = sock:read()
+		if not data then
+			break
+		end
 
-	--print(header:length())
-	local data_raw = sock:read(header:length())
+		local basexx = require 'basexx'
+		print(basexx.to_hex(data))
 
-	local command, err = reply_parser(hdr_raw..data_raw)
-	--print('sock_dispath end')
-	]]--
+		self._buf:append(data)
 
+		local raw = self._buf:concat()
+
+		local r, reply, index = xpcall(self.on_reply, debug.traceback, self, req, raw)
+		if not r then
+			return false, reply, index
+		end
+
+		if reply then
+			self._buf:pop(index - 1)
+			return true, reply
+		end
+	end
 end
 
 function client:sock_overload(is_overload)
@@ -78,6 +76,7 @@ function client:request(request, response)
 	local r, resp, err = pcall(self._channel.request, self._channel, request:to_hex(), function(sock)
 		return self:sock_process(request, sock)
 	end)
+	print(r, resp, err)
 	if not r then
 		return nil, resp, err
 	end
