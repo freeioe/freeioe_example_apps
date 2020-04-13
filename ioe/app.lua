@@ -609,13 +609,21 @@ function app:disable_symlink(param)
 end
 
 function app:reboot_device(param)
-	local md5 = require 'md5'
-	if md5.sumhexa(param.pwd or '') == 'bf526ab1fdc29ce3f7097f28c9117cd3' then
-		self._sys:timeout(1000, function()
+	local restful = require('http.restful')
+	local http_api = restful("127.0.0.1:8808")
+	local user = param.user or 'admin'
+	local passwd = param.pwd or ''
+	local status, body = http_api:post("/user/login", nil, {username=user, password=passwd})
+	if status == 200 then
+		self._sys:timeout(3000, function()
 			os.execute("reboot &")
 		end)
-		return true, "Device will be reboot after one second"
+		self._log:warning("Reboot is authed with correct password!!!")
+		self._log:warning("Device will be reboot after threee seconds")
+		return true, "Device will be reboot after three seconds"
 	else
+		self._log:error("Auth failed", body)
+		self._log:error("Invalid pwd provied:", pwd)
 		return false, "Invalid pwd provided"
 	end
 end
