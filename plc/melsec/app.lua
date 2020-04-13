@@ -3,6 +3,7 @@ local app_base = require 'app.base'
 local client = require 'client_sc'
 local csv_tpl = require 'csv_tpl'
 local packet_split = require 'packet_split'
+local data_paser = require 'melsec.data.parser'
 
 --- 注册对象(请尽量使用唯一的标识字符串)
 local app = app_base:subclass("FREEIOE_PLC_AB_PLCTAG_APP")
@@ -138,26 +139,41 @@ function app:on_close(reason)
 end
 
 function app:read_pack(pack)
+	local parser = data_paser:new(false)
+
 	local inputs = pack.inputs
 	local tags = {}
 	for _, v in ipairs(inputs) do
 		tags[#tags + 1] = {
+			input = v,
 			set_value = function(value, quality)
 				self._dev:set_input_prop(v.name, 'value', value, nil, quality)
 			end,
+			unpack = function(raw)
+				local index = v.index - pack.start
+				return parser(v.dt, raw, index, v.slen)
+			end
 		}
 	end
 	print(pack.sc_name, pack.start, pack.len)
 	local r, err = self._client:read_sc(pack.sc_name, pack.start, pack.len, function(val, err)
 		if not val then
 			self._log:error('Read PLC tags error:', err)
+			return nil, err
 		else
 			self._log:debug('Value from PLC', val, err)
 		end
-		local data_paser = require 'melsec.data.parser'
-		local dp = data_paser:new(false)
 
-		print(dp('uint16', val))
+		for _, v in ipairs(tags) do
+			local val, err = v.unpack(val)
+			print(v.input.name, val, err)
+			if val then
+				v.set_value(val, 0)
+			else
+				v.set_value(0, -1)
+			end
+		end
+		--print(dp('uint16', val))
 	end)
 end
 

@@ -20,9 +20,7 @@ local DATA_TYPES = {
 	double = { len = 8 },
 }
 
-function split:initialize(pack, unpack)
-	self._pack = pack
-	self._unpack = unpack
+function split:initialize()
 end
 
 function split:sort(inputs)
@@ -106,30 +104,5 @@ function split:split(inputs)
 
 	return packets
 end
-
-function split:pack(input, value)
-	if input.dt == 'raw' then
-		value = tostring(value)
-		if string.len(value) > input.slen then
-			value = string.sub(value, 1, input.slen)
-		end
-		if string.len(value) < input.slen then
-			value = value .. string.rep('\0', input.slen - string.len(value))
-		end
-	end
-	local dtf = assert(self._pack[input.dt])
-	return dtf(self._pack, value)
-end
-
-function split:unpack(input, data, index)
-	local index = index or input.pack_index
-	local dtf = assert(self._unpack[input.dt])
-	--print(input.name, index, string.byte(data, 1, 1))
-	if input.dt == 'raw' then
-		return dtf(self._unpack, data, index, input.slen)
-	end
-	return dtf(self._unpack, data, index)
-end
-
 
 return split
