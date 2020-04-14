@@ -40,6 +40,7 @@ RELEASE_APP mqtt/inspur
 # PLC
 RELEASE_APP plc/ab
 RELEASE_APP plc/enip
+RELEASE_APP plc/melsec
 
 # CNC
 RELEASE_APP cnc/focas
