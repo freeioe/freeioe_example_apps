@@ -150,7 +150,8 @@ function app:read_pack(pack)
 				self._dev:set_input_prop(v.name, 'value', value, nil, quality)
 			end,
 			unpack = function(raw)
-				local index = v.index - pack.start
+				assert((v.index - pack.start) % 8 == 0, 'Index error!!')
+				local index = (v.index - pack.start) // 8
 				return parser(v.dt, raw, index, v.slen)
 			end
 		}
@@ -174,6 +175,12 @@ function app:read_pack(pack)
 			end
 		end
 		--print(dp('uint16', val))
+	end)
+end
+
+function app:write_input(input, val)
+	local r, err = self._client:write_sc(input.sc_name, input.index, input.dt, val, function(resp, err)
+		print(resp, err)
 	end)
 end
 

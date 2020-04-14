@@ -95,7 +95,7 @@ local function load_tpl(name, err_cb)
 				else
 					assert(nil, "SC Name incorrect1")
 				end
-				prop.index = tonumber(v[9]) or 0
+				prop.index = tonumber(v[9]) or 0  --- The MELSEC index(address is based on bit)
 				prop.rate = tonumber(v[10]) or 1
 				prop.offset = tonumber(v[11]) or 0
 

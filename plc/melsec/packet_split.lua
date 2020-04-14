@@ -70,18 +70,26 @@ function split:split(inputs)
 			end
 		end
 		v.offset = v.offset or 0
+		assert(v.offset < 16 and v.offset >= 0, 'bit offset isssue')
 
 		local max_len = MAX_PACKET_DATA_LEN
 		local max_gap = MAX_INDEX_GAP
-		if types.SC_VALUE_TYPE[v.sc_name] == 'WORD' then
-			max_len = max_len // 2
-			max_gap = max_gap // 2
-		end
 
-		local input_len = v.slen or 1
+		local is_word = types.SC_VALUE_TYPE[v.sc_name] == 'WORD' 
+
+		max_len = max_len * (is_word and 8 or 4)
+		max_gap = max_gap * (is_word and 8 or 4)
+
+		local input_len = 0
 		if v.dt ~= 'raw' and v.dt ~= 'string' then
 			local DT = assert(DATA_TYPES[v.dt])
-			input_len = DT.len
+			if not is_word and v.dt ~= 'bit' then
+				input_len = DT.len * 8
+			else
+				input_len = DT.len
+			end
+		else
+			input_len = assert(v.slen, "String length missing")
 		end
 
 		local index_new = org_input ~= nil and v.index - org_input.index > max_gap
@@ -96,7 +104,12 @@ function split:split(inputs)
 		end
 
 		table.insert(pack.inputs, v)
-		pack.len = input_len + v.index - pack.start 
+		print(pack.start, v.index, pack.len)
+		if is_word then
+			pack.len = (input_len * 8 + v.index - pack.start + 8) // 16
+		else
+			pack.len = input_len + v.index - pack.start 
+		end
 	end
 	if pack.sc_name then
 		table.insert(packets, pack)
