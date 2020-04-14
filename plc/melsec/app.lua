@@ -116,8 +116,10 @@ function app:start_connect_proc()
 		local station = conf.station or 0
 		self._client = client:new(conf.host, '4E_BIN', network, index, io, station)
 		self._client:set_comm_cb(function(dir, data)
+			--[[
 			local basexx = require 'basexx'
 			print(dir, basexx.to_hex(data))
+			]]--
 			if self._dev then
 				self._dev:dump_comm(dir, data)
 			end
