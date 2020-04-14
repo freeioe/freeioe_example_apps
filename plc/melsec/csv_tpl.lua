@@ -46,6 +46,12 @@ local function valid_prop(prop, err_cb)
 	end
 	NAME_CHECKING[prop.name] = true
 
+	if prop.read_type then
+		if prop.read_type ~= 'WORD' and prop.read_type ~= 'BIT' then
+			return log_cb("Read type must be either WORD or BIT")
+		end
+	end
+
 	return true
 end
 
@@ -91,7 +97,7 @@ local function load_tpl(name, err_cb)
 				end
 
 				if v[8] and string.len(v[8]) > 0 then
-					prop.sc_name = v[8]
+					prop.sc_name = string.upper(v[8])
 				else
 					assert(nil, "SC Name incorrect1")
 				end
@@ -106,6 +112,10 @@ local function load_tpl(name, err_cb)
 				if prop.dt == 'string' then
 					prop.dt = 'raw'
 					prop.slen = prop.slen or 1
+				end
+
+				if v[13] and string.len(v[13]) > 0 then
+					prop.read_type = string.upper(v[13])
 				end
 
 				if valid_prop(prop, err_cb) then

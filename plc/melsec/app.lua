@@ -156,9 +156,19 @@ function app:read_pack(pack)
 			end
 		}
 	end
-	--print(pack.sc_name, pack.start, pack.len)
+	print(pack.read_type, pack.sc_name, pack.start, pack.len)
 
-	local r, err = self._client:read_sc(pack.sc_name, pack.start, pack.len, function(val, err)
+	local read_func = self._client.read_sc
+	if pack.read_type then
+		if pack.read_type == 'WORD' then
+			read_func = self._client.read_words
+		else
+			read_func = self._client.read_bits
+		end
+	else
+		--self._log:trace("Auto dectect command by sc name")
+	end
+	local r, err = read_func(self._client, pack.sc_name, pack.start, pack.len, function(val, err)
 		if not val then
 			self._log:error('Read PLC tags error:', err)
 			return nil, err
@@ -193,7 +203,18 @@ function app:write_output(input, val)
 		val = val
 	})
 
-	local r, err = self._client:write_sc(sc, function(resp, err)
+	local write_func = self._client.read_sc
+	if input.read_type then
+		if input.read_type == 'WORD' then
+			write_func = self._client.write_words
+		else
+			write_func = self._client.write_bits
+		end
+	else
+		--self._log:trace("Auto dectect command by sc name")
+	end
+
+	local r, err = write_func(self._client, sc, function(resp, err)
 		return resp, err
 	end)
 	if not r then

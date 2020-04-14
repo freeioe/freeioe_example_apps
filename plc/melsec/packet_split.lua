@@ -58,11 +58,16 @@ function split:split(inputs)
 	local pack = {}
 	local org_input = nil
 	for _, v in ipairs(inputs) do
-		if pack.sc_name ~= v.sc_name then
+		local read_type = v.read_type or types.SC_VALUE_TYPE[v.sc_name]
+		--print(v.sc_name, v.read_type)
+
+		if pack.sc_name ~= v.sc_name or pack.read_type ~= read_type then
 			if pack.sc_name ~= nil then
+				--print('push0', pack.read_type)
 				table.insert(packets, pack)
 			end
 			pack = { sc_name=v.sc_name }
+			pack.read_type = read_type
 			pack.start = v.index
 			pack.inputs = {}
 			pack.unpack = function(input, data, index)
@@ -74,8 +79,8 @@ function split:split(inputs)
 
 		local max_len = MAX_PACKET_DATA_LEN
 		local max_gap = MAX_INDEX_GAP
+		local is_word = read_type == 'WORD' 
 
-		local is_word = types.SC_VALUE_TYPE[v.sc_name] == 'WORD' 
 
 		max_len = max_len * (is_word and 8 or 4)
 		max_gap = max_gap * (is_word and 8 or 4)
@@ -95,7 +100,9 @@ function split:split(inputs)
 		local index_new = org_input ~= nil and v.index - org_input.index > max_gap
 		if v.index - pack.start > max_len or index_new then
 			table.insert(packets, pack)
+			--print('push1', pack.read_type)
 			pack = { sc_name = v.sc_name }
+			pack.read_type = read_type
 			pack.start = v.index
 			pack.inputs = {}
 			pack.unpack = function(input, data, index)
@@ -112,6 +119,7 @@ function split:split(inputs)
 		end
 	end
 	if pack.sc_name then
+		--print('push2', pack.read_type)
 		table.insert(packets, pack)
 	end
 
