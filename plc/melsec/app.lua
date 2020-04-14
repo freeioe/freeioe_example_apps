@@ -115,6 +115,13 @@ function app:start_connect_proc()
 		local io = conf.io or 0x03FF
 		local station = conf.station or 0
 		self._client = client:new(conf.host, '4E_BIN', network, index, io, station)
+		self._client:set_comm_cb(function(dir, data)
+			local basexx = require 'basexx'
+			print(dir, basexx.to_hex(data))
+			if self._dev then
+				self._dev:dump_comm(dir, data)
+			end
+		end)
 
 		local r, err = self._client:connect()
 		if not r then
@@ -156,7 +163,7 @@ function app:read_pack(pack)
 			end
 		}
 	end
-	print(pack.read_type, pack.sc_name, pack.start, pack.len)
+	self._log:trace('READ_PACK', pack.read_type, pack.sc_name, pack.start, pack.len)
 
 	local read_func = self._client.read_sc
 	if pack.read_type then

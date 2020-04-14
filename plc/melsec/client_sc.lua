@@ -13,6 +13,10 @@ function client:initialize(...)
 	self._lock = nil
 end
 
+function client:set_comm_cb(cb)
+	self._comm_cb = cb
+end
+
 function client:connect()
 	local conn_path = self:conn_path()
 	assert(conn_path:proto() == 'tcp', 'Only TCP is supported')
@@ -36,8 +40,9 @@ function client:sock_process(req, sock)
 			break
 		end
 
-		local basexx = require 'basexx'
-		print('READ:', basexx.to_hex(data))
+		if self._comm_cb then
+			self._comm_cb('RECV', data)
+		end
 
 		self._buf:append(data)
 
@@ -79,10 +84,13 @@ function client:request(request, response)
 
 	self._lock = {}
 
-	local basexx = require 'basexx'
-	print('WRITE:', basexx.to_hex(request:to_hex()))
+	local raw = request:to_hex()
 
-	local r, resp, err = pcall(self._channel.request, self._channel, request:to_hex(), function(sock)
+	if self._comm_cb then
+		self._comm_cb('WRITE', raw)
+	end
+
+	local r, resp, err = pcall(self._channel.request, self._channel, raw, function(sock)
 		return self:sock_process(request, sock)
 	end)
 	self._lock = nil
