@@ -152,11 +152,12 @@ function app:read_pack(pack)
 			unpack = function(raw)
 				assert((v.index - pack.start) % 8 == 0, 'Index error!!')
 				local index = (v.index - pack.start) // 8
-				return parser(v.dt, raw, index, v.slen)
+				return parser(v.dt, raw, index + 1, v.slen)
 			end
 		}
 	end
-	print(pack.sc_name, pack.start, pack.len)
+	--print(pack.sc_name, pack.start, pack.len)
+
 	local r, err = self._client:read_sc(pack.sc_name, pack.start, pack.len, function(val, err)
 		if not val then
 			self._log:error('Read PLC tags error:', err)
@@ -167,7 +168,7 @@ function app:read_pack(pack)
 
 		for _, v in ipairs(tags) do
 			local val, err = v.unpack(val)
-			print(v.input.name, val, err)
+			--print(v.input.name, val, err)
 			if val then
 				v.set_value(val, 0)
 			else
@@ -176,12 +177,30 @@ function app:read_pack(pack)
 		end
 		--print(dp('uint16', val))
 	end)
+
+	return r, err
 end
 
-function app:write_input(input, val)
-	local r, err = self._client:write_sc(input.sc_name, input.index, input.dt, val, function(resp, err)
-		print(resp, err)
+function app:write_output(input, val)
+	local sc = {
+		sc_name = input.sc_name,
+		index = input.index,
+		values = {}
+	}
+
+	table.insert(sc.values, {
+		fmt = input.dt,
+		val = val
+	})
+
+	local r, err = self._client:write_sc(sc, function(resp, err)
+		return resp, err
 	end)
+	if not r then
+		self._log:error("Write output failed", err)
+	end
+
+	return r, err
 end
 
 function app:on_run(tms)
@@ -238,7 +257,7 @@ function app:on_output(app_src, sn, output, prop, value, timestamp)
 
 	for _, v in ipairs(self._tpl_outputs) do
 		if v.name == output then
-			-- TODO: write
+			return self:write_output(v, value)
 		end
 	end
 

@@ -104,7 +104,7 @@ function split:split(inputs)
 		end
 
 		table.insert(pack.inputs, v)
-		print(pack.start, v.index, pack.len)
+		--print(pack.start, v.index, pack.len)
 		if is_word then
 			pack.len = (input_len * 8 + v.index - pack.start + 8) // 16
 		else

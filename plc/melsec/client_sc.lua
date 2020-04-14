@@ -10,6 +10,7 @@ local client = class('FREEIOE_APP_PLC_MELSEC_CLIENT', base)
 function client:initialize(...)
 	base.initialize(self, ...)
 	self._buf = stream_buffer:new(0xFFFF)
+	self._lock = nil
 end
 
 function client:connect()
@@ -36,7 +37,7 @@ function client:sock_process(req, sock)
 		end
 
 		local basexx = require 'basexx'
-		print(basexx.to_hex(data))
+		print('READ:', basexx.to_hex(data))
 
 		self._buf:append(data)
 
@@ -72,11 +73,21 @@ function client:request(request, response)
 	if not self._channel then
 		return nil, "Channel not initialized"
 	end
+	while self._lock do
+		skynet.sleep(5)
+	end
+
+	self._lock = {}
+
+	local basexx = require 'basexx'
+	print('WRITE:', basexx.to_hex(request:to_hex()))
 
 	local r, resp, err = pcall(self._channel.request, self._channel, request:to_hex(), function(sock)
 		return self:sock_process(request, sock)
 	end)
-	print(r, resp, err)
+	self._lock = nil
+
+	---print(r, resp, err)
 	if not r then
 		return nil, resp, err
 	end

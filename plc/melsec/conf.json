@@ -15,7 +15,7 @@
 		"name": "loop_gap",
 		"desc": "采集周期(ms)",
 		"type": "number",
-		"default": 1000
+		"default": 10000
 	},
 	{
 		"name": "tpls",
