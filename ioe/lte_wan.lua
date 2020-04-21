@@ -118,6 +118,13 @@ function lte_wan:read_wan_sr()
 		if info and #info == 16 then
 			self._wan_sum:set('recv', math.floor(info[1] / 1000))
 			self._wan_sum:set('send', math.floor(info[9] / 1000))
+		else
+			--- The ppp mode
+			local info, err = netinfo.proc_net_dev('3g-4g_wan')
+			if info and #info == 16 then
+				self._wan_sum:set('recv', math.floor(info[1] / 1000))
+				self._wan_sum:set('send', math.floor(info[9] / 1000))
+			end
 		end
 	end
 end
