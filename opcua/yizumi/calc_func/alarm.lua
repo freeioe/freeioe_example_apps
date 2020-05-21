@@ -33,7 +33,7 @@ end
 function alarm:set_alarm_value(node, value)
 	local bval = node.reverse and value == 0 or value ~= 0
 
-	--print(node.desc, node.i, node.on, bval, value)
+	--print(node.desc, node.i, node.on, bval, value, node.errno)
 	if node.on == nil then
 		node.on = bval
 		if bval then
@@ -98,12 +98,15 @@ function alarm:update_state(node, on)
 	end
 
 	local new_state = 'NONE'
-	for k, v in pairs(self._alarmed) do
-		if v.is_error == 1 then
-			new_state = 'ERROR'
-		else
-			if new_state ~= 'ERROR' then
-				new_state = 'WARNING'
+	for k, v in pairs(self._nodes) do
+		local alm = self._alarmed[v.errno]
+		if alm then
+			if alm.is_error == 1 then
+				new_state = 'ERROR'
+			else
+				if new_state ~= 'ERROR' then
+					new_state = 'WARNING'
+				end
 			end
 		end
 	end

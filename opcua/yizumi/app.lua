@@ -5,6 +5,7 @@ local csv_tpl = require 'csv_tpl'
 local cjson = require 'cjson.safe'
 local calc_map_input = require 'calc_func.map_input'
 local calc_alarm = require 'calc_func.alarm'
+local opcua = require 'opcua'
 
 --- 注册对象(请尽量使用唯一的标识字符串)
 local app = app_base:subclass("YIZUMI_OPCUA_CLIENT_APP")
@@ -83,6 +84,10 @@ function app:on_connected(client)
 			local dev = self._dev
 			local value = client:parse_value(data_value, input.vt)
 			self._log:debug('INPUT Sub recv', input.name, input.vt, value, data_value.value:asString())
+			--[[
+			local st = opcua.DateTime.toUnixTime(data_value.sourceTimestamp)
+			self._log:debug('INPUT Sub recv', input.name, os.date(), os.date('%c', st))
+			]]--
 			--assert(tostring(value) == data_value.value:asString())
 			if value then
 				dev:set_input_prop(input.name, "value", value, now, 0)

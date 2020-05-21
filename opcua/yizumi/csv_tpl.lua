@@ -71,7 +71,7 @@ local function load_tpl(name)
 					vt = v[3],
 					ns = tonumber(v[4]) or -1,
 					is_error = tonumber(v[6]) == 1,
-					errno = tonumber(v[7]) or -1,
+					errno = assert(tonumber(v[7]), v[2]..' errno warning')
 				}
 				if string.len(v[5]) > 0 then
 					alm.i = tonumber(v[5]) or v[5]
