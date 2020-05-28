@@ -255,6 +255,7 @@ function client:connect_proc()
 			end)
 		end)
 	else
+		log:warning("OPCUA extension module needs to be upgraded!!!")
 		client:setStateCallback(function(cli, state)
 			table.insert(self._co_tasks, function()
 				self._log:trace("Client state changed to", state, cli)
