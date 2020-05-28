@@ -11,8 +11,16 @@ function client:initialize(app, conf)
 
 	self._conf = conf
 
-	self._sub_map = {}
+	--- All callback from opcua module will run as coroutine task
 	self._co_tasks = {}
+
+	--- Subscription id to input object map
+	self._sub_map = {}
+	--- whether the subscription node has received publish or not
+	self._sub_map_node = {}
+
+	self._closing = nil
+	self._renew = nil
 end
 
 function client:connected()
@@ -220,26 +228,52 @@ function client:connect_proc()
 
 	log:notice("OPC Client start connection!")
 
-	client:setStateCallback(function(cli, state)
-		table.insert(self._co_tasks, function()
-			self._log:trace("Client state changed to", state, cli)
-			if self._client_obj ~= cli then
-				self._log:error("Error client object")
-				return
-			end
-			if state == opcua.UA_ClientState.DISCONNECTED then
-				return self:on_disconnected()
-			elseif state == opcua.UA_ClientState.SESSION_DISCONNECTED then
-				return self:on_disconnected()
-			elseif state == opcua.UA_ClientState.CONNECTED then
-				return self:on_connected()
-			elseif state == opcua.UA_ClientState.SESSION then
-				return self:on_connected()
-			else
-				self._log:trace("Not handled state", state)
-			end
+	if opcua.VERSION and tonumber(opcua.VERSION) >= 1.2 then
+		local client_session = nil
+		client:setStateCallback(function(cli, channel_state, session_state, connect_status)
+			table.insert(self._co_tasks, function()
+				self._log:trace("Client state sss:", channel_state, ' ss:', session_state, ' cs:', connect_status, cli)
+				if self._client_obj ~= cli then
+					self._log:error("Error client object")
+					return
+				end
+				if session_state == opcua.UA_SessionState.CREATED then
+					self._log:trace("Session state created!")
+				elseif session_state == opcua.UA_SessionState.ACTIVATED then
+					if not client_session then
+						client_session = true
+						return self:on_connected()
+					end
+				elseif session_state == opcua.UA_SessionState.CLOSED then
+					if client_session then
+						client_session = nil
+						return self:on_disconnected()
+					end
+				else
+					self._log:trace("Not handled state", state)
+				end
+			end)
 		end)
-	end)
+	else
+		client:setStateCallback(function(cli, state)
+			table.insert(self._co_tasks, function()
+				self._log:trace("Client state changed to", state, cli)
+				if self._client_obj ~= cli then
+					self._log:error("Error client object")
+					return
+				end
+				if state == opcua.UA_ClientState.DISCONNECTED then
+					return self:on_disconnected()
+				elseif state == opcua.UA_ClientState.SESSION_DISCONNECTED then
+					return self:on_disconnected()
+				elseif state == opcua.UA_ClientState.CONNECTED then
+					return self:on_connected()
+				elseif state == opcua.UA_ClientState.SESSION then
+					return self:on_connected()
+				end
+			end)
+		end)
+	end
 
 	local ep = conf.endpoint or "opc.tcp://127.0.0.1:4840"
 	--local ep = conf.endpoint or "opc.tcp://172.30.0.187:55623"
@@ -274,13 +308,43 @@ function client:connect_proc()
 			if self._client then
 				log:error("OPC Client connect failure!", err)
 				self._client = nil
+				if err == 'BadInternalError' then
+					self._renew = true
+				end
 			end
 			return false, err
 		end
 	end
 
+	self._opc_run = function()
+		if self._closing then
+			return true
+		end
+		--- Connection OK
+		local r, err = connect_opc()
+		if not r then
+			return false, err
+		end
+		if self._client and self._client_obj then
+			--[[
+			local start = opcua.DateTime.nowMonotonic()
+			--log:debug('_opc_run 1', start, os.time())
+			while (opcua.DateTime.nowMonotonic() - start) < 50000 do
+				--- Client object run
+				self._client_obj:run_iterate(5)
+			end
+			]]--
+			self._client_obj:run_iterate(5)
+			--- FreeIOE sleep
+			sys:sleep(0)
+			--log:debug('_opc_run 2', opcua.DateTime.nowMonotonic(), os.time())
+			return true
+		end
+		return false, "Client lost!"
+	end
+
 	local connect_delay = 1000
-	while self._closing == nil and client and self._client_obj do
+	while self._closing == nil and client and self._client_obj and not self._renew do
 		-- call connect is save when client connected according to open62541 example
 		local r, err = connect_opc()
 		if not r then
@@ -301,8 +365,20 @@ function client:connect_proc()
 
 			--- Trigger all coroutine tasks
 			for _, v in ipairs(self._co_tasks) do
+				--- Break all co tasks when closing or renew action is required
+				if self._closing or self._renew then
+					break
+				end
+				--[[
+				-- Do not use fork as we want the coroutine run with orders
+				sys:fork(function()
+					v(self)
+				end)
+				]]--
 				v(self)
-				sys:sleep(0)
+				if not self._opc_run() then
+					break
+				end
 			end
 			self._co_tasks = {}
 		end
@@ -312,7 +388,15 @@ function client:connect_proc()
 	log:notice("OPCUA connection closed")
 
 	if self._closing then
+		self._renew = nil -- reset renew flag
 		sys:wakeup(self._closing)
+	else
+		if self._renew then
+			self._renew = nil
+			sys:fork(function()
+				self:connect()
+			end)
+		end
 	end
 end
 
@@ -342,8 +426,7 @@ function client:load_encryption(conf)
 	}
 end
 
---- 应用启动函数
-function client:connect()
+function client:create_client_obj()
 	local conf = self._conf
 	--conf.modal = conf.modal or default_modal
 
@@ -365,7 +448,13 @@ function client:connect()
 	local client_uri = conf.client_uri or "urn:freeioe:opcuaclient"
 	config:setApplicationURI(client_uri)
 
-	self._client_obj = client_obj
+	return client_obj
+end
+
+--- 应用启动函数
+function client:connect()
+	--- Create client object
+	self._client_obj = self:create_client_obj()
 
 	--- 发起OpcUa连接
 	self._sys:fork(function() self:connect_proc() end)
@@ -384,6 +473,9 @@ function client:create_subscription(inputs, callback)
 	if not self._client then
 		return nil, "Client not connected"
 	end
+
+	self._log:debug("Create subscription start!!!!")
+
 	local sub_id, err = self._client:createSubscription(function(mon_id, data_value, sub_id)
 		local m = self._sub_map[sub_id]
 		if not m then
@@ -391,7 +483,9 @@ function client:create_subscription(inputs, callback)
 		end
 		local input = m[mon_id]
 		if input then
+			self._sub_map_node[input] = nil
 			--- TODO: Using better way to implement this co tasks
+			self._log:debug("Subscription callback", input.name)
 			table.insert(self._co_tasks, function()
 				local r, err = xpcall(callback, debug.traceback, input, data_value)
 				if not r then
@@ -408,12 +502,35 @@ function client:create_subscription(inputs, callback)
 	local sub_map = {}
 	local failed = {}
 	for _, v in ipairs(inputs) do
-		self._sys:sleep(0)
+		if not self._opc_run() then
+			return nil, "Client disconnected"
+		end
+		--self._sys:sleep(0)
+
+		--- Get namespace index
 		local id = gen_node_id(v.ns, v.i, v.itype)
-		local node = self:get_node_by_id(id)
+		v.node_id = id
+
+		if v.i ~= -1 then
+			local mon_id, err = self._client:subscribeNode(sub_id, id)
+			if mon_id then
+				self._log:debug("Subscribe node", v.ns, v.i, sub_id, mon_id)
+				sub_map[mon_id] = v
+				self._sub_map_node[v] = true
+			else
+				self._log:warning("Failed to subscribe node", v.ns, v.i, err)
+				table.insert(failed, v)
+			end
+		else
+			self._log:warning("Node index -1 is skipped!!")
+		end
+
+		--[[
+		local node, err = self:get_node_by_id(id)
 		if node then
 			local mon_id, err = self._client:subscribeNode(sub_id, id)
 			if mon_id then
+			self._log:warning("Subscribe node", v.ns, v.i, sub_id, mon_id)
 				sub_map[mon_id] = v
 			else
 				self._log:warning("Failed to subscribe node", v.ns, v.i, err)
@@ -425,7 +542,26 @@ function client:create_subscription(inputs, callback)
 				self._log:warning("Failed to call callback", err)
 			end
 		end
+		]]--
 	end
+
+	--- All not read will push to co task queue
+	for _, v in ipairs(inputs) do
+		table.insert(self._co_tasks, function()
+			if not self._sub_map_node[v]  then
+				return
+			end
+			local node = self:get_node_by_id(v.node_id)
+			if node then
+				local r, err = xpcall(callback, debug.traceback, v, node.dataValue)
+				if not r then
+					self._log:warning("Failed to call callback", err)
+				end
+			end
+		end)
+	end
+
+	self._log:debug("Create subscription end!!!!")
 
 	self._sub_map[sub_id] = sub_map
 	return #failed == 0, failed

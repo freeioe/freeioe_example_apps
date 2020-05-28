@@ -80,6 +80,7 @@ function app:on_connected(client)
 			input.node = input.node or get_opcua_node(input.ns, input.i)
 		end
 	else
+		self._log:info("Create Subscription for INPUTS")
 		local r, err = client:create_subscription(self._tpl.inputs, function(input, data_value)
 			local dev = self._dev
 			local value = client:parse_value(data_value, input.vt)
@@ -273,7 +274,7 @@ function app:on_run(tms)
 	local client = self._client
 	local enable_sub = self._conf.enable_sub
 
-	self._log:debug('Start', os.date())
+	--self._log:debug('Start', os.date())
 
 	if not enable_sub then
 		self:read_all_inputs()
@@ -291,7 +292,7 @@ function app:on_run(tms)
 		input.calc_func:run()
 	end
 
-	self._log:debug('End', os.date())
+	--self._log:debug('End', os.date())
 
 	local next_tms = (self._conf.loop_gap or 1000) - ((self._sys:time() - begin_time) * 1000)
 	return next_tms > 0 and next_tms or 0

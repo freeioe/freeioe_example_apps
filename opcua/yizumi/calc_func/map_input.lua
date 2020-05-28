@@ -43,7 +43,7 @@ function map_input:set_input_values(values)
 	if value then
 		self._dev:set_input_prop(self._input.name, "value", value, now, 0)
 	else
-		self._dev:set_input_prop(self._input.name, "value", value, 0, -1)
+		self._dev:set_input_prop(self._input.name, "value", 0, now, -1)
 	end
 end
 
@@ -70,6 +70,7 @@ function map_input:start(ua_client)
 
 	if self._enable_sub then
 		-- Subscribe nodes
+		self._log:debug("Create Subscription for MAP INPUTS")
 		local r, err = client:create_subscription(self._nodes, function(node, data_value)
 			local value = client:parse_value(data_value, node.vt)
 			self._log:debug('MAP INPUT Sub recv', node.desc, node.i, node.vt, value, data_value.value:asString())

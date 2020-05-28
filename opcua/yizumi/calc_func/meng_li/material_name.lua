@@ -8,6 +8,7 @@ function calc:initialize(app, dev, input, enable_sub)
 	self._dev = dev
 	self._input = input
 	self._enable_sub = enable_sub
+	self._log = app._log
 	self._ns = 1
 	self._i_list = {
 		1898,
@@ -54,8 +55,10 @@ function calc:start(ua_client)
 		end
 		self._inputs = inputs
 		-- Subscribe nodes
+		self._log:debug("Create Subscription for MENGLI Metrial Name")
 		local r, err = ua_client:create_subscription(inputs, function(input, data_value)
 			local value = ua_client:parse_value(data_value, input.vt)
+			self._log:debug('Material Name Sub recv', input.ns, input.i, value, data_value.value:asString())
 			--local ts = data_value.sourceTimestamp:asDateTime() / 10000000
 			self._cu:update(input.index, value)
 		end)

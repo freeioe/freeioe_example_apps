@@ -100,8 +100,8 @@ function alarm:update_state(node, on)
 	local new_state = 'NONE'
 	for k, v in pairs(self._nodes) do
 		local alm = self._alarmed[v.errno]
-		if alm then
-			if alm.is_error == 1 then
+		if alm ~= nil then
+			if alm then
 				new_state = 'ERROR'
 			else
 				if new_state ~= 'ERROR' then
@@ -119,6 +119,7 @@ function alarm:start(ua_client)
 
 	if self._enable_sub then
 		-- Subscribe nodes
+		self._log:debug("Create Subscription for ALARAMS")
 		local r, err = client:create_subscription(self._nodes, function(node, data_value)
 			local value = client:parse_value(data_value, node.vt)
 			self._log:debug('ALARM Sub recv', node.desc, node.i, node.vt, value, data_value.value:asString())
