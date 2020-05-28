@@ -309,9 +309,10 @@ function client:connect_proc()
 			if self._client then
 				log:error("OPC Client connect failure!", err)
 				self._client = nil
-				if err == 'BadInternalError' then
-					self._renew = true
-				end
+			end
+			if err == 'BadInternalError' then
+				log:error("OPC Client connect failure!", err)
+				self._renew = true
 			end
 			return false, err
 		end
@@ -351,7 +352,9 @@ function client:connect_proc()
 		if not r then
 			--- Connection Failed
 			log:error("OPC Client disconnected!", err)
-			sys:sleep(connect_delay)
+			if not self._closing and not self._renew then
+				sys:sleep(connect_delay)
+			end
 			connect_delay = connect_delay * 2
 			if connect_delay > 64000 then
 				connect_delay = 1000
