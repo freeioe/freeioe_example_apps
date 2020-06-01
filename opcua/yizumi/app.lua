@@ -81,19 +81,19 @@ function app:on_connected(client)
 		end
 	else
 		self._log:info("Create Subscription for INPUTS")
-		local r, err = client:create_subscription(self._tpl.inputs, function(input, data_value)
+		local r, err = client:create_subscription(self._tpl.inputs, function(input, data_value, timestamp)
 			local dev = self._dev
 			local value = client:parse_value(data_value, input.vt)
-			self._log:debug('INPUT Sub recv', input.name, input.vt, value, data_value.value:asString())
+			self._log:debug('INPUT Sub recv', input.name, input.vt, value, data_value.value:asString(), timestamp)
 			--[[
 			local st = opcua.DateTime.toUnixTime(data_value.sourceTimestamp)
 			self._log:debug('INPUT Sub recv', input.name, os.date(), os.date('%c', st))
 			]]--
 			--assert(tostring(value) == data_value.value:asString())
 			if value then
-				dev:set_input_prop(input.name, "value", value, now, 0)
+				dev:set_input_prop(input.name, "value", value, timestamp, 0)
 			else
-				dev:set_input_prop(input.name, "value", 0, now, -1)
+				dev:set_input_prop(input.name, "value", 0, timestamp, -1)
 			end
 		end)
 

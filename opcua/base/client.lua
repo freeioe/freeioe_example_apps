@@ -489,9 +489,10 @@ function client:create_subscription(inputs, callback)
 		if input then
 			self._sub_map_node[input] = nil
 			--- TODO: Using better way to implement this co tasks
-			self._log:debug("Subscription callback", input.name)
+			self._log:debug("Subscription callback", sub_id, input.name)
+			local now = self._sys:time()
 			table.insert(self._co_tasks, function()
-				local r, err = xpcall(callback, debug.traceback, input, data_value)
+				local r, err = xpcall(callback, debug.traceback, input, data_value, now)
 				if not r then
 					self._log:warning("Failed to call callback", err)
 				end
@@ -557,7 +558,8 @@ function client:create_subscription(inputs, callback)
 			end
 			local node = self:get_node_by_id(v.node_id)
 			if node then
-				local r, err = xpcall(callback, debug.traceback, v, node.dataValue)
+				local now = self._sys:time()
+				local r, err = xpcall(callback, debug.traceback, v, node.dataValue, now)
 				if not r then
 					self._log:warning("Failed to call callback", err)
 				end
