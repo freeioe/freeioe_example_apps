@@ -92,20 +92,48 @@ function client:get_node(ns, i, itype)
 	self._sys:sleep(0)
 
 	local id = gen_node_id(ns, i, itype)
-	local obj, err = opc_client:getNode(id)
-	if not obj then
-		self._log:warning("Cannot get OPCUA node", ns, i)
+	local obj, err
+	local loop_max = 10
+	while loop_max > 0 do
+		obj, err = opc_client:getNode(id)
+		if err ~= 'BadInvalidState' and err ~= 'BadConnectionClosed' then
+			break
+		end
+
+		self._log:trace("DIRK:retry the reading.....")
+		if not self._opc_run(200) then
+			break
+		end
+		loop_max = loop_max - 1
 	end
-	self._log:debug('got input node', obj, ns, i)
+	if not obj then
+		self._log:warning("Cannot get OPCUA node", ns, i, err)
+	else
+		self._log:debug('got input node', obj, ns, i)
+	end
 	return obj, err
 end
 
 function client:get_node_by_id(id)
-	local obj, err = self._client:getNode(id)
-	if not obj then
-		self._log:warning("Cannot get OPCUA node", id.ns, id.index)
+	local obj, err
+	local loop_max = 10
+	while loop_max > 0 do
+		obj, err = self._client:getNode(id)
+		if err ~= 'BadInvalidState' and err ~= 'BadConnectionClosed' then
+			break
+		end
+		self._log:trace("DIRK:retry the reading.....")
+
+		if not self._opc_run(100) then
+			break
+		end
+		loop_max = loop_max - 1
 	end
-	self._log:debug('got input node', obj, id.ns, id.index)
+	if not obj then
+		self._log:warning("Cannot get OPCUA node", id.ns, id.index, err)
+	else
+		self._log:debug('got input node', obj, id.ns, id.index)
+	end
 	return obj, err
 end
 
@@ -318,7 +346,7 @@ function client:connect_proc()
 		end
 	end
 
-	self._opc_run = function()
+	self._opc_run = function(time_ms)
 		if self._closing then
 			return true
 		end
@@ -336,7 +364,7 @@ function client:connect_proc()
 				self._client_obj:run_iterate(5)
 			end
 			]]--
-			self._client_obj:run_iterate(5)
+			self._client_obj:run_iterate(time_ms or 5)
 			--- FreeIOE sleep
 			sys:sleep(0)
 			--log:debug('_opc_run 2', opcua.DateTime.nowMonotonic(), os.time())
@@ -489,8 +517,8 @@ function client:create_subscription(inputs, callback)
 		if input then
 			self._sub_map_node[input] = nil
 			--- TODO: Using better way to implement this co tasks
-			self._log:debug("Subscription callback", sub_id, input.name)
 			local now = self._sys:time()
+			self._log:debug("Subscription callback", sub_id, input.name, now)
 			table.insert(self._co_tasks, function()
 				local r, err = xpcall(callback, debug.traceback, input, data_value, now)
 				if not r then
@@ -559,6 +587,7 @@ function client:create_subscription(inputs, callback)
 			local node = self:get_node_by_id(v.node_id)
 			if node then
 				local now = self._sys:time()
+				self._log:debug("Subscription read initial value", sub_id, v.name, now)
 				local r, err = xpcall(callback, debug.traceback, v, node.dataValue, now)
 				if not r then
 					self._log:warning("Failed to call callback", err)
