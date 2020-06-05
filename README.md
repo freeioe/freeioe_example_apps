@@ -68,6 +68,18 @@ Modbus 数据发布应用（Slave模式), 将FreeIOE网关设备数据通过Modb
 
 ### AB
 
-AB PLC 设备数据采集应用
+AB PLC 设备数据采集应用，依赖于libplctag通讯库
+
+### ENIP
+
+Ethernet IP/CIP 协议通讯方式获取 PLC数据 (如AB PLC, OMRON PLC)
+
+### MELSEC
+
+三菱MC协议，支持三菱PLC, 基恩士PLC
+
+### OMRON
+
+Hostlink协议（未完善，不可用)
 
 

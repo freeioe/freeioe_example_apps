@@ -70,4 +70,14 @@ Reading Meter devices data via dlt645 protocol
 
 AB PLC device data collection
 
+### ENIP
 
+PLCs which supports Ethernet IP/CIP protocol.
+
+### MELSEC
+
+PLCs which support MITSUBISHI MELSEC protocol
+
+### OMRON
+
+Hostlink protocol (not implemented yet)
