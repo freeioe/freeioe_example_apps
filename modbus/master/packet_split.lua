@@ -14,6 +14,8 @@ local DATA_TYPES = {
 	int32_r = { len = 4 },
 	uint64 = { len = 8 },
 	int64 = { len = 8 },
+	uint64_r = { len = 8 },
+	int64_r = { len = 8 },
 	float = { len = 4 },
 	float_r = { len = 4 },
 	double = { len = 8 },
