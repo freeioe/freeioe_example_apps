@@ -149,13 +149,11 @@ function app:on_start()
 
 	--- 设定通讯口数据回调
 	self._modbus:set_io_cb(function(io, unit, msg)
-		--[[
 		if string.lower(conf.apdu_type) == 'ascii' then
 			self._log:trace(io, msg)
 		else
 			self._log:trace(io, basexx.to_hex(msg))
 		end
-		]]--
 
 		local dev = nil
 		for _, v in ipairs(self._devs) do
@@ -291,6 +289,10 @@ function app:write_packet(dev, stat, unit, output, value)
 	local func = tonumber(output.wfc) or 0x06
 	local addr = output.addr
 
+	if not self._modbus then
+		return
+	end
+
 	local timeout = output.timeout or 5000
 
 	local req = nil
@@ -331,6 +333,10 @@ function app:read_packet(dev, stat, unit, pack)
 	local addr = pack.start or 0x00
 	local len = pack.len or 10 -- 长度
 
+	if not self._modbus then
+		return
+	end
+
 	--- 读取数据
 	local timeout = pack.timeout or 5000
 	local req, err = self._pdu:make_request(func, addr, len)
@@ -367,9 +373,19 @@ function app:read_packet(dev, stat, unit, pack)
 	local pdu_data = string.sub(pdu, 3)
 
 	for _, input in ipairs(pack.inputs) do
-		--print(input.name, input.addr, input.pack_index)
-		local val = pack.unpack(input, pdu_data)
-		--print(input.name, val)
+		if unit == 11 then
+			print(unit, input.name, input.addr, input.pack_index)
+		end
+		local val, err = pack.unpack(input, pdu_data)
+		if unit == 11 then
+			print(unit, input.name, val)
+		end
+		if val == nil then
+			assert(false, err or 'val is nil')
+		end
+		if unit == 11 and val == 0 then
+			self._log:error("Value is zeor", input.name)
+		end
 		if input.rate and input.rate ~= 1 then
 			val = val * input.rate
 		end

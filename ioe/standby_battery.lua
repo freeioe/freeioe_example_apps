@@ -84,7 +84,9 @@ function sbat_pwr:stop()
 		self._cancel_timer()
 		self._cancel_timer = nil
 	end
-	self._sum:save()
+	if self._sum then
+		self._sum:save()
+	end
 end
 
 return sbat_pwr
