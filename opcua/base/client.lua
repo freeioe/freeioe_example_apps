@@ -149,13 +149,50 @@ function client:read_value(node, vt)
 	return self:parse_value(dv, vt)
 end
 
+local value_type_map = {
+	int8 = true,
+	uint8 = true,
+	int16 = true,
+	uint16 = true,
+	int32 = true,
+	uint32 = true,
+	int64 = true,
+	uint64 = true,
+	float = true,
+	double = true
+}
+
+function client:write_value_ex(node, vt, data_type, val)
+	self._log:debug('writing node', node, vt, node and node.id)
+	local val = assert(val, "value is missing")
+	if vt == 'int' then
+		val = math.floor(tonumber(val))
+	elseif vt == 'float' then
+		val = tonumber(val) * 1.0
+	else
+		val = tostring(val)
+	end
+	if not val then
+		return nil, "Value incorrect!!"
+	end
+
+	assert(value_type_map[data_type], "Value Type: "..data_type.." not supported!")
+
+	local f = opcua.Variant[data_type]
+	assert(f, "Value Type: "..data_type.." not supported!")
+
+	node.dataValue = opcua.DataValue.new(f(val))
+
+	return true
+end
+
 function client:write_value(node, vt, val)
 	self._log:debug('writing node', node, vt, node and node.id)
 	local val = assert(val, "value is missing")
 	if vt == 'int' then
 		val = math.floor(tonumber(val))
 	elseif vt == 'float' then
-		val = tonumber(val)
+		val = tonumber(val) * 1.0
 	else
 		val = tostring(val)
 	end
