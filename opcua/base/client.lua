@@ -150,6 +150,7 @@ function client:read_value(node, vt)
 end
 
 local value_type_map = {
+	boolean = true,
 	int8 = true,
 	uint8 = true,
 	int16 = true,
@@ -168,7 +169,7 @@ function client:write_value_ex(node, vt, data_type, val)
 	if vt == 'int' then
 		val = math.floor(tonumber(val))
 	elseif vt == 'float' then
-		val = tonumber(val) * 1.0
+		val = tonumber(val)
 	else
 		val = tostring(val)
 	end
@@ -181,7 +182,12 @@ function client:write_value_ex(node, vt, data_type, val)
 	local f = opcua.Variant[data_type]
 	assert(f, "Value Type: "..data_type.." not supported!")
 
-	node.dataValue = opcua.DataValue.new(f(val))
+	if opcua.VERSION and tonumber(opcua.VERSION) >= 1.3 then
+		return node:set_Value(f(val))
+	else
+		--node.dataValue = opcua.DataValue.new(f(val))
+		node.value = f(val)
+	end
 
 	return true
 end
@@ -192,15 +198,30 @@ function client:write_value(node, vt, val)
 	if vt == 'int' then
 		val = math.floor(tonumber(val))
 	elseif vt == 'float' then
-		val = tonumber(val) * 1.0
+		val = tonumber(val)
 	else
 		val = tostring(val)
 	end
 	if not val then
 		return nil, "Value incorrect!!"
 	end
-	--- Write the value to node
-	node.dataValue = opcua.DataValue.new(opcua.Variant.new(val))
+
+	if opcua.VERSION and tonumber(opcua.VERSION) >= 1.3 then
+		local node_dataType, err = node:get_DataType()
+		if node_dataType == nil then
+			return nil, err
+		end
+		local dt_name = opcua.get_node_data_value_type(node_dataType)
+		local f = opcua.Variant[dt_name]
+		if not f then
+			return nil, "Value data type: "..dt_name.." not supported!"
+		end
+		return node:set_Value(f(val))
+	else
+		--- Write the value to node
+		--node.dataValue = opcua.DataValue.new(opcua.Variant.new(val))
+		node.value = opcua.Variant.new(val)
+	end
 
 	return true
 end
@@ -623,11 +644,25 @@ function client:create_subscription(inputs, callback)
 			end
 			local node = self:get_node_by_id(v.node_id)
 			if node then
-				local now = self._sys:time()
-				self._log:debug("Subscription read initial value", sub_id, v.name, now)
-				local r, err = xpcall(callback, debug.traceback, v, node.dataValue, now)
-				if not r then
-					self._log:warning("Failed to call callback", err)
+				if opcua.VERSION and tonumber(opcua.VERSION) >= 1.3 then
+					local dv, err = node:get_DataValue()
+					if dv ~= nil then
+						local now = self._sys:time()
+						self._log:debug("Subscription read initial value", sub_id, v.name, now)
+						local r, err = xpcall(callback, debug.traceback, v, dv, now)
+						if not r then
+							self._log:warning("Failed to call callback", err)
+						end
+					else
+						self._log:warning("Failed to read dataValue", err)
+					end
+				else
+					local now = self._sys:time()
+					self._log:debug("Subscription read initial value", sub_id, v.name, now)
+					local r, err = xpcall(callback, debug.traceback, v, node.dataValue, now)
+					if not r then
+						self._log:warning("Failed to call callback", err)
+					end
 				end
 			end
 		end)
