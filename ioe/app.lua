@@ -59,7 +59,7 @@ function app:start()
 	local inputs = {
 		{
 			name = 'cpuload',
-			desc = 'CPU load avg_15'
+			desc = 'CPU load avg_1'
 		},
 		{
 			name = 'cpu_temp',
@@ -506,7 +506,7 @@ function app:run(tms)
 	--- CPU load avg
 	local loadavg, err = sysinfo.loadavg()
 	if loadavg then
-		self._dev:set_input_prop('cpuload', "value", loadavg.lavg_15)
+		self._dev:set_input_prop('cpuload', "value", loadavg.lavg_1)
 	else
 		self._log:debug("Failed to read load avg")
 	end
