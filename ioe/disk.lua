@@ -9,6 +9,9 @@ function _M.df(path)
 	if not s then
 		return nil, err
 	end
+	if string.len(s) == 0 then
+		return nil, 'Failed to execute df command'
+	end
 	local lines = s:gmatch('(.-)\n')
 
 	local sp = '%g'
