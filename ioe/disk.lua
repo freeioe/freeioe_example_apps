@@ -1,5 +1,11 @@
 local si = require 'utils.sysinfo'
 
+local disk_loaded, disk = pcall(require, 'utils.disk')
+
+if disk_loaded then
+	return disk
+end
+
 local _M = {}
 
 function _M.df(path)
