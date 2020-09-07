@@ -1,0 +1,59 @@
+{
+  "cmd": {
+    "command": "thing_def.update",
+    "params": {
+      "key": "mydef",
+      "properties": {
+        "brhum": {
+          "name": "Bedroom Humidity",
+          "suffix": "%rH",
+          "unit": "%rH"
+        },
+        "brlight": {
+          "name": "Bedroom Ambient Light",
+          "suffix": "L",
+          "unit": "Lumens"
+        },
+        "brtemp": {
+          "name": "Bedroom Temperature",
+          "suffix": "F",
+          "unit": "F"
+        },
+        "lrhum": {
+          "name": "Living Room Humidity",
+          "suffix": "%rH",
+          "unit": "%rH"
+        },
+        "lrlight": {
+          "name": "Living Room Ambient Light",
+          "suffix": "L",
+          "unit": "Lumens"
+        },
+        "lrtemp": {
+          "name": "Living Room Temperature",
+          "suffix": "F",
+          "unit": "F"
+        },
+        "offhum": {
+          "name": "Office Humidity",
+          "suffix": "%rH",
+          "unit": "%rH"
+        },
+        "offlight": {
+          "name": "Office Ambient Light",
+          "suffix": "L",
+          "unit": "Lumens"
+        },
+        "offtemp": {
+          "name": "Office Temperature",
+          "suffix": "F",
+          "unit": "F"
+        }
+      },
+      "tunnelAdHoc": false,
+      "locations": {
+        "ignoreFixTypes": ["network", "m2m-locate"]
+      }
+    }
+  }
+}

@@ -72,6 +72,57 @@ function app:find_thing_def_key(sn)
 	return def_key and string.lower(def_key) or nil
 end
 
+function app:update_things_def(def_key, sn, props)
+	self._log:debug("Telit update_things_def", def_key, sn)
+
+	local attrs = {}
+	for k, v in pairs(props.meta or {}) do
+		attrs[k] = {
+			name = k,
+			default = v
+		}
+	end
+
+	local tags = {}
+	for _, input in ipairs(props.inputs) do
+		tags[input.name] = {
+			name = input.desc,
+			unit = input.unit
+		}
+	end
+	for _, output in ipairs(props.outputs or {}) do
+		if not tag_map[output.name] then
+			tags[output.name] = {
+				name = output.desc,
+				unit = output.unit
+			}
+		end
+	end
+	local params = {
+		key = def_key,
+		attributes = attrs,
+		properties = tags
+	}
+	local cmd = {
+		command = "thing_def.update",
+		params = params,
+	}
+	local val, err = cjson.encode({cmd=cmd})
+	if not val then
+		self._log:warning('cjson encode failure. error: ', err)
+		return true -- skip this data
+	end
+
+	self._log:trace(val)
+
+	local r, err = self:publish("api", val, 1, false)
+	if not r then
+		self._log:warning('things_def.update failed:', err)
+		return nil, err
+	end
+	return true
+end
+
 function app:on_add_device(src_app, sn, props)
 	self._log:debug("Telit on_add_device", src_app, sn)
 
@@ -94,24 +145,12 @@ function app:on_add_device(src_app, sn, props)
 		end
 
 		--[[ thing.create.json ]]--
-		local tags = {}
-		local tag_map = {}
-		for _, input in ipairs(props.inputs) do
-			tag_map[input.name] = true
-			tags[#tags + 1] = input.name
-		end
-		for _, output in ipairs(props.outputs or {}) do
-			if not tag_map[output.name] then
-				tag_map[input.name] = true
-				tags[#tags + 1] = output.name
-			end
-		end
+		local meta = props.meta
 		local params = {
-			name = props.meta.name or 'UNKNOWN',
+			name = meta.name or 'UNKNOWN',
 			key = telit_helper.escape_key(sn),
 			defKey = def_key,
-			desc = props.meta.description or 'UNKNOWN',
-			--tags = tags, -- disable tags for now
+			desc = meta.description or 'UNKNOWN',
 		}
 		local cmd = {
 			command = "thing.create",
@@ -127,9 +166,12 @@ function app:on_add_device(src_app, sn, props)
 		self._key_created[sn] = true
 		local r, err = self:publish("api", val, 1, false)
 		if r then
+			self:update_things_def(def_key, sn, props)
 			return self:subscribe_device(sn)
 		end
 		return nil, err
+	else
+		return self:update_things_def(def_key, sn, props)
 	end
 	return true
 end
@@ -165,7 +207,10 @@ end
 
 function app:on_publish_devices(devices)
 	for sn, props in pairs(devices) do
-		self:on_add_device('__fake_name', sn, props)
+		local r, err = self:on_add_device('__fake_name', sn, props)
+		if not r then
+			self._log:error('Publish device failed:', err)
+		end
 	end
 end
 
