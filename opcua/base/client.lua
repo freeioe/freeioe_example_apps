@@ -80,6 +80,43 @@ function gen_node_id(ns, i, itype)
 	return id
 end
 
+function client:call_method(retry, func, ...)
+	local opc_client = self._client
+	if not opc_client then
+		return nil, "Client is nil"
+	end
+	local f = opc_client[func]
+	if not f then
+		return nil, "Client function missing"
+	end
+
+	local loop_max = tonumber(retry) or 10
+	while loop_max > 0 do
+		local r, rr, err = pcall(f, opc_client, ...)
+		if not r then
+			--print(r, rr, err)
+			return nil, rr
+		end
+
+		if rr ~= nil then
+			return rr
+		end
+
+		if err ~= 'BadInvalidState' and err ~= 'BadConnectionClosed' then
+			--print('RETTTT', err)
+			return nil, err
+		end
+
+		if not self._opc_run(200) then
+			--print('AAAAAAAAAAAAAAAAA')
+			return nil, "OPC Client error in retry!!"
+		end
+		loop_max = loop_max - 1
+	end
+
+	return nil, "Method retry failed!!"
+end
+
 function client:get_node(ns, i, itype)
 	local opc_client = self._client
 
@@ -603,7 +640,8 @@ function client:create_subscription(inputs, callback)
 		v.node_id = id
 
 		if v.i ~= -1 then
-			local mon_id, err = self._client:subscribeNode(sub_id, id)
+			--local mon_id, err = self._client:subscribeNode(sub_id, id)
+			local mon_id, err = self:call_method(10, 'subscribeNode', sub_id, id)
 			if mon_id then
 				self._log:debug("Subscribe node", v.ns, v.i, sub_id, mon_id)
 				sub_map[mon_id] = v
