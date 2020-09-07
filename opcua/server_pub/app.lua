@@ -295,7 +295,7 @@ function app:run(tms)
 	while self._server.running do
 		local ms = self._server:run_once(false)
 		--- 暂停OPCUA模块运行，处理FREEIOE系统消息
-		self._sys:sleep(ms % 10)
+		self._sys:sleep(ms)
 	end
 	--print('XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX')
 
