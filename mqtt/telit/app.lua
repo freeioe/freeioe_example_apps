@@ -91,7 +91,7 @@ function app:update_things_def(def_key, sn, props)
 		}
 	end
 	for _, output in ipairs(props.outputs or {}) do
-		if not tag_map[output.name] then
+		if not tags[output.name] then
 			tags[output.name] = {
 				name = output.desc,
 				unit = output.unit
