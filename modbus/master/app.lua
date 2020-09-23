@@ -375,18 +375,9 @@ function app:read_packet(dev, stat, unit, pack)
 	local pdu_data = string.sub(pdu, 3)
 
 	for _, input in ipairs(pack.inputs) do
-		if unit == 11 then
-			print(unit, input.name, input.addr, input.pack_index)
-		end
 		local val, err = pack.unpack(input, pdu_data)
-		if unit == 11 then
-			print(unit, input.name, val)
-		end
 		if val == nil then
 			assert(false, err or 'val is nil')
-		end
-		if unit == 11 and val == 0 then
-			self._log:error("Value is zeor", input.name)
 		end
 		if input.rate and input.rate ~= 1 then
 			val = val * input.rate
