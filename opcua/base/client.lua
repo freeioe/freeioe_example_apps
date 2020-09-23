@@ -407,8 +407,12 @@ function client:connect_proc()
 	local connect_opc = function()
 		local r, err
 		if conf.auth then
+			if string.len(conf.auth.username or '') == 0 or string.len(conf.auth.password or '') == 0 then
+				log:error("Cannot using empty username or password")
+				return false, "empty username/password"
+			end
 			if not self._client then
-				log:info("Client connect with username&password")
+				log:info("Client connect with username&password", conf.auth.username, conf.auth.password)
 			end
 			r, err = client:connect_username(ep, conf.auth.username, conf.auth.password)
 		else
@@ -434,7 +438,7 @@ function client:connect_proc()
 				self._client = nil
 			end
 			if err == 'BadInternalError' then
-				log:error("OPC Client connect failure!", err)
+				log:error("OPC Client connect internal failure!", err)
 				self._renew = true
 			end
 			return false, err
@@ -511,6 +515,7 @@ function client:connect_proc()
 		end
 	end
 
+	log:notice("OPCUA connection closing...")
 	client:disconnect()
 	log:notice("OPCUA connection closed")
 
@@ -520,7 +525,7 @@ function client:connect_proc()
 	else
 		if self._renew then
 			self._renew = nil
-			sys:fork(function()
+			sys:timeout(2000, function()
 				self:connect()
 			end)
 		end
