@@ -282,9 +282,8 @@ function app:start()
 		leds.cloud:brightness(0)
 	end
 
-	-- detect ubus
-	if lfs.attributes('/var/run/ubus/ubus.sock', 'mode') or
-		lfs.attributes('/var/run/ubus.sock', 'mode') then
+	-- Enable ubus when OS is openwrt
+	if lfs.attributes('/etc/openwrt_release', 'mode') then
 		local lsocket_loaded, lsocket = pcall(require, 'lsocket')
 		if lsocket_loaded  then
 			--- Ubus is depends on lsocket
