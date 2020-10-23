@@ -283,7 +283,8 @@ function app:start()
 	end
 
 	-- detect ubus
-	if lfs.attributes('/var/run/ubus.sock', 'mode') then
+	if lfs.attributes('/var/run/ubus/ubus.sock', 'mode') or
+		lfs.attributes('/var/run/ubus.sock', 'mode') then
 		local lsocket_loaded, lsocket = pcall(require, 'lsocket')
 		if lsocket_loaded  then
 			--- Ubus is depends on lsocket
