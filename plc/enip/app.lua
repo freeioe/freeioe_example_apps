@@ -133,7 +133,9 @@ function app:on_close(reason)
 	self._log:warning('Application closing', reason)
 	self._closing = {}
 	self._sys:sleep(5000, self._closing)
-	self._client:close()
+	if self._client then
+		self._client:close()
+	end
 end
 
 function app:read_pack(pack)
