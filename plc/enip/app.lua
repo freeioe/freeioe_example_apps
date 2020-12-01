@@ -5,6 +5,8 @@ local cip_types = require 'enip.cip.types'
 local csv_tpl = require 'csv_tpl'
 local packet_split = require 'packet_split'
 
+--- lua_enip_version: 2020-12-01
+
 --- 注册对象(请尽量使用唯一的标识字符串)
 local app = app_base:subclass("FREEIOE_PLC_AB_PLCTAG_APP")
 --- 设定应用最小运行接口版本(目前版本为4,为了以后的接口兼容性)
