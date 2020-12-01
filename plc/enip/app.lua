@@ -133,9 +133,7 @@ function app:on_close(reason)
 	self._log:warning('Application closing', reason)
 	self._closing = {}
 	self._sys:sleep(5000, self._closing)
-	if self._client then
-		self._client:close()
-	end
+	self._client:close()
 end
 
 function app:read_pack(pack)
@@ -146,6 +144,9 @@ function app:read_pack(pack)
 			path = v.elem_name,
 			count = 1,
 			set_value = function(value, quality)
+				if type(value) == 'boolean' then
+					value = value and 1 or 0
+				end
 				self._dev:set_input_prop(v.name, 'value', value, nil, quality)
 			end,
 		}
@@ -157,7 +158,7 @@ function app:read_pack(pack)
 			for i, v in ipairs(val) do
 				local tag = tags[i]
 				local val, err = self._client:get_reply_value(v)
-				if not val then
+				if val == nil then
 					self._log:error('Get '..tag.path..' error:', err)
 					tag.set_value(0, -1)
 				else
