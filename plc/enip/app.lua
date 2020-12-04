@@ -88,6 +88,7 @@ function app:on_start()
 	self._dev_sn = dev_sn
 
 	self._dev = self._api:add_device(dev_sn, meta, inputs, outputs)
+	self._dev_stat = self._dev:stat('port')
 
 	--- Split the inputs into packets
 	local split = packet_split:new()
@@ -113,6 +114,26 @@ function app:start_connect_proc()
 	conn_proc = function()
 		local conf = self._conf
 		self._client = client:new(conf.host, conf.route)
+		self._client:set_logger(self._log)
+
+		self._client:set_dump(function(io, msg)
+			local dev = self._dev
+			local dev_stat = self._dev_stat
+			if dev then
+				dev:dump_comm(io, msg)
+				if not dev_stat then
+					return
+				end
+				--- 计算统计信息
+				if io == 'IN' then
+					dev_stat:inc('bytes_in', string.len(msg))
+				else
+					dev_stat:inc('bytes_out', string.len(msg))
+				end
+			else
+				self._sys:dump_comm(sys_id, io, msg)
+			end
+		end)
 
 		local r, err = self._client:connect()
 		if not r then
@@ -172,33 +193,7 @@ function app:read_pack(pack)
 end
 
 function app:on_run(tms)
-
 	local begin_time = self._sys:time()
-	--[[
-	for _, v in ipairs(self._inputs) do
-		local r, err = self._client:read_tag(v.name, v.dt, 1, function(val, err)
-			if not val then
-				self._log:error('Read PLC tag error:', err)
-			else
-				self._log:debug('Value from PLC', val, err)
-			end
-			if val then
-				self._dev:set_input_prop(v.name, 'value', val)
-			else
-				self._dev:set_input_prop(v.name, 'value', 0, nil, -1)
-			end
-		end)
-	end
-
-	local r, err = self._client:write_tag('tag1', 'UINT', 111, function(val, err)
-		if not val then
-			self._log:error('Wirte PLC tag error:', err)
-		else
-			self._log:debug('Value from PLC', val, err)
-		end
-	end)
-	]]--
-
 
 	for _, v in ipairs(self._packets) do
 		self._sys:sleep(0)

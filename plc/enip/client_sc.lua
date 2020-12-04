@@ -1,12 +1,11 @@
 --- The client implemented by socketchannel of skynet
 
-local class = require 'middleclass'
 local base = require 'enip.client.unconnected'
-local enip_header = require 'enip.command.header'
+local command = require 'enip.command.base'
 local reply_parser = require 'enip.reply.parser'
 local socketchannel = require 'socketchannel'
 
-local client = class('FREEIOE_APP_PLC_ENIP_CIP_CLIENT', base)
+local client = base:subclass('FREEIOE_APP_PLC_ENIP_CIP_CLIENT')
 
 local function protect_call(obj, func, ...)
 	assert(obj and func)
@@ -17,14 +16,18 @@ local function protect_call(obj, func, ...)
 
 	local ret = {xpcall(f, debug.traceback, obj, ...)}
 	if not ret[1] then
-		print(table.concat(ret, '', 2))
 		return nil, table.concat(ret, '', 2)
 	end
 	return table.unpack(ret, 2)
 end
 
+function client:set_logger(log)
+	self._log = log
+end
+
 function client:connect()
 	local conn_path = self:conn_path()
+	local log = self._log
 	assert(conn_path:proto() == 'tcp', 'Only TCP is supported')
 	self._channel = socketchannel.channel({
 		host = conn_path:address(),
@@ -32,14 +35,19 @@ function client:connect()
 		response = function(...)
 			local ret = {xpcall(self.sock_dispatch, debug.traceback, self, ...)}
 			if not ret[1] then
-				print(table.concat(ret, '', 2))
-				--TODO: close the client?????
+				local err = ret[2]
+				if err ~= socketchannel.error then
+					err = table.concat(ret, '', 2)
+				end
+				if log then
+					log:error("Socket error:", err)
+				end
 
 				if self.reconnect then
 					self:reconnect()
 				end
 
-				return nil, table.concat(ret, '', 2)
+				return nil, err
 			end
 			return table.unpack(ret, 2)
 		end,
@@ -53,20 +61,25 @@ function client:connect()
 end
 
 function client:sock_dispatch(sock)
-	--print('sock_dispath start')
-	local hdr_raw = sock:read(24)
+	local min_size = command.min_size()
+	local hdr_raw, err = sock:read(min_size)
 
-	local header = enip_header:new()
-	header:from_hex(hdr_raw)
-	local session = header:session()
+	local cmd, data_len = command.parse_header(hdr_raw)
 
-	--print(header:length())
-	local data_raw = sock:read(header:length())
+	local data_raw, err = sock:read(data_len)
+	if not data_raw then
+		return nil, err
+	end
+	local raw = hdr_raw..data_raw
 
-	local command, err = reply_parser(hdr_raw..data_raw)
-	--print('sock_dispath end')
+	if self._hex_dump then
+		self._hex_dump('IN', raw)
+	end
 
-	return session:context(), command ~= nil, command or err
+	local reply, err = reply_parser(cmd, raw)
+	local sesssion = reply:session()
+
+	return session:context(), reply ~= nil, reply or err
 end
 
 function client:sock_overload(is_overload)
@@ -80,6 +93,10 @@ function client:close()
 	return true
 end
 
+function client:set_dump(func)
+	self._hex_dump = func
+end
+
 function client:request(request, response)
 	assert(request.to_hex, "Request needs to be one object")
 	assert(request.session, "Session missing")
@@ -89,7 +106,11 @@ function client:request(request, response)
 		return nil, "Channel not initialized"
 	end
 
-	local r, resp, err = pcall(self._channel.request, self._channel, request:to_hex(), session:context())
+	local req_raw = request:to_hex()
+	if self._hex_dump then
+		self._hex_dump('OUT', req_raw)
+	end
+	local r, resp, err = pcall(self._channel.request, self._channel, req_raw, session:context())
 	if not r then
 		return nil, resp, err
 	end
