@@ -1,9 +1,10 @@
 --- 导入需求的模块
 local app_base = require 'app.base'
 local client = require 'client_sc'
-local cip_types = require 'enip.cip.types'
 local csv_tpl = require 'csv_tpl'
 local packet_split = require 'packet_split'
+local ab_tag = require 'enip.ab.tag.base'
+local cip_types = require 'enip.cip.types'
 
 --- lua_enip_version: 2020-12-01
 
@@ -115,8 +116,11 @@ function app:start_connect_proc()
 		local conf = self._conf
 		self._client = client:new(conf.host, conf.route)
 		self._client:set_logger(self._log)
+		local log = self._log
 
 		self._client:set_dump(function(io, msg)
+			local basexx = require 'basexx'
+			log:info(io, basexx.to_hex(msg))
 			local dev = self._dev
 			local dev_stat = self._dev_stat
 			if dev then
@@ -162,17 +166,17 @@ end
 function app:read_pack(pack)
 	local inputs = pack.props
 	local tags = {}
+	local dev = self._dev
 	for _, v in ipairs(inputs) do
-		tags[#tags + 1] = {
-			path = v.elem_name,
-			count = 1,
-			set_value = function(value, quality)
-				if type(value) == 'boolean' then
-					value = value and 1 or 0
-				end
-				self._dev:set_input_prop(v.name, 'value', value, nil, quality)
-			end,
-		}
+		tag = ab_tag:new(v.elem_name, v.vt)
+		tag.set_value = function(self, value, quality)
+			if type(value) == 'boolean' then
+				value = value and 1 or 0
+			end
+			dev:set_input_prop(v.name, 'value', value, nil, quality)
+		end
+
+		tags[#tags + 1] = tag
 	end
 	local r, err = self._client:read_tags(tags, function(val, err)
 		if not val then
@@ -180,12 +184,12 @@ function app:read_pack(pack)
 		else
 			for i, v in ipairs(val) do
 				local tag = tags[i]
-				local val, err = self._client:get_reply_value(v)
-				if val == nil then
-					self._log:error('Get '..tag.path..' error:', err)
-					tag.set_value(0, -1)
+
+				if v:status() ~= cip_types.STATUS.OK then
+					self._log:error('Get '..tag:path()..' error:', v:error_info())
+					tag:set_value(0, v:status())
 				else
-					tag.set_value(val)
+					tag:set_value(v:data())
 				end
 			end
 		end

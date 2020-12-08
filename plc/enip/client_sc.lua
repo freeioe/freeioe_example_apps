@@ -1,6 +1,6 @@
 --- The client implemented by socketchannel of skynet
 
-local base = require 'enip.client.unconnected'
+local base = require 'enip.ab.client.unconnected'
 local command = require 'enip.command.base'
 local reply_parser = require 'enip.reply.parser'
 local socketchannel = require 'socketchannel'
@@ -77,7 +77,11 @@ function client:sock_dispatch(sock)
 	end
 
 	local reply, err = reply_parser(cmd, raw)
-	local sesssion = reply:session()
+	if not reply then
+		self._log:error(err)
+		return nil, err
+	end
+	local session = reply:session()
 
 	return session:context(), reply ~= nil, reply or err
 end
