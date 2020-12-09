@@ -3,7 +3,7 @@ local app_base = require 'app.base'
 local client = require 'client_sc'
 local csv_tpl = require 'csv_tpl'
 local packet_split = require 'packet_split'
-local ab_tag = require 'enip.ab.tag.base'
+local ab_tag_parser = require 'enip.ab.tag.parser'
 local cip_types = require 'enip.cip.types'
 
 --- lua_enip_version: 2020-12-01
@@ -168,15 +168,17 @@ function app:read_pack(pack)
 	local tags = {}
 	local dev = self._dev
 	for _, v in ipairs(inputs) do
-		tag = ab_tag:new(v.elem_name, v.vt)
-		tag.set_value = function(self, value, quality)
-			if type(value) == 'boolean' then
-				value = value and 1 or 0
+		tag = v.tag or ab_tag_parser(v.elem_name, v.vt)
+		if not tag:upper() then
+			tags[#tags + 1] = tag
+			tag.set_value = function(self, value, quality)
+				if type(value) == 'boolean' then
+					value = value and 1 or 0
+				end
+				dev:set_input_prop(v.name, 'value', value, nil, quality)
+				-- TODO: for joined tag
 			end
-			dev:set_input_prop(v.name, 'value', value, nil, quality)
 		end
-
-		tags[#tags + 1] = tag
 	end
 	local r, err = self._client:read_tags(tags, function(val, err)
 		if not val then
@@ -186,7 +188,7 @@ function app:read_pack(pack)
 				local tag = tags[i]
 
 				if v:status() ~= cip_types.STATUS.OK then
-					self._log:error('Get '..tag:path()..' error:', v:error_info())
+					self._log:error(string.format('Get %s error: %s', tag:path(), v:error_info()))
 					tag:set_value(0, v:status())
 				else
 					tag:set_value(v:data())

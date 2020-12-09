@@ -32,6 +32,7 @@ function client:connect()
 	self._channel = socketchannel.channel({
 		host = conn_path:address(),
 		port = conn_path:port(),
+		nodelay = true,
 		response = function(...)
 			local ret = {xpcall(self.sock_dispatch, debug.traceback, self, ...)}
 			if not ret[1] then
@@ -53,24 +54,41 @@ function client:connect()
 		end,
 		overload = function(...)
 			return self:sock_overload(...)
+		end,
+		auth = function(sock)
+			local r, err = self:register_session()
+			if not r then
+				log:error('register_session error', err)
+				assert(r, err)
+			end
+			--[[
+			local ret, err = pcall(self.register_session, self)
+			if not ret then
+				if log then
+					log:error("Auth method error", err)
+				end
+			end
+			]]--
 		end
 	})
-	self._channel:connect(true)
 
-	return self:register_session()
+	self._channel:connect(false) -- non-block mode connect
+	return true
 end
 
 function client:sock_dispatch(sock)
 	local min_size = command.min_size()
-	local hdr_raw, err = sock:read(min_size)
+	local raw, err = sock:read(min_size)
 
-	local cmd, data_len = command.parse_header(hdr_raw)
+	local cmd, data_len = command.parse_header(raw)
 
-	local data_raw, err = sock:read(data_len)
-	if not data_raw then
-		return nil, err
+	if data_len > 0 then
+		local data_raw, err = sock:read(data_len)
+		if not data_raw then
+			return nil, err
+		end
+		raw = raw..data_raw
 	end
-	local raw = hdr_raw..data_raw
 
 	if self._hex_dump then
 		self._hex_dump('IN', raw)
@@ -78,7 +96,7 @@ function client:sock_dispatch(sock)
 
 	local reply, err = reply_parser(cmd, raw)
 	if not reply then
-		self._log:error(err)
+		self._log:error('reply parser error:', err)
 		return nil, err
 	end
 	local session = reply:session()
@@ -89,6 +107,13 @@ end
 function client:sock_overload(is_overload)
 	if is_overload then
 		self:close()
+	end
+end
+
+function client:invalid_session()
+	local r, err = self:register_session()
+	if not r then
+		self._log:error("Invalid session try to register session again but failed", err)
 	end
 end
 
