@@ -191,7 +191,7 @@ function app:read_pack(pack)
 					self._log:error(string.format('Get %s error: %s', tag:path(), v:error_info()))
 					tag:set_value(0, v:status())
 				else
-					tag:set_value(v:data())
+					tag:set_value(v:value(tag:offset()))
 				end
 			end
 		end
