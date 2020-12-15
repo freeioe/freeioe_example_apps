@@ -164,9 +164,7 @@ function client:on_recv(data)
 		skynet.wakeup(self._buf_wait)
 	end
 
-	if self._io_cb then
-		self._io_cb('IN', data)
-	end
+	self:dump_raw('IN', data)
 end
 
 local function protect_call(obj, func, ...)
