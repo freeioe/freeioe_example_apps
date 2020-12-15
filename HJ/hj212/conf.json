@@ -1,0 +1,50 @@
+[
+	{
+		"name": "host",
+		"desc": "HJ212 Center 地址",
+		"type": "string",
+		"default": "127.0.0.1"
+	},
+	{
+		"name": "port",
+		"desc": "HJ232 Center Port",
+		"type": "string",
+		"default": "16000"
+	},
+	{
+		"name": "system",
+		"desc": "System ID",
+		"type": "string",
+		"default": "31"
+	},
+	{
+		"name": "dev_id",
+		"desc": "Device ID",
+		"type": "string",
+		"default": "010000A8900016F000169DC0"
+	},
+	{
+		"name": "passwd",
+		"desc": "Device Passwd",
+		"type": "string",
+		"default": "123456"
+	},
+	{
+		"name": "timeout",
+		"desc": "Timeout time",
+		"type": "number",
+		"default": "10"
+	},
+	{
+		"name": "retry",
+		"desc": "Retry count",
+		"type": "number",
+		"default": "3"
+	},
+	{
+		"name": "tpls",
+		"desc": "设备模板",
+		"type": "templates",
+		"limit": 1
+	}
+]
