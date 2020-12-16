@@ -5,6 +5,21 @@ local base = require 'hj212.client.base'
 
 local client = base:subclass("HJ212_CLIENT_SC")
 
+local function protect_call(obj, func, ...)
+	assert(obj and func)
+	local f = obj[func]
+	if not f then
+		return nil, "Object has no function "..func
+	end
+
+	local ret = {xpcall(f, debug.traceback, obj, ...)}
+	if not ret[1] then
+		return nil, table.concat(ret, '', 2)
+	end
+	return table.unpack(ret, 2)
+end
+
+
 --- 
 function client:initialize(opt)
 	base.initialize(self, opt.system, opt.dev_id, opt.passwd, opt.timeout, opt.retry)
@@ -13,6 +28,7 @@ function client:initialize(opt)
 	self._requests = {}
 	self._results = {}
 	self._buf = {}
+	self:add_handler('handler')
 end
 
 function client:set_dump(cb)
@@ -27,7 +43,8 @@ end
 
 --- Timeout: ms
 function client:send(session, raw_data)
-	local t_left = self:timeout()
+	local timeout = self:timeout()
+	local t_left = timeout * 3
 	while not self._socket and t_left > 0 do
 		skynet.sleep(100)
 		t_left = t_left - 1000
@@ -38,8 +55,6 @@ function client:send(session, raw_data)
 	if t_left <= 0 then
 		return nil, "Not connected!!"
 	end
-
-	self:dump_raw('OUT', raw_data)
 
 	--local basexx = require 'basexx'
 	--print(os.date(), 'Send request', session)
@@ -55,6 +70,7 @@ function client:send(session, raw_data)
 			self._requests[session] = nil
 			return nil, err
 		end
+		self:dump_raw('OUT', raw_data)
 		skynet.sleep(timeout / 10, t)
 		if self._results[session] then
 			break
@@ -159,29 +175,13 @@ end
 function client:on_recv(data)
 	--local basexx = require 'basexx'
 	--print(os.date(), 'IN:', basexx.to_hex(data))
+	self:dump_raw('IN', data)
 	table.insert(self._buf, data)
+
 	if self._buf_wait then
 		skynet.wakeup(self._buf_wait)
 	end
-
-	self:dump_raw('IN', data)
 end
-
-local function protect_call(obj, func, ...)
-	assert(obj and func)
-	local f = obj[func]
-	if not f then
-		return nil, "Object has no function "..func
-	end
-
-	local ret = {xpcall(f, debug.traceback, obj, ...)}
-	if not ret[1] then
-		return nil, table.concat(ret, '', 2)
-	end
-	return table.unpack(ret, 2)
-end
-
-
 
 function client:connect()
 	if self._socket or self._port then
@@ -196,33 +196,42 @@ function client:connect()
 
 	skynet.fork(function()
 		while not self._closing do
-			if #self._buf > 0 then
-				local data = table.concat(self._buf)
-				self._buf = {}
+			local r, err = xpcall(self.process_socket_data, debug.traceback, self)
+			if not r then
+				self:log('error', err)
+			end
+		end
+	end)
+	return true
+end
 
-				local p, reply = protect_call(self, 'process', data)
-				if p then
-					local session = p:session()
+function client:process_socket_data()
+	while not self._closing do
+		if #self._buf > 0 then
+			local data = table.concat(self._buf)
+			self._buf = {}
+
+			local p, reply = self:process(data)
+			if p then
+				local session = p:session()
+				if reply then
 					local req_co = self._requests[session]
 					if req_co then
 						self._results[session] = {p}
 						skynet.wakeup(req_co)
 					else
-						self:on_request(p)
+						self:log('error', "Missing request on session:"..session)
 					end
 				else
-					if self._log then
-						self._log:debug(reply)
-					end
+					self:on_request(p)
 				end
 			end
-
-			self._buf_wait = {}
-			skynet.sleep(1000, self._buf_wait)
-			self._buf_wait = nil
 		end
-	end)
-	return true
+
+		self._buf_wait = {}
+		skynet.sleep(1000, self._buf_wait)
+		self._buf_wait = nil
+	end
 end
 
 function client:close()

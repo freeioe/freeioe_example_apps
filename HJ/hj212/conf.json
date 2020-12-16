@@ -33,7 +33,7 @@
 		"name": "timeout",
 		"desc": "Timeout time",
 		"type": "number",
-		"default": "10"
+		"default": "5"
 	},
 	{
 		"name": "retry",
