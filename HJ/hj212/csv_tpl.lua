@@ -12,8 +12,12 @@ local function valid_prop(prop, err_cb)
 		return false
 	end
 
-	if not prop.elem_name or string.len(prop.elem_name) == 0 then
-		return log_cb('Invalid prop elem_name found', prop.name, prop.elem_name)
+	if string.len(prop.sn or '') == 0 then
+		return log_cb('Invalid device serial number found', prop.name, prop.sn)
+	end
+
+	if string.len(prop.input or '') == 0 then
+		return log_cb('Invalid tag input name found', prop.name, prop.input)
 	end
 
 	if NAME_CHECKING[prop.name] then
@@ -24,53 +28,69 @@ local function valid_prop(prop, err_cb)
 	return true
 end
 
+local function sort_props(props)
+	table.sort(props, function(a, b)
+		return a.name < b.name
+	end)
+
+	return props
+end
+
+---
+-- [1] hj212 tag name
+-- [2] hj212 tag desc
+-- [3] hj212 tag unit (not used by HJ212 stack)
+-- [4] hj212 tag vt (not used by HJ212 stack)
+-- [5] source device sn (without sys_id as the prefix)
+-- [6] source tag name
+-- [7] source tag value rate
+-- [8] hj212 tag value format (optional)
+-- [9] hj212 tag value calc
+
 local function load_tpl(name, err_cb)
 	local path = tpl_dir..name..'.csv'
 	local t = ftcsv.parse(path, ",", {headers=false})
 
-	local meta = {}
+	local devs = {}
 	local props = {}
 
-	for k,v in ipairs(t) do
-		if #v > 1 then
-			if v[1] == 'META' then
-				meta.name = v[2]
-				meta.desc = v[3]
-				meta.series = v[4]
+	for i,v in ipairs(t) do
+		if i ~= 1 and  #v > 1 then
+			local prop = {
+				name = v[1],
+				desc = v[2],
+				unit = v[3],
+				vt = string.len(v[4]) > 0 and v[4] or 'float',
+				sn = v[5],
+				input = v[6],
+			}
+
+			if string.len(v[7]) > 0 then
+				prop.rate = tonumber(v[7]) or 1
+			else
+				prop.rate = 1
 			end
-			if v[1] == 'PROP' then
-				local prop = {
-					name = v[2],
-					desc = v[3],
-				}
-				if string.len(v[4]) > 0 then
-					prop.unit = v[4]
-				end
 
-				prop.rw = v[5]
-				if not prop.rw or string.len(prop.rw) == 0 then
-					prop.rw = 'RO'
-				end
+			prop.fmt = string.len(v[8]) and v[8] or nil
+			prop.calc = string.len(v[9]) and v[9] or nil
 
-				if v[6] and string.len(v[6]) > 0 then
-					prop.vt = v[6]
-				else
-					prop.vt = 'float'
+			if valid_prop(prop, err_cb) then
+				if not devs[prop.sn] then
+					devs[prop.sn] = {}
 				end
-
-				prop.elem_name = v[7]
-				prop.rate = tonumber(v[8]) or 1
-
-				if valid_prop(prop, err_cb) then
-					props[#props + 1] = prop
-				end
+				table.insert(devs[prop.sn], prop)
+				table.insert(props, {
+					name =prop.name, 
+					dev = devs[prop.sn],
+					prop = prop,
+				})
 			end
 		end
 	end
 
 	return {
-		meta = meta,
-		props = props,
+		devs = devs,
+		props = sort_props(props)
 	}
 end
 

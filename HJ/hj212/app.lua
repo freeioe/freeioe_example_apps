@@ -1,26 +1,35 @@
 --- 导入需求的模块
 local app_base = require 'app.base'
-local client = require 'client_sc'
 local csv_tpl = require 'csv_tpl'
 local conf = require 'app.conf'
+local timer = require 'utils.timer'
+local conn = require 'conn'
+local meter = require 'hj212.client.meter'
+local tag = require 'hjtag'
 
 --- lua_HJ212_version: 2020-12-15
 
 --- 注册对象(请尽量使用唯一的标识字符串)
 local app = app_base:subclass("FREEIOE_HJ212_APP")
---- 设定应用最小运行接口版本(目前版本为4,为了以后的接口兼容性)
-app.static.API_VER = 4
+--- 设定应用最小运行接口版本, 7 has new api and lua5.4???
+app.static.API_VER = 7
 
 --- 应用启动函数
 function app:on_start()
-	local sys = self._sys
-	local conf = self._conf
-	--[[
-	conf.host = '127.0.0.1'
-	conf.port = 16000
-	]]--
+	local sys = self:sys_api()
+	local conf = self:app_conf()
 
-	self._log:info("HJ212 Server: Host:"..conf.host..' Port:'..conf.port)
+	conf.servers = conf.servers or {}
+	if #conf.servers == 0 then
+		table.insert(conf.servers, {
+			name = 'localhost',
+			host = '127.0.0.1',
+			port = 16000,
+			system = 31,
+			dev_id = '010000A8900016F000169DC0',
+			passwd = '123456',
+		})
+	end
 
 	local tpl_id = conf.tpl
 	local tpl_ver = conf.ver
@@ -46,103 +55,85 @@ function app:on_start()
 	csv_tpl.init(self._sys:app_dir())
 	local tpl = csv_tpl.load_tpl(tpl_file, function(...) self._log:error(...) end)
 
-	--- 创建设备对象实例
+	self._tpl = tpl
+	self._devs = {}
+
+	local inputs = {}
+	local tag_list = {}
+	local app_inst = self
+	for sn, tags in pairs(tpl.devs) do
+		local dev = {}
+		for _, prop in ipairs(tags) do
+			inputs[#inputs + 1] = {
+				name = prop.name,
+				desc = prop.desc,
+				unit = prop.unit,
+				vt = prop.vt
+			}
+			if dev[prop.input] then
+				table.insert(dev[prop.input], prop)
+			else
+				dev[prop.input] = {prop}
+			end
+
+			local tag = tag:new(sn, prop.name)
+			local p_name = prop.name
+			tag:set_value_callback(function(value, timestamp)
+				local dev = app_inst._dev
+				if not dev then
+					return
+				end
+				dev:set_input_prop(p_name, 'value', value, timestamp)
+			end)
+
+			tag_list[prop.name] = tag
+		end
+		self._devs[sn] = dev
+	end
+	self._meter = meter:new(tag_list, {})
+
 	local sys_id = self._sys:id()
+
 	local meta = self._api:default_meta()
 	meta.name = 'HJ212' 
 	meta.manufacturer = "FreeIOE.org"
 	meta.description = 'HJ212 Smart Device' 
 	meta.series = 'N/A'
 
-	local inputs = {
-		{
-			name = 'timeout',
-			desc = 'Timeout time',
-			unit = 's'
-		},
-		{
-			name = 'retry',
-			desc = 'Retry count',
-		},
-	}
-
-	local dev_sn = conf.device_sn
-	if dev_sn == nil or string.len(conf.device_sn) == 0 then
-		dev_sn = sys_id..'.'..meta.name
-	end
+	local dev_sn = sys_id..'.HJ212_'..self:app_name()
 	self._dev_sn = dev_sn
 
-	self._dev = self._api:add_device(dev_sn, meta, inputs, inputs)
-	self._dev_stat = self._dev:stat('port')
+	self._dev = self._api:add_device(dev_sn, meta, inputs)
 
-	self._tpl = tpl
+	self._rdata_interval = tonumber(conf.rdata_interval) or -1
+	self._min_interval = tonumber(conf.min_interval) or 10
 
-	--- Start the connection
-	self:start_connect_proc()
-
-	return true
-end
-
-function app:start_connect_proc()
-	if self._client then
-		return
-	end
-
-	local conn_proc = nil
-	local conn_timeout = 100
-	conn_proc = function()
-		self._client = client:new(self._conf)
-		self._client:set_logger(self._log)
-		local log = self._log
-
-		self._client:set_dump(function(io, msg)
-			--[[
-			local basexx = require 'basexx'
-			log:info(io, basexx.to_hex(msg))
-			]]--
-			log:debug(io, msg)
-			local dev = self._dev
-			local dev_stat = self._dev_stat
-			if dev then
-				dev:dump_comm(io, msg)
-				if not dev_stat then
-					return
-				end
-				--- 计算统计信息
-				if io == 'IN' then
-					dev_stat:inc('bytes_in', string.len(msg))
-				else
-					dev_stat:inc('bytes_out', string.len(msg))
-				end
-			else
-				self._sys:dump_comm(sys_id, io, msg)
-			end
-		end)
-
-		local r, err = self._client:connect()
+	--- initialize connections
+	self._clients = {}
+	for _, v in ipairs(conf.servers) do
+		local client = conn:new(self, v)
+		local r, err = client:start()
 		if not r then
-			self._log:error(tostring(err))
-			self._client:close()
-			self._client = nil
-			if conn_timeout > 100 * 64 then
-				conn_timeout = 100
-			end
-			self._sys:timeout(conn_proc, conn_timeout)
-			conn_timeout = conn_timeout * 2
+			self._log:error("Start connection failed", err)
 		end
-
-		return r, err
+		table.insert(self._clients, client)
 	end
 
-	self._sys:fork(conn_proc)
+	--- bind tags
+	
+
+	--- Start timers
+	self:start_timers()
+	return true
 end
 
 --- 应用退出函数
 function app:on_close(reason)
 	self._log:warning('Application closing', reason)
-	if self._client then
-		self._client:close()
+	for _, v in ipairs(self._clients) do
+		v:close()
 	end
+	self._clients = {}
 end
 
 function app:on_output(app_src, sn, output, prop, value, timestamp)
@@ -158,6 +149,106 @@ function app:on_output(app_src, sn, output, prop, value, timestamp)
 
 	return nil, "Output not found!"
 end
+
+function app:on_input(app_src, sn, input, prop, value, timestamp, quality)
+	if quality ~= 0 or prop ~= 'value' then
+		return
+	end
+
+	local sys_id = self._sys:id()..'.'
+	if string.find(sn, sys_id, 1, true) == 1 then
+		sn = string.sub(sn, string.len(sys_id) + 1)
+	end
+	if string.len(sn) == 0 then
+		return
+	end
+
+	local dev = self._devs[sn]
+	if not dev then
+		return
+	end
+
+	local inputs = dev[input]
+	if not inputs then
+		return
+	end
+
+	for _, v in ipairs(inputs) do
+		self._meter:set_tag_value(v.name, value, timestamp)
+	end
+end
+
+function app:for_earch_client(func, ...)
+	for _, v in ipairs(self._clients) do
+		v[func](v, ...)
+	end
+end
+
+function app:set_rdata_interval(interval)
+	local interval = tonumber(interval)
+	assert(interval, "RData Interval missing")
+	if interval > 0 and (interval < 30 or interval > 3600) then
+		return nil, "Incorrect interval number"
+	end
+
+	self._rdata_interval = interval
+	if self._rdata_timer then
+		self._rdata_timer:stop()
+		self._rdata_timer = nil
+	end
+
+	if self._rdata_interval > 0 then
+		self._rdata_timer = timer:new(function(now)
+			self:for_earch_client('upload_rdata', now)
+		end, self._rdata_interval)
+		self._rdata_timer:start()
+	end
+end
+
+function app:set_min_interval(interval)
+	local interval = tonumber(interval)
+	assert(interval, "Min Interval missing")
+	if 60 % interval ~= 0 then 
+		return nil, "Interval number incorrect"
+	end
+
+	self._min_interval = interval
+
+	if self._min_timer then
+		self._min_timer:stop()
+		self._min_timer = nil
+	end
+
+	self._min_timer = timer:new(function(now)
+		self:for_earch_client('upload_min_data', now)
+	end, self._min_interval * 60, true)
+	self._min_timer:start()
+end
+
+function app:start_timers()
+	if self._rdata_interval > 0 then
+		self._rdata_timer = timer:new(function(now)
+			self:for_earch_client('upload_rdata', now)
+		end, self._rdata_interval, true)
+		self._rdata_timer:start()
+	end
+
+	self._min_timer = timer:new(function(now)
+		self:for_earch_client('upload_min_data', now)
+	end, self._min_interval * 60, true)
+	self._min_timer:start()
+
+	self._hour_timer = timer:new(function(now)
+		self:for_earch_client('upload_hour_data', now)
+	end, 3600, true)
+	self._hour_timer:start()
+
+	self._day_timer = timer:new(function(now)
+		self:for_earch_client('upload_day_data', now)
+	end, 3600 * 24, true)
+	self._day_timer:start()
+end
+
 --- 返回应用对象
 return app
 
