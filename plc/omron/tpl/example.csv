@@ -1,0 +1,19 @@
+COMMENT,name,description,series,,,,,,
+META,AB_PLC,AB_PLC_DEVICE,XXX,,,,,,
+,,,,,,,,,
+COMMENT,name,description,unit,RW,data type,vt,elem_name,offset,rate
+PROP,uint8_1,uint8_1,,RW,uint8,int,TestByteArray,0,1
+PROP,uint8_2,uint8_2,,RW,uint8,int,TestByteArray,1,1
+PROP,uint8_3,uint8_3,,RW,uint8,int,TestByteArray,2,1
+PROP,int8_1,int8_1,,RW,int8,int,TestByteArray,3,1
+PROP,int8_2,int8_2,,RW,int8,int,TestByteArray,4,1
+PROP,uint16,uint16,,RW,uint16,int,TestShortArray,0,1
+PROP,int16,int16,,RO,int16,int,TestShortArray,1,1
+PROP,uint32,uint32,,RW,uint32,int,TestIntArray,1,1
+PROP,int32,int32,,RW,int32,int,TestIntArray,2,1
+PROP,uint64,uint64,,RO,uint64,int,TestLongArray,0,1
+PROP,int64,int64,,RO,int64,int,TestLongArray,1,1
+PROP,float32,float32,,RO,float32,float,TestFloatArray,0,0.001
+PROP,float64,float64,,RO,float64,float,TestFloat64Array,0,0.1
+PROP,string_input_1,string 1,,RW,string,string,TestStringArray,0,
+PROP,string_input_2,string 2,,RW,string,string,TestStringArray,1,

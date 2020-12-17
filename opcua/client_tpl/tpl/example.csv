@@ -1,0 +1,15 @@
+COMMENT,manufacture,name,description,series,,,
+META,冬笋科技,OPCUA,冬笋科技OPCUA设备,OPCUA,,,
+,,,,,,,
+COMMENT,name,description,vt,namespace,index,rate,index_type
+INPUT,StartTime,启动时间,int,0,2257,,number
+INPUT,State,状态,int,0,2259,,number
+INPUT,CurrentTime,当前时间,int,0,2258,,number
+INPUT,SoftwareVersion,软件版本,string,0,2264,,number
+,,,,,,,
+INPUT,INPUT1,输入项描述A,int,3,109,1,number
+,,,,,,,
+COMMENT,name,description,vt,namespace,index,rate,index_type
+OUTPUT,OUTPUT1,输出项描述,int,3,110,1,number
+OUTPUT,OUTPUT2,输出项描述,float,3,111,0.001,number
+OUTPUT,OUTPUT3,输出项描述,int,3,98,1,number

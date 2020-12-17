@@ -80,7 +80,7 @@ function app:on_start()
 				dev[prop.input] = {prop}
 			end
 
-			local tag = tag:new(sn, prop.name)
+			local tag = tag:new(self._station, prop.name, prop.min, prop.max, prop.sum, prop.calc)
 			local p_name = prop.name
 			tag:set_value_callback(function(value, timestamp)
 				local dev = app_inst._dev

@@ -71,8 +71,11 @@ local function load_tpl(name, err_cb)
 				prop.rate = 1
 			end
 
-			prop.fmt = string.len(v[8]) and v[8] or nil
-			prop.calc = string.len(v[9]) and v[9] or nil
+			prop.fmt = string.len(v[8]) > 0 and v[8] or nil
+			prop.min = string.len(v[9]) > 0 and tonumber(v[9]) or nil
+			prop.max = string.len(v[10]) > 0 and tonumber(v[10]) or nil
+			prop.calc = string.len(v[11]) > 0 and v[11] or nil
+			prop.sum = string.len(v[12]) > 0 and v[12] or nil
 
 			if valid_prop(prop, err_cb) then
 				if not devs[prop.sn] then

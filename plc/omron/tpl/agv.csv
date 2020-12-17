@@ -1,0 +1,7 @@
+﻿COMMENT,name,description,series,,,,,,
+META,agc_001,AGC_PLC_DEVICE,X123,,,,,,
+,,,,,,,,,
+COMMENT,name,description,unit,RW,data type,vt,elem_name,offset,rate
+PROP,AGV_Fault,bool,,RO,bool,int,AGV_Status.Fault,0,1
+PROP,AGV_BatVolt,int,,RW,int,int,AGV_Status.Bat_Volt,0,1
+PROP,AGV_StringTest,string,,RW,string,string,String_Test,0,1
