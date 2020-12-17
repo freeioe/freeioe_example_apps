@@ -1,5 +1,29 @@
 [
 	{
+		"name": "system",
+		"desc": "System ID",
+		"type": "number",
+		"default": 31
+	},
+	{
+		"name": "dev_id",
+		"desc": "Device ID",
+		"type": "string",
+		"default": "010000A8900016F000169DC0"
+	},
+	{
+		"name": "rdata_interval",
+		"desc": "RData Interval (second)",
+		"type": "number",
+		"default": 30
+	},
+	{
+		"name": "min_interval",
+		"desc": "Minutes Data Interval (minute)",
+		"type": "number",
+		"default": 10
+	},
+	{
 		"name": "servers",
 		"desc": "Server List",
 		"type": "table",
@@ -23,18 +47,6 @@
 				"default": "16000"
 			},
 			{
-				"name": "system",
-				"desc": "System ID",
-				"type": "number",
-				"default": 31
-			},
-			{
-				"name": "dev_id",
-				"desc": "Device ID",
-				"type": "string",
-				"default": "010000A8900016F000169DC0"
-			},
-			{
 				"name": "passwd",
 				"desc": "Device Passwd",
 				"type": "string",
@@ -53,18 +65,6 @@
 				"default": 3
 			}
 		]
-	},
-	{
-		"name": "rdata_interval",
-		"desc": "RData Interval (second)",
-		"type": "number",
-		"default": 30
-	},
-	{
-		"name": "min_interval",
-		"desc": "Minutes Data Interval (minute)",
-		"type": "number",
-		"default": 10
 	},
 	{
 		"name": "tpls",

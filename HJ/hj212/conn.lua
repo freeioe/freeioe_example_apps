@@ -4,13 +4,18 @@ local client = require 'client_sc'
 local conn = class("FREEIOE_HJ212_APP_CONN")
 
 --- 应用启动函数
-function conn:initialize(app, conf)
+function conn:initialize(app, conf, station)
 	self._app = app
 	self._sys = app._sys
 	self._api = app._api
 	self._log = app._log
 	self._conf = conf
-	self._client = client:new(self._conf)
+	self._station = station
+	self._client = client:new(station, self._conf)
+end
+
+function conn:station()
+	return self._station
 end
 
 function conn:client()

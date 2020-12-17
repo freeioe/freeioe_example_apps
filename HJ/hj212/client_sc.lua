@@ -19,21 +19,16 @@ local function protect_call(obj, func, ...)
 	return table.unpack(ret, 2)
 end
 
-
 --- 
-function client:initialize(opt, app)
-	base.initialize(self, opt.system, opt.dev_id, opt.passwd, opt.timeout, opt.retry)
+function client:initialize(station, opt)
+	assert(station and opt)
+	base.initialize(self, station, opt.passwd, opt.timeout, opt.retry)
 	self._closing = false
 	self._opt = opt
-	self._app = app
 	self._requests = {}
 	self._results = {}
 	self._buf = {}
 	self:add_handler('handler')
-end
-
-function client:app()
-	return self._app
 end
 
 function client:set_dump(cb)

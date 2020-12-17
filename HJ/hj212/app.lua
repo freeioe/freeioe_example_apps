@@ -5,6 +5,7 @@ local conf = require 'app.conf'
 local timer = require 'utils.timer'
 local conn = require 'conn'
 local meter = require 'hj212.client.meter'
+local station = require 'hj212.client.station'
 local tag = require 'hjtag'
 
 --- lua_HJ212_version: 2020-12-15
@@ -19,14 +20,15 @@ function app:on_start()
 	local sys = self:sys_api()
 	local conf = self:app_conf()
 
+	self._rdata_interval = tonumber(conf.rdata_interval) or -1
+	self._min_interval = tonumber(conf.min_interval) or 10
+
 	conf.servers = conf.servers or {}
 	if #conf.servers == 0 then
 		table.insert(conf.servers, {
 			name = 'localhost',
 			host = '127.0.0.1',
 			port = 16000,
-			system = 31,
-			dev_id = '010000A8900016F000169DC0',
 			passwd = '123456',
 		})
 	end
@@ -58,11 +60,13 @@ function app:on_start()
 	self._tpl = tpl
 	self._devs = {}
 
+	self._station = station:new(conf.system, conf.dev_id)
+
 	local inputs = {}
-	local tag_list = {}
 	local app_inst = self
 	for sn, tags in pairs(tpl.devs) do
 		local dev = {}
+		local tag_list = {}
 		for _, prop in ipairs(tags) do
 			inputs[#inputs + 1] = {
 				name = prop.name,
@@ -89,8 +93,8 @@ function app:on_start()
 			tag_list[prop.name] = tag
 		end
 		self._devs[sn] = dev
+		self._station:add_meter(meter:new(sn, {}, tag_list))
 	end
-	self._meter = meter:new(tag_list, {})
 
 	local sys_id = self._sys:id()
 
@@ -105,22 +109,16 @@ function app:on_start()
 
 	self._dev = self._api:add_device(dev_sn, meta, inputs)
 
-	self._rdata_interval = tonumber(conf.rdata_interval) or -1
-	self._min_interval = tonumber(conf.min_interval) or 10
-
 	--- initialize connections
 	self._clients = {}
 	for _, v in ipairs(conf.servers) do
-		local client = conn:new(self, v)
+		local client = conn:new(self, v, self._station)
 		local r, err = client:start()
 		if not r then
 			self._log:error("Start connection failed", err)
 		end
 		table.insert(self._clients, client)
 	end
-
-	--- bind tags
-	
 
 	--- Start timers
 	self:start_timers()
@@ -174,7 +172,7 @@ function app:on_input(app_src, sn, input, prop, value, timestamp, quality)
 	end
 
 	for _, v in ipairs(inputs) do
-		self._meter:set_tag_value(v.name, value, timestamp)
+		self._station:set_tag_value(v.name, value, timestamp)
 	end
 end
 
