@@ -135,6 +135,8 @@ end
 --- 应用退出函数
 function app:on_close(reason)
 	self._log:warning('Application closing', reason)
+	self._rdata_timer:stop()
+	self._min_timer:stop()
 	for _, v in ipairs(self._clients) do
 		v:close()
 	end
@@ -191,22 +193,25 @@ end
 
 function app:upload_rdata(now)
 	local data = self._station:rdata(now)
-	self:for_earch_client('upload_rdata', now, data)
+	self:for_earch_client('upload_rdata', data)
 end
 
 function app:upload_min_data(now)
+	local now = now - self._min_interval * 60
 	local data = self._station:min_data(now, now)
-	self:for_earch_client('upload_rdata', now, data)
+	self:for_earch_client('upload_min_data', data)
 end
 
 function app:upload_hour_data(now)
+	local now = now - 3600
 	local data = self._station:hour_data(now, now)
-	self:for_earch_client('upload_min_data', now, data)
+	self:for_earch_client('upload_hour_data', data)
 end
 
 function app:upload_day_data(now)
+	local now = now - 3600 * 24
 	local data = self._station:day_data(now, now)
-	self:for_earch_client('upload_day_data', now, data)
+	self:for_earch_client('upload_day_data', data)
 end
 
 function app:set_rdata_interval(interval)
@@ -245,7 +250,7 @@ function app:set_min_interval(interval)
 	end
 
 	self._min_timer = timer:new(function(now)
-		self._calc_mgr:trigger(calc_mgr.TYPES.MIN, now)
+		self._calc_mgr:trigger(calc_mgr.TYPES.MIN, now, self._min_interval)
 		self:upload_min_data(now)
 	end, self._min_interval * 60, true)
 	self._min_timer:start()
@@ -260,22 +265,35 @@ function app:start_timers()
 	end
 
 	self._min_timer = timer:new(function(now)
-		self._calc_mgr:trigger(calc_mgr.TYPES.MIN, now)
+		self._calc_mgr:trigger(calc_mgr.TYPES.MIN, now, self._min_interval * 60)
 		self:upload_min_data(now)
+		if now % 3600 == 0 then
+			self._calc_mgr:trigger(calc_mgr.TYPES.HOUR, now, 3600)
+			self:upload_hour_data(now)
+		end
+		if now % (3600 * 24) == 0 then
+			self._calc_mgr:trigger(calc_mgr.TYPES.DAY, now, 3600 * 24)
+			self:upload_day_data(now)
+		end
 	end, self._min_interval * 60, true)
 	self._min_timer:start()
 
+	--[[
 	self._hour_timer = timer:new(function(now)
-		self._calc_mgr:trigger(calc_mgr.TYPES.MIN | calc_mgr.TYPES.HOUR, now)
+		self._calc_mgr:trigger(calc_mgr.TYPES.MIN, now, self._min_interval)
+		self._calc_mgr:trigger(calc_mgr.TYPES.HOUR, now, 3600)
 		self:upload_hour_data(now)
 	end, 3600, true)
 	self._hour_timer:start()
 
 	self._day_timer = timer:new(function(now)
-		self._calc_mgr:trigger(calc_mgr.TYPES.ALL, now)
+		self._calc_mgr:trigger(calc_mgr.TYPES.MIN, now, self._min_interval)
+		self._calc_mgr:trigger(calc_mgr.TYPES.HOUR, now, 3600)
+		self._calc_mgr:trigger(calc_mgr.TYPES.ALL, now, 3600 * 24)
 		self:upload_day_data(now)
 	end, 3600 * 24, true)
 	self._day_timer:start()
+	]]--
 end
 
 --- 返回应用对象

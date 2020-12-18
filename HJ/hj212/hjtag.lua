@@ -53,7 +53,8 @@ function tag:set_value(value, timestamp)
 end
 
 function tag:on_sum_value(typ, val)
-	print(typ, table.unpack(val))
+	local cjson = require 'cjson'
+	print('on_sum_value', self._name, typ, cjson.encode(val))
 end
 
 return tag

@@ -109,28 +109,44 @@ function conn:on_output(app_src, sn, output, prop, value, timestamp)
 	return nil, "Output not found!"
 end
 
-function conn:upload_rdata(now, data)
+function conn:upload_rdata(data)
 	local request = require 'hj212.request.rdata_start'
 	local req = request:new(data, true)
-	return self._client:request(req)
+	return self._client:request(req, function(resp, err)
+		if not resp then
+			self._log:error("Upload RData failed", err)
+		end
+	end)
 end
 
-function conn:upload_min_data(now, data)
+function conn:upload_min_data(data)
 	local request = require 'hj212.request.min_data'
 	local req = request:new(data, true)
-	return self._client:request(req)
+	return self._client:request(req, function(resp, err)
+		if not resp then
+			self._log:error("Upload RData failed", err)
+		end
+	end)
 end
 
-function conn:upload_hour_data(now, data)
+function conn:upload_hour_data(data)
 	local request = require 'hj212.request.hour_data'
 	local req = request:new(data, true)
-	return self._client:request(req)
+	return self._client:request(req, function(resp, err)
+		if not resp then
+			self._log:error("Upload RData failed", err)
+		end
+	end)
 end
 
-function conn:upload_day_data(now, data)
+function conn:upload_day_data(data)
 	local request = require 'hj212.request.day_data'
 	local req = request:new(data, true)
-	return self._client:request(req)
+	return self._client:request(req, function(resp, err)
+		if not resp then
+			self._log:error("Upload RData failed", err)
+		end
+	end)
 end
 
 return conn
