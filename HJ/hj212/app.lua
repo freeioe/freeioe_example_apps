@@ -6,6 +6,7 @@ local timer = require 'utils.timer'
 local conn = require 'conn'
 local meter = require 'hj212.client.meter'
 local station = require 'hj212.client.station'
+local calc_mgr = require 'hj212.calc.manager'
 local tag = require 'hjtag'
 
 --- lua_HJ212_version: 2020-12-15
@@ -14,6 +15,10 @@ local tag = require 'hjtag'
 local app = app_base:subclass("FREEIOE_HJ212_APP")
 --- 设定应用最小运行接口版本, 7 has new api and lua5.4???
 app.static.API_VER = 7
+
+function app:on_init()
+	self._devs = {}
+end
 
 --- 应用启动函数
 function app:on_start()
@@ -61,6 +66,7 @@ function app:on_start()
 	self._devs = {}
 
 	self._station = station:new(conf.system, conf.dev_id)
+	self._calc_mgr = calc_mgr:new()
 
 	local inputs = {}
 	local app_inst = self
@@ -91,6 +97,7 @@ function app:on_start()
 			end)
 
 			tag_list[prop.name] = tag
+			self._calc_mgr:reg(calc_mgr.TYPES.ALL, tag:his_calc())
 		end
 		self._devs[sn] = dev
 		self._station:add_meter(meter:new(sn, {}, tag_list))
@@ -182,6 +189,26 @@ function app:for_earch_client(func, ...)
 	end
 end
 
+function app:upload_rdata(now)
+	local data = self._station:rdata(now)
+	self:for_earch_client('upload_rdata', now, data)
+end
+
+function app:upload_min_data(now)
+	local data = self._station:min_data(now, now)
+	self:for_earch_client('upload_rdata', now, data)
+end
+
+function app:upload_hour_data(now)
+	local data = self._station:hour_data(now, now)
+	self:for_earch_client('upload_min_data', now, data)
+end
+
+function app:upload_day_data(now)
+	local data = self._station:day_data(now, now)
+	self:for_earch_client('upload_day_data', now, data)
+end
+
 function app:set_rdata_interval(interval)
 	local interval = tonumber(interval)
 	assert(interval, "RData Interval missing")
@@ -197,7 +224,7 @@ function app:set_rdata_interval(interval)
 
 	if self._rdata_interval > 0 then
 		self._rdata_timer = timer:new(function(now)
-			self:for_earch_client('upload_rdata', now)
+			self:upload_rdata(now)
 		end, self._rdata_interval)
 		self._rdata_timer:start()
 	end
@@ -218,7 +245,8 @@ function app:set_min_interval(interval)
 	end
 
 	self._min_timer = timer:new(function(now)
-		self:for_earch_client('upload_min_data', now)
+		self._calc_mgr:trigger(calc_mgr.TYPES.MIN, now)
+		self:upload_min_data(now)
 	end, self._min_interval * 60, true)
 	self._min_timer:start()
 end
@@ -226,23 +254,26 @@ end
 function app:start_timers()
 	if self._rdata_interval > 0 then
 		self._rdata_timer = timer:new(function(now)
-			self:for_earch_client('upload_rdata', now)
+			self:upload_rdata(now)
 		end, self._rdata_interval, true)
 		self._rdata_timer:start()
 	end
 
 	self._min_timer = timer:new(function(now)
-		self:for_earch_client('upload_min_data', now)
+		self._calc_mgr:trigger(calc_mgr.TYPES.MIN, now)
+		self:upload_min_data(now)
 	end, self._min_interval * 60, true)
 	self._min_timer:start()
 
 	self._hour_timer = timer:new(function(now)
-		self:for_earch_client('upload_hour_data', now)
+		self._calc_mgr:trigger(calc_mgr.TYPES.MIN | calc_mgr.TYPES.HOUR, now)
+		self:upload_hour_data(now)
 	end, 3600, true)
 	self._hour_timer:start()
 
 	self._day_timer = timer:new(function(now)
-		self:for_earch_client('upload_day_data', now)
+		self._calc_mgr:trigger(calc_mgr.TYPES.ALL, now)
+		self:upload_day_data(now)
 	end, 3600 * 24, true)
 	self._day_timer:start()
 end

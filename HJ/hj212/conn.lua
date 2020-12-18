@@ -109,20 +109,28 @@ function conn:on_output(app_src, sn, output, prop, value, timestamp)
 	return nil, "Output not found!"
 end
 
-function conn:upload_rdata(now)
-	print('upload_rdata', now)
+function conn:upload_rdata(now, data)
+	local request = require 'hj212.request.rdata_start'
+	local req = request:new(data, true)
+	return self._client:request(req)
 end
 
-function conn:upload_min_data(now)
-	print('upload_min_data', now)
+function conn:upload_min_data(now, data)
+	local request = require 'hj212.request.min_data'
+	local req = request:new(data, true)
+	return self._client:request(req)
 end
 
-function conn:upload_hour_data(now)
-	print('upload_hour_data', now)
+function conn:upload_hour_data(now, data)
+	local request = require 'hj212.request.hour_data'
+	local req = request:new(data, true)
+	return self._client:request(req)
 end
 
-function conn:upload_day_data(now)
-	print('upload_day_data', now)
+function conn:upload_day_data(now, data)
+	local request = require 'hj212.request.day_data'
+	local req = request:new(data, true)
+	return self._client:request(req)
 end
 
 return conn

@@ -19,10 +19,8 @@ local function load_hj212_calc(tag, tag_name, name)
 
 	local m = assert(require('hj212.calc.'..calc_name))
 
-	print(tag_name, calc_name)
-
 	return m:new(function(typ, val)
-		tag:on_calc_value(typ, val)
+		tag:on_sum_value(typ, val)
 	end)
 end
 
@@ -54,20 +52,8 @@ function tag:set_value(value, timestamp)
 	end
 end
 
-function tag:on_calc_value(typ, val)
-	-- TODO: save to db
-end
-
-function tag:query_min_data(start_time, end_time)
-	-- Try calc then db
-end
-
-function tag:query_hour_data(start_time, end_time)
-	-- Try calc then db
-end
-
-function tag:query_day_data(start_time, end_time)
-	-- Try calc then db
+function tag:on_sum_value(typ, val)
+	print(typ, table.unpack(val))
 end
 
 return tag

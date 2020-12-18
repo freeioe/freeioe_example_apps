@@ -65,6 +65,9 @@ function client:send(session, raw_data)
 
 	local cur = 0
 	while cur < self:retry() do
+		if cur ~= 0 then
+			self:log('warning', 'Resend request')
+		end
 		local r, err = socket.write(self._socket, raw_data)
 		if not r then
 			self._requests[session] = nil
@@ -117,7 +120,7 @@ function client:connect_proc()
 		if connect_gap > 64 * 100 then
 			connect_gap = 100
 		end
-		skynet.error("Wait for retart connection", connect_gap)
+		self:log('info', "Wait for retart connection", connect_gap)
 	end
 
 	if self._socket then
@@ -129,7 +132,7 @@ function client:watch_client_socket()
 	while self._socket and not self._closing do
 		local data, err = socket.read(self._socket)	
 		if not data then
-			skynet.error("Socket disconnected", err)
+			self:log('error', "Socket disconnected", err)
 			break
 		end
 		self:on_recv(data)
@@ -154,15 +157,15 @@ end
 function client:start_connect()
 	local host = self._opt.host
 	local port = self._opt.port
-	skynet.error(string.format("Connecting to %s:%d", host, port))
+	self:log('info', string.format("Connecting to %s:%d", host, port))
 	local sock, err = socket.open(host, port)
 	if not sock then
 		local err = string.format("Cannot connect to %s:%d. err: %s",
 		host, port, err or "")
-		skynet.error(err)
+		self:log('error', err)
 		return nil, err
 	end
-	skynet.error(string.format("Connected to %s:%d", host, port))
+	self:log('info', string.format("Connected to %s:%d", host, port))
 
 	if self._opt.nodelay then
 		socketdriver.nodelay(sock)
