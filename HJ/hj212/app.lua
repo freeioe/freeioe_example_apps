@@ -1,13 +1,18 @@
 --- 导入需求的模块
 local app_base = require 'app.base'
-local csv_tpl = require 'csv_tpl'
 local conf = require 'app.conf'
+local sysinfo = require 'utils.sysinfo'
 local timer = require 'utils.timer'
-local conn = require 'conn'
+local lfs = require 'lfs'
+
 local meter = require 'hj212.client.meter'
 local station = require 'hj212.client.station'
 local calc_mgr = require 'hj212.calc.manager'
+
+local csv_tpl = require 'csv_tpl'
+local conn = require 'conn'
 local tag = require 'hjtag'
+local hisdb = require 'hisdb.hisdb'
 
 --- lua_HJ212_version: 2020-12-15
 
@@ -24,9 +29,12 @@ end
 function app:on_start()
 	local sys = self:sys_api()
 	local conf = self:app_conf()
-
 	self._rdata_interval = tonumber(conf.rdata_interval) or -1
 	self._min_interval = tonumber(conf.min_interval) or 10
+
+	local db_folder = sysinfo.data_dir() .. "/db_" .. self._name
+	lfs.mkdir(db_folder)
+	self._hisdb = hisdb:new(db_folder, '6m')
 
 	conf.servers = conf.servers or {}
 	if #conf.servers == 0 then
@@ -86,7 +94,7 @@ function app:on_start()
 				dev[prop.input] = {prop}
 			end
 
-			local tag = tag:new(self._station, prop.name, prop.min, prop.max, prop.sum, prop.calc)
+			local tag = tag:new(self._hisdb, self._station, prop.name, prop.min, prop.max, prop.sum, prop.calc)
 			local p_name = prop.name
 			tag:set_value_callback(function(value, timestamp)
 				local dev = app_inst._dev
@@ -97,7 +105,7 @@ function app:on_start()
 			end)
 
 			tag_list[prop.name] = tag
-			self._calc_mgr:reg(calc_mgr.TYPES.ALL, tag:his_calc())
+			self._calc_mgr:reg(tag:his_calc())
 		end
 		self._devs[sn] = dev
 		self._station:add_meter(meter:new(sn, {}, tag_list))

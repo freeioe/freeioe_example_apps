@@ -1,6 +1,7 @@
 local calc_parser = require 'calc.parser'
 
 local base = require 'hj212.client.tag'
+local hisdb_tag = require 'hisdb.tag'
 
 local tag = base:subclass('HJ212_HJTAG')
 
@@ -19,15 +20,27 @@ local function load_hj212_calc(tag, tag_name, name)
 
 	local m = assert(require('hj212.calc.'..calc_name))
 
-	return m:new(function(typ, val)
+	--- TODO: Mask and Upper Tag
+	local calc = m:new(function(typ, val)
 		tag:on_sum_value(typ, val)
-	end)
+	end, mask, upper_tag)
+
+	local db = hisdb_tag:new(hisdb, name)
+	calc:set_db(db)
+
+	return calc
 end
 
-function tag:initialize(station, name, min, max, sum, calc)
+function tag:initialize(hisdb, station, name, min, max, sum, calc)
 	--- Sumation calculation
 	local sum_calc = load_hj212_calc(self, name, sum)
+
+	--- Base initialize
 	base.initialize(self, name, min, max, sum_calc)
+
+	--- Member objects
+	self._hisdb = hisdb
+	self._station = station
 	if calc then
 		--- Value calc
 		self._calc = calc_parser(station, calc)

@@ -1,28 +1,27 @@
 local sqlite3 = require 'sqlite3'
 local class = require 'middleclass'
-local utils = require 'hisdb'
+local utils = require 'hisdb.utils'
 
 local store = class('hisdb.store')
 
 function store:initialize(meta, creation, duration, file)
 	self._meta = meta
-	self._creation = creation
-	self._duration = utils.duration_calc(creation, duration)
+	self._start_time = creation
+	self._end_time = utils.duration_calc(creation, duration)
 	self._file = file
-	self._pre = nil
-	self._nex = nil
 	self:open()
 end
 
-function store:set_chain(pre, nex)
-	self._pre = pre
-	self._nex = nex
+function store:start_time()
+	return self._start_time
 end
 
-function store:switch(file)
-	self._file = file
-	self:close()
-	self:open()
+function store:end_time()
+	return self._end_time
+end
+
+function store:in_time(timestamp)
+	return timestamp >= self._start_time and timestamp <= self._end_time
 end
 
 local his_create_sql = [[
@@ -57,10 +56,13 @@ function store:open()
 		table.insert(sql_data, col)
 	end
 
-	local sql = string.format(his_create_sql, table.concat(sql_dta, '\n'))
-	print(sql)
+	local r, err = db:first_row([[SELECT name FROM sqlite_master WHERE type='table' AND name='his';]])
+	if not r then
+		local sql = string.format(his_create_sql, table.concat(sql_dta, '\n'))
+		print(sql)
 
-	db:exec(sql)
+		db:exec(sql)
+	end
 	self._db = db
 end
 
@@ -89,14 +91,7 @@ function store:insert(val)
 	if not val.timestamp then
 		return nil, "Timestamp missing"
 	end
-	if val.timestamp < self._creation then
-		assert(self._pre, 'Value timestamp earlier than creation')
-		return self._pre:insert(val)
-	end
-	if val.timestamp > self._duration then
-		assert(self._pre, 'Value timestamp later than duration')
-		return self._nex:insert(val)
-	end
+	assert(val.timestamp > self._start_time and val.timestamp < self._end_time)
 
 	local val, cols = check_meta(val, meta)
 	if not val then
@@ -117,7 +112,7 @@ local his_query_sql = [[
 SELECT * FROM his WHERE timestamp >= %d AND timestamp <= %d %s
 ]]
 function store:query(start_time, end_time, order_by, limit)
-	local more = (order_by or 'DESC')..(limit and ' '..limit or '')
+	local more = (order_by or 'timestamp ASC')..(limit and ' '..limit or '')
 	local data = {}
 	for row in db:rows(string.format(his_query_sql, start_time, end_time, more)) do
 		data[#data + 1] = row
