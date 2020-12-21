@@ -5,26 +5,29 @@ local object = class('hisdb.object')
 local attrs_example = {
 	{
 		name = 'timestamp',
-		col_type = 'DOUBLE',
+		type = 'DOUBLE',
 		not_null = true,
 		unique = true
 	},
 	{
 		name = 'value',
-		col_type = 'DOUBLE',
+		type = 'DOUBLE',
 		not_null = false
 	},
 	{
 		name = 'value_str',
-		col_type = 'TEXT',
+		type = 'TEXT',
 		not_null = false
 	}
 }
 
-function object:initialize(attrs)
-	self._cols = cols
+function object:initialize(hisdb, key, cate, attrs)
+	self._hisdb = hisdb
+	self._attrs = attrs
+	self._db_map = {}
 end
 
+--[[
 function object:create_sql(db_name)
 	local sql = 'CREATE TABLE "'..db_name'" (\n\t"id"\tINTERGER UNIQUE,\n'
 	for k, v in pairs(self._cols) do
@@ -39,7 +42,12 @@ function object:create_sql(db_name)
 	end
 	return sql..'\tPRIMARY KEY("id" AUTOINCREMENT)\n);'
 end
+]]--
 
-function object:query
+function object:insert(val)
+end
+
+function object:query(start_time, end_time)
+end
 
 return object

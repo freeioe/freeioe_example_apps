@@ -25,23 +25,25 @@ local function load_hj212_calc(tag, tag_name, name)
 end
 
 function tag:initialize(station, name, min, max, sum, calc)
+	--- Sumation calculation
 	local sum_calc = load_hj212_calc(self, name, sum)
 	base.initialize(self, name, min, max, sum_calc)
 	if calc then
+		--- Value calc
 		self._calc = calc_parser(station, calc)
 	else
 		self._calc = nil
 	end
-	self._db = nil
 	self._value_callback = nil
-end
-
-function tag:bind_db(db)
-	self._db = db
+	self._sum_callback = nil
 end
 
 function tag:set_value_callback(cb)
 	self._value_callback = cb
+end
+
+function tag:set_sum_callback(cb)
+	self._sum_callback = cb
 end
 
 function tag:set_value(value, timestamp)
@@ -55,6 +57,7 @@ end
 function tag:on_sum_value(typ, val)
 	local cjson = require 'cjson'
 	print('on_sum_value', self._name, typ, cjson.encode(val))
+	self._sum_callback(typ, val)
 end
 
 return tag
