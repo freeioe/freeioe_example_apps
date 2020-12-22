@@ -4,12 +4,34 @@ local utils = require 'hisdb.utils'
 
 local store = class('hisdb.store')
 
+local meta_example = {
+	{
+		name = 'timestamp',
+		type = 'DOUBLE',
+		not_null = true,
+		unique = true
+	},
+	{
+		name = 'value',
+		type = 'DOUBLE',
+		not_null = false
+	},
+	{
+		name = 'value_str',
+		type = 'TEXT',
+		not_null = false
+	}
+}
+
 function store:initialize(meta, creation, duration, file)
+	assert(meta, "Meta missing")
+	assert(creation, "Creation missing")
+	assert(duration, "Duration missing")
+	assert(file, "File missing")
 	self._meta = meta
 	self._start_time = creation
 	self._end_time = utils.duration_calc(creation, duration)
 	self._file = file
-	self:open()
 end
 
 function store:start_time()
@@ -21,25 +43,29 @@ function store:end_time()
 end
 
 function store:in_time(timestamp)
-	return timestamp >= self._start_time and timestamp <= self._end_time
+	assert(timestamp)
+	return timestamp >= self._start_time and timestamp < self._end_time
 end
 
-local his_create_sql = [[
-CREATE TABLE "his" (
+local store_create_sql = [[
+CREATE TABLE "store" (
 	"id"	INTEGER PRIMARY KEY AUTOINCREMENT UNIQUE,
 	"timestamp"	DOUBLE NOT NULL,
-	%s
+%s
 );
 ]]
 function store:open()
 	if self._db then
 		return
 	end
-	local db = sqlite3.open(self._file)
+	local db, err = sqlite3.open(self._file)
+	if not db then
+		return nil, err
+	end
 
 	local sql_data = {}
 	for _, v in ipairs(self._meta) do
-		local col = string.format('\t"%s"\t%', v.name, v.type)
+		local col = string.format('\t"%s"\t%s', v.name, v.type)
 		if v.default then
 			if type(v.default) == 'string' then
 				col = col .. string.format(" DEFAULT '%s'", v.default)
@@ -53,17 +79,26 @@ function store:open()
 		if v.unique then
 			col = col ..' UNIQUE'
 		end
-		table.insert(sql_data, col)
+		--- Skip the timestamp meta
+		if v.name ~= 'timestamp' then
+			table.insert(sql_data, col)
+		end
 	end
 
-	local r, err = db:first_row([[SELECT name FROM sqlite_master WHERE type='table' AND name='his';]])
+	local r, err = db:first_row([[SELECT name FROM sqlite_master WHERE type='table' AND name='store';]])
 	if not r then
-		local sql = string.format(his_create_sql, table.concat(sql_dta, '\n'))
+		local sql = string.format(store_create_sql, table.concat(sql_data, ',\n'))
 		print(sql)
 
-		db:exec(sql)
+		r, err = db:exec(sql)
+	else
+		print('TABLE "store" already exists')
 	end
-	self._db = db
+
+	if r then
+		self._db = db
+	end
+	return r, err
 end
 
 function store:close()
@@ -75,25 +110,29 @@ end
 
 local function check_meta(val, meta)
 	local cols = {}
-	for _, v in ipairs(self._meta) do
+	for _, v in ipairs(meta) do
 		if not val[v.name] and v.default == nil then
 			return nil, "Missing column value "..v.name
 		end
-		cols[#cols + 1] = v.name
+		if v.name ~= 'timestamp' then
+			cols[#cols + 1] = v.name
+		end
 	end
 	return val, cols
 end
 
-local his_insert_sql = [[
-INSERT INTO his (%s) VALUES (%s)
+local store_insert_sql = [[
+INSERT INTO store (%s) VALUES (%s)
 ]]
 function store:insert(val)
+	assert(self._db)
+
 	if not val.timestamp then
 		return nil, "Timestamp missing"
 	end
-	assert(val.timestamp > self._start_time and val.timestamp < self._end_time)
+	assert(val.timestamp >= self._start_time and val.timestamp < self._end_time)
 
-	local val, cols = check_meta(val, meta)
+	local val, cols = check_meta(val, self._meta)
 	if not val then
 		return nil, cols
 	end
@@ -103,18 +142,22 @@ function store:insert(val)
 
 	local cols_str = table.concat(cols, ',')
 	local fmt_str = ':'..table.concat(cols, ', :')
-	local stmt, err = self._db:prepare(string.format(his_insert_sql, cols_str, fmt_str))
+	local sql_str = string.format(store_insert_sql, cols_str, fmt_str)
+	local stmt, err = self._db:prepare(sql_str)
 
 	return stmt:bind(val):exec()
 end
 
-local his_query_sql = [[
-SELECT * FROM his WHERE timestamp >= %d AND timestamp <= %d %s
+local store_query_sql = [[
+SELECT * FROM store WHERE timestamp >= %d AND timestamp <= %d %s
 ]]
 function store:query(start_time, end_time, order_by, limit)
-	local more = (order_by or 'timestamp ASC')..(limit and ' '..limit or '')
+	assert(self._db)
+
+	local more = 'ORDER BY '..(order_by or 'timestamp ASC')..(limit and ' '..limit or '')
 	local data = {}
-	for row in db:rows(string.format(his_query_sql, start_time, end_time, more)) do
+	local sql = string.format(store_query_sql, start_time, end_time, more)
+	for row in self._db:rows(sql) do
 		data[#data + 1] = row
 	end
 

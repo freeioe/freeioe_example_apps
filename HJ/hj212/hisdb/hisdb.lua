@@ -4,10 +4,14 @@ local object = require 'hisdb.object'
 
 local hisdb = class('hisdb.hisdb')
 
-function hisdb:initialize(folder, duration)
-	self._index_db = index:new(folder, duration)
+function hisdb:initialize(folder, durations)
+	self._index_db = index:new(folder, durations)
 	self._meta_map = {}
 	self._objects = {}
+end
+
+function hisdb:open()
+	return self._index_db:open()
 end
 
 function hisdb:index_db()
@@ -23,8 +27,9 @@ function hisdb:create_object(key, cate, meta)
 	local obj = self._objects[key][cate] 
 
 	if not obj then
-		self._meta_map[key] = meta
-		local obj = object:new(self, key, cate, attrs)
+		self._meta_map[key] = self._meta_map[key] or {}
+		self._meta_map[key][cate] = meta
+		obj = object:new(self, key, cate)
 		self._objects[key][cate] = obj
 	end
 
@@ -36,6 +41,8 @@ local function key_and_cate(obj)
 end
 
 function hisdb:create_store(obj, start_time)
+	assert(obj)
+	local start_time = start_time or os.time()
 	local key, cate = key_and_cate(obj)
 	local meta = self._meta_map[key][cate]
 	assert(meta)
@@ -43,11 +50,13 @@ function hisdb:create_store(obj, start_time)
 end
 
 function hisdb:find_store(obj, timestamp)
+	assert(obj and timestamp)
 	local key, cate = key_and_cate(obj)
 	return self._index_db:find(key, cate, timestamp)
 end
 
 function hisdb:list_store(obj, start_time, end_time)
+	assert(obj and start_time and end_time)
 	local key, cate = key_and_cate(obj)
 	return self._index_db:list(key, cate, start_time, end_time)
 end

@@ -25,9 +25,6 @@ local function load_hj212_calc(tag, tag_name, name)
 		tag:on_sum_value(typ, val)
 	end, mask, upper_tag)
 
-	local db = hisdb_tag:new(hisdb, name)
-	calc:set_db(db)
-
 	return calc
 end
 
@@ -51,6 +48,22 @@ function tag:initialize(hisdb, station, name, min, max, sum, calc)
 	self._sum_callback = nil
 end
 
+function tag:init_db()
+	local sum_calc = self:his_calc()
+	local db = hisdb_tag:new(self._hisdb, self:tag_name(), sum_calc:sample_meta())
+	local r, err = db:init()
+	if not r then
+		return nil, err
+	end
+	sum_calc:set_db(db)
+	self._tagdb = db
+	return true
+end
+
+function tag:save_samples()
+	return self._tagdb:save_samples()
+end
+
 function tag:set_value_callback(cb)
 	self._value_callback = cb
 end
@@ -67,10 +80,15 @@ function tag:set_value(value, timestamp)
 	end
 end
 
+--- Forward to MQTT application
 function tag:on_sum_value(typ, val)
+	--[[
 	local cjson = require 'cjson'
 	print('on_sum_value', self._name, typ, cjson.encode(val))
-	self._sum_callback(typ, val)
+	]]--
+	if self._sum_callback then
+		self._sum_callback(typ, val)
+	end
 end
 
 return tag

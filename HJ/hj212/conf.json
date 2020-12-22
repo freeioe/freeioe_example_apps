@@ -12,6 +12,12 @@
 		"default": "010000A8900016F000169DC0"
 	},
 	{
+		"name": "samples_interval",
+		"desc": "Samples Saving Interval (second)",
+		"type": "number",
+		"default": 10
+	},
+	{
 		"name": "rdata_interval",
 		"desc": "RData Interval (second)",
 		"type": "number",

@@ -23,18 +23,25 @@ app.static.API_VER = 7
 
 function app:on_init()
 	self._devs = {}
+	self._clients = {}
 end
 
 --- 应用启动函数
 function app:on_start()
 	local sys = self:sys_api()
 	local conf = self:app_conf()
+	self._samples_interval = tonumber(conf.samples_interval) or -1 -- seconds
 	self._rdata_interval = tonumber(conf.rdata_interval) or -1
 	self._min_interval = tonumber(conf.min_interval) or 10
 
 	local db_folder = sysinfo.data_dir() .. "/db_" .. self._name
 	lfs.mkdir(db_folder)
-	self._hisdb = hisdb:new(db_folder, '6m')
+	self._hisdb = hisdb:new(db_folder, {SAMPLE='1d'})
+	local r, err = self._hisdb:open()
+	if not r then
+		self._log:error("Failed to open history database", err)
+		return nil, err
+	end
 
 	conf.servers = conf.servers or {}
 	if #conf.servers == 0 then
@@ -103,6 +110,10 @@ function app:on_start()
 				end
 				dev:set_input_prop(p_name, 'value', value, timestamp)
 			end)
+			local r, err = tag:init_db()
+			if not r then
+				self._log:error('Failed to init tag db', err)
+			end
 
 			tag_list[prop.name] = tag
 			self._calc_mgr:reg(tag:his_calc())
@@ -143,8 +154,14 @@ end
 --- 应用退出函数
 function app:on_close(reason)
 	self._log:warning('Application closing', reason)
-	self._rdata_timer:stop()
-	self._min_timer:stop()
+	if self._rdata_timer then
+		self._rdata_timer:stop()
+		self._rdata_timer = nil
+	end
+	if self._min_timer then
+		self._min_timer:stop()
+		self._min_timer = nil
+	end
 	for _, v in ipairs(self._clients) do
 		v:close()
 	end
@@ -193,14 +210,30 @@ function app:on_input(app_src, sn, input, prop, value, timestamp, quality)
 	end
 end
 
+function app:save_samples()
+	self._sys:sleep(3) --- TODO: delay the saving
+	self._log:debug("Saving sample data")
+	local station = self._station
+	for _, meter in ipairs(station:meters()) do
+		self._log:debug("Saving sample data for meter:"..meter:sn())
+		for tag_name, tag in pairs(meter:tag_list()) do
+			self._log:debug("Saving sample data for tag:"..tag_name)
+			local r, err = tag:save_samples()
+			if not r then
+				self._log:error("Failed saving sample data for tag:"..tag_name, err)
+			end
+		end
+	end
+end
+
 function app:for_earch_client(func, ...)
 	for _, v in ipairs(self._clients) do
 		v[func](v, ...)
 	end
 end
 
-function app:upload_rdata(now)
-	local data = self._station:rdata(now)
+function app:upload_rdata(now, save)
+	local data = self._station:rdata(now, save)
 	self:for_earch_client('upload_rdata', data)
 end
 
@@ -237,7 +270,7 @@ function app:set_rdata_interval(interval)
 
 	if self._rdata_interval > 0 then
 		self._rdata_timer = timer:new(function(now)
-			self:upload_rdata(now)
+			self:upload_rdata(now, true)
 		end, self._rdata_interval)
 		self._rdata_timer:start()
 	end
@@ -265,9 +298,15 @@ function app:set_min_interval(interval)
 end
 
 function app:start_timers()
+	if self._samples_interval > 0 then
+		self._samples_timer = timer:new(function(now)
+			self:save_samples()
+		end, self._samples_interval, true)
+		self._samples_timer:start()
+	end
 	if self._rdata_interval > 0 then
 		self._rdata_timer = timer:new(function(now)
-			self:upload_rdata(now)
+			self:upload_rdata(now, true)
 		end, self._rdata_interval, true)
 		self._rdata_timer:start()
 	end

@@ -7,6 +7,7 @@ local function to_seconds(val)
 end
 
 function _M.duration_base(duration, start)
+	assert(duration, 'Duration missing')
 	local now = date(start) or date(true)
 	now = now:tolocal()
 
@@ -21,11 +22,11 @@ function _M.duration_base(duration, start)
 	if unit == 'd' then
 	end
 	if unit == 'm' then
-		now:setday(0)
+		now:setday(1)
 	end
 	if unit == 'y' then
-		now:setday(0)
-		now:setmonth(0)
+		now:setday(1)
+		now:setmonth(1)
 	end
 
 	return to_seconds(now)
@@ -63,14 +64,15 @@ function _M.duration_calc(start_time, duration)
 	local c, unit = string.match(duration, '^(%d+)(%w+)$')
 	c = tonumber(c)
 	unit = string.lower(unit)
+	local start = date(start_time):tolocal()
 	if unit == 'd' then
-		return to_seconds(date(start_time):adddays(c))
+		return to_seconds(start:adddays(c))
 	end
 	if unit == 'm' then
-		return to_seconds(date(start_time):addmonths(c))
+		return to_seconds(start:addmonths(c))
 	end
 	if unit == 'y' then
-		return to_seconds(date(start_time):addyears(c))
+		return to_seconds(start:addyears(c))
 	end
 	return nil, 'Invalid duration'
 end

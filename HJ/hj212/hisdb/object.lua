@@ -2,30 +2,10 @@ local class = require 'middleclass'
 
 local object = class('hisdb.object')
 
-local attrs_example = {
-	{
-		name = 'timestamp',
-		type = 'DOUBLE',
-		not_null = true,
-		unique = true
-	},
-	{
-		name = 'value',
-		type = 'DOUBLE',
-		not_null = false
-	},
-	{
-		name = 'value_str',
-		type = 'TEXT',
-		not_null = false
-	}
-}
-
-function object:initialize(hisdb, key, cate, attrs)
+function object:initialize(hisdb, key, cate)
 	self._hisdb = hisdb
 	self._key = key
 	self._cate = cate
-	self._attrs = attrs
 	self._store = nil
 	self._store_map = {}
 end
@@ -34,7 +14,7 @@ function object:key()
 	return self._key
 end
 
-function object:category()
+function object:cate()
 	return self._cate
 end
 
@@ -56,9 +36,14 @@ end
 ]]--
 
 function object:init()
-	local store = hisdb:create_store(self)
+	local store, err = self._hisdb:create_store(self)
+	if not store then
+		return nil, err
+	end
+
 	self._store_map = {store}
 	self._store = store
+	return true
 end
 
 function object:insert(val)
@@ -74,7 +59,7 @@ function object:insert(val)
 	end
 
 	if not store then
-		store, err = hisdb:find(self, val.timestamp)
+		store, err = self._hisdb:find_store(self, val.timestamp)
 		if not store then
 			return nil, err
 		end
@@ -89,7 +74,8 @@ function object:insert(val)
 end
 
 function object:query(start_time, end_time)
-	local stores = hisdb.list_store(self._key, slef._cate, start_time, end_time)
+	assert(start_time and end_time)
+	local stores = self._hisdb:list_store(self, start_time, end_time)
 
 	local data = nil
 	for _, v in ipairs(stores) do
