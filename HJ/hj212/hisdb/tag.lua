@@ -103,10 +103,10 @@ function base:write(cate, data, is_array)
 
 	if is_array then
 		for _, v in ipairs(data) do
-			db:insert(v)
+			assert(db:insert(v))
 		end
 	else
-		db:insert(data)
+		assert(db:insert(data))
 	end
 
 	return true

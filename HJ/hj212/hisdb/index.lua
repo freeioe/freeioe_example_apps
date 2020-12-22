@@ -110,7 +110,7 @@ function index:purge(key, cate)
 
 	local now = os.time()
 	for row in db:rows(sql) do
-		self._log:debug("INDEX", row.id, row.key, row.category, row.file, row.creation, row.duration)
+		--print("INDEX.PURGE", row.id, row.key, row.category, row.file, row.creation, row.duration)
 		local diff = utils.duration_div(row.creation, now, row.duration)
 		if diff >= 2 then
 			-- Purge db

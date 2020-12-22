@@ -63,7 +63,7 @@ end
 
 function hisdb:cleanup(now)
 	--- Purge db files each minute
-	if (now % 60) == 3 then
+	if (now % 60) == 9 then
 		for key, v in pairs(self._objects) do
 			for cate, obj in pairs(v) do
 				self._index_db:purge(key, cate)

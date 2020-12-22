@@ -151,6 +151,13 @@ function app:on_start()
 	return true
 end
 
+function app:on_run(tms)
+	self._count = (self._count or 0) + 1
+	self._hisdb:cleanup(self._count)
+
+	return 1000
+end
+
 --- 应用退出函数
 function app:on_close(reason)
 	self._log:warning('Application closing', reason)
