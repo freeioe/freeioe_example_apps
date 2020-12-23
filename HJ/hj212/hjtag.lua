@@ -1,3 +1,4 @@
+local cjson = require 'cjson.safe'
 local calc_parser = require 'calc.parser'
 
 local base = require 'hj212.client.tag'
@@ -21,8 +22,8 @@ local function load_hj212_calc(tag, tag_name, name)
 	local m = assert(require('hj212.calc.'..calc_name))
 
 	--- TODO: Mask and Upper Tag
-	local calc = m:new(function(typ, val)
-		tag:on_sum_value(typ, val)
+	local calc = m:new(function(type_name, val, timestamp)
+		tag:on_sum_value(type_name, val, timestamp)
 	end, mask, upper_tag)
 
 	return calc
@@ -68,26 +69,35 @@ function tag:set_value_callback(cb)
 	self._value_callback = cb
 end
 
-function tag:set_sum_callback(cb)
-	self._sum_callback = cb
-end
-
 function tag:set_value(value, timestamp)
-	local value = self._calc and self._calc(value) or value
+	local value = value 
+	if self._calc then
+		value = self._calc(value)
+		value = math.floor(value * 100000) * 100000
+	end
 	base.set_value(self, value, timestamp)
 	if self._value_callback then
-		self._value_callback(self._value, timestamp)
+		self._value_callback('value', self._value, timestamp)
 	end
 end
 
 --- Forward to MQTT application
-function tag:on_sum_value(typ, val)
-	--[[
-	local cjson = require 'cjson'
-	print('on_sum_value', self._name, typ, cjson.encode(val))
-	]]--
-	if self._sum_callback then
-		self._sum_callback(typ, val)
+function tag:on_sum_value(type_name, val, timestamp)
+	assert(type_name ~= 'value')
+	assert(val and type(val) == 'table')
+	local val_str, err = cjson.encode(val)
+	if not val_str then
+		print(self:tag_name())
+		print(val)
+		print(type(val))
+		for k,v in pairs(val) do
+			print(k,v, type(v))
+		end
+		return
+	end
+	--print('on_sum_value', self._name, type_name, cjson.encode(val))
+	if self._value_callback then
+		self._value_callback(type_name, val_str, timestamp)
 	end
 end
 

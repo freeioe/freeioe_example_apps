@@ -1,5 +1,11 @@
 [
 	{
+		"name": "station",
+		"desc": "Station Name",
+		"type": "string",
+		"default": "HJ212"
+	},
+	{
 		"name": "system",
 		"desc": "System ID",
 		"type": "number",

@@ -122,7 +122,7 @@ end
 local data_insert_sql = [[
 INSERT INTO data (%s) VALUES (%s)
 ]]
-function store:insert(val, is_array)
+function store:insert(val)
 	assert(self._db)
 
 	local stmt = self._insert_stmt
@@ -139,21 +139,12 @@ function store:insert(val, is_array)
 		stmt = _stmt
 	end
 
-	if not is_array then
-		if not val.timestamp then
-			return nil, "Timestamp missing"
-		end
-		assert(val.timestamp >= self._start_time and val.timestamp < self._end_time)
-
-		return stmt:bind(val):exec()
-	else
-		for k, v in ipairs(val) do
-			assert(v.timestamp)
-			assert(v.timestamp >= self._start_time and v.timestamp < self._end_time)
-			assert(stmt:bind(v):exec())
-		end
-		return true
+	if not val.timestamp then
+		return nil, "Timestamp missing"
 	end
+	assert(val.timestamp >= self._start_time and val.timestamp < self._end_time)
+
+	return stmt:bind(val):exec()
 end
 
 local data_query_sql = [[

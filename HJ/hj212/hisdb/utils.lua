@@ -8,8 +8,7 @@ end
 
 function _M.duration_base(duration, start)
 	assert(duration, 'Duration missing')
-	local now = date(start) or date(true)
-	now = now:tolocal()
+	local now = start and date(start):tolocal() or date(false) -- local time
 
 	now:setseconds(0)
 	now:setminutes(0)

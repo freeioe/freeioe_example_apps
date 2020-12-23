@@ -1,6 +1,6 @@
 local base = require 'hj212.calc.db'
 
-local db = base:subclass("HJ212_APP_TAG_DB_DB")
+local tag = base:subclass("HJ212_APP_TAG_DB_DB")
 
 local sum_attrs = {
 	{ name = 'total', type = 'DOUBLE', not_null = true },
@@ -16,7 +16,7 @@ local rdata_attrs = {
 	{ name = 'flag', type = 'INTEGER', not_null = true },
 }
 
-function base:initialize(hisdb, tag_name, sample_attrs)
+function tag:initialize(hisdb, tag_name, sample_attrs)
 	self._hisdb = hisdb
 	self._tag_name = tag_name
 	self._samples = {}
@@ -28,7 +28,7 @@ function base:initialize(hisdb, tag_name, sample_attrs)
 	end
 end
 
-function base:init()
+function tag:init()
 	local hisdb = self._hisdb
 	local db_map = {
 		SAMPLE = hisdb:create_object(self._tag_name, 'SAMPLE', self._attrs),
@@ -47,7 +47,7 @@ function base:init()
 	return true
 end
 
-function base:push_sample(data)
+function tag:push_sample(data)
 	local val = {}
 	for i, v in ipairs(self._attrs) do
 		val[v.name] = data[i]
@@ -56,13 +56,13 @@ function base:push_sample(data)
 	table.insert(self._samples, val)
 end
 
-function base:save_samples()
+function tag:save_samples()
 	local list = self._samples
 	self._samples = {}
 	return self:write('SAMPLE', list, true)
 end
 
-function base:read_samples(start_time, end_time)
+function tag:read_samples(start_time, end_time)
 	local data, err = self:read('SAMPLE', start_time, end_time)
 	if not data then
 		return nil, err
@@ -82,7 +82,7 @@ function base:read_samples(start_time, end_time)
 	return list
 end
 
-function base:read(cate, start_time, end_time)
+function tag:read(cate, start_time, end_time)
 	assert(cate and start_time and end_time)
 	local db = self._db_map[cate]
 	if not db then
@@ -92,7 +92,7 @@ function base:read(cate, start_time, end_time)
 	return db:query(start_time, end_time)
 end
 
-function base:write(cate, data, is_array)
+function tag:write(cate, data, is_array)
 	local db = self._db_map[cate]
 	if not db then
 		return nil, "Not found db for "..cate
@@ -109,4 +109,4 @@ function base:write(cate, data, is_array)
 	return true
 end
 
-return base
+return tag

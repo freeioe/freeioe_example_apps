@@ -4,13 +4,14 @@ local client = require 'client_sc'
 local conn = class("FREEIOE_HJ212_APP_CONN")
 
 --- 应用启动函数
-function conn:initialize(app, conf, station)
+function conn:initialize(app, conf, station, dev_sn_base)
 	self._app = app
 	self._sys = app._sys
 	self._api = app._api
 	self._log = app._log
 	self._conf = conf
 	self._station = station
+	self._dev_sn_base = dev_sn_base
 	self._client = client:new(station, self._conf)
 end
 
@@ -20,6 +21,13 @@ end
 
 function conn:client()
 	return self._client
+end
+
+function conn:on_run()
+	local timeout = self._client:timeout()
+	local retry = self._client:retry()
+	self._dev:set_input_prop('timeout', 'value', timeout)
+	self._dev:set_input_prop('retry', 'value', retry)
 end
 
 function conn:start()
@@ -37,17 +45,24 @@ function conn:start()
 		{
 			name = 'timeout',
 			desc = 'Timeout time',
+			vt = 'int',
 			unit = 's'
 		},
 		{
 			name = 'retry',
 			desc = 'Retry count',
+			vt = 'int',
+		},
+		{
+			name = 'status',
+			desc = 'Connection Status',
+			vt = 'int'
 		},
 	}
 
 	local dev_sn = conf.device_sn
 	if dev_sn == nil or string.len(conf.device_sn) == 0 then
-		dev_sn = sys_id..'.HJ212_'..self._app:app_name()..'.'..conf.name
+		dev_sn = self._dev_sn_base..'.'..conf.name
 	end
 	self._dev_sn = dev_sn
 
@@ -59,6 +74,10 @@ end
 
 function conn:start_connect()
 	local log = self._log
+
+	self._client:set_connection_cb(function(status)
+		self._dev:set_input_prop('status', 'value', status)
+	end)
 
 	self._client:set_logger(self._log)
 
@@ -124,7 +143,7 @@ function conn:upload_min_data(data)
 	local req = request:new(data, true)
 	return self._client:request(req, function(resp, err)
 		if not resp then
-			self._log:error("Upload RData failed", err)
+			self._log:error("Upload MIN failed", err)
 		end
 	end)
 end
@@ -134,7 +153,7 @@ function conn:upload_hour_data(data)
 	local req = request:new(data, true)
 	return self._client:request(req, function(resp, err)
 		if not resp then
-			self._log:error("Upload RData failed", err)
+			self._log:error("Upload HOUR failed", err)
 		end
 	end)
 end
@@ -144,7 +163,7 @@ function conn:upload_day_data(data)
 	local req = request:new(data, true)
 	return self._client:request(req, function(resp, err)
 		if not resp then
-			self._log:error("Upload RData failed", err)
+			self._log:error("Upload DAY failed", err)
 		end
 	end)
 end

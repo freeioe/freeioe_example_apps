@@ -31,6 +31,10 @@ function client:initialize(station, opt)
 	self:add_handler('handler')
 end
 
+function client:set_connection_cb(cb)
+	self._connection_cb = cb
+end
+
 function client:set_dump(cb)
 	self._dump = cb
 end
@@ -127,6 +131,9 @@ function client:connect_proc()
 	end
 
 	if self._socket then
+		if self._connection_cb then
+			self._connection_cb(true)
+		end
 		self:watch_client_socket()
 	end
 end
@@ -139,6 +146,10 @@ function client:watch_client_socket()
 			break
 		end
 		self:on_recv(data)
+	end
+
+	if self._connection_cb then
+		self._connection_cb(false)
 	end
 
 	if self._socket then

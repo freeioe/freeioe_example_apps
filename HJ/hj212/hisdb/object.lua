@@ -69,7 +69,6 @@ function object:insert(val)
 			return a:start_time() < b:start_time()
 		end)
 	end
-
 	return store:insert(val)
 end
 

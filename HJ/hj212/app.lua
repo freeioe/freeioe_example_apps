@@ -24,6 +24,7 @@ app.static.API_VER = 7
 function app:on_init()
 	self._devs = {}
 	self._clients = {}
+	self._childs = {}
 end
 
 --- 应用启动函数
@@ -103,12 +104,12 @@ function app:on_start()
 
 			local tag = tag:new(self._hisdb, self._station, prop.name, prop.min, prop.max, prop.sum, prop.calc)
 			local p_name = prop.name
-			tag:set_value_callback(function(value, timestamp)
+			tag:set_value_callback(function(prop, value, timestamp)
 				local dev = app_inst._dev
 				if not dev then
 					return
 				end
-				dev:set_input_prop(p_name, 'value', value, timestamp)
+				dev:set_input_prop(p_name, prop, value, timestamp)
 			end)
 			local r, err = tag:init_db()
 			if not r then
@@ -130,7 +131,7 @@ function app:on_start()
 	meta.description = 'HJ212 Smart Device' 
 	meta.series = 'N/A'
 
-	local dev_sn = sys_id..'.HJ212_'..self:app_name()
+	local dev_sn = sys_id..'.'..(conf.station or 'HJ212')
 	self._dev_sn = dev_sn
 
 	self._dev = self._api:add_device(dev_sn, meta, inputs)
@@ -138,7 +139,7 @@ function app:on_start()
 	--- initialize connections
 	self._clients = {}
 	for _, v in ipairs(conf.servers) do
-		local client = conn:new(self, v, self._station)
+		local client = conn:new(self, v, self._station, self._dev_sn)
 		local r, err = client:start()
 		if not r then
 			self._log:error("Start connection failed", err)
@@ -154,6 +155,8 @@ end
 function app:on_run(tms)
 	self._count = (self._count or 0) + 1
 	self._hisdb:cleanup(self._count)
+
+	self:for_earch_client('on_run')
 
 	return 1000
 end
@@ -177,6 +180,17 @@ end
 
 function app:on_ctrl(app_src, command, param, priv)
 	self._log:debug('on_ctrl', app_src, command, param, priv)
+	if command == 'ping' then
+		return true
+	end
+	if command == 'reg' then
+		self._childs[app_src] = param
+		return true
+	end
+	if command == 'unreg' then
+		self._childs[app_src] = nil
+		return true
+	end
 	return true
 end
 
@@ -336,6 +350,15 @@ function app:start_timers()
 		end
 	end, self._min_interval * 60, true)
 	self._min_timer:start()
+
+	self._sys:timeout(10, function()
+		--- Trigger old data
+		local now = os.time()
+		now = (now // (self._min_interval * 60)) * self._min_interval * 60
+		self._calc_mgr:trigger(calc_mgr.TYPES.MIN, now, self._min_interval * 60)
+		now = (now // 3600) * 3600
+		self._calc_mgr:trigger(calc_mgr.TYPES.HOUR, now, 3600)
+	end)
 
 	--[[
 	self._hour_timer = timer:new(function(now)
