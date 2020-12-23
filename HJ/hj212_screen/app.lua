@@ -104,7 +104,8 @@ function app:on_start()
 
 	local dev_sn = sys_id..'.HJ212.SETTINGS'
 	self._dev_sn = dev_sn
-	self._dev = self._api:add_device(dev_sn, meta, inputs)
+	self._dev = self._api:add_device(dev_sn, meta, inputs, inputs)
+	self._dev_inputs = inputs
 
 	sys:timeout(10, function()
 		for _, v in ipairs(inputs) do
@@ -237,6 +238,7 @@ function app:on_publish_data(key, value, timestamp, quality)
 	end
 
 	if prop ~= 'value' then
+		--self._log:debug(input, prop, value, timestamp)
 		value = assert(cjson.decode(value))
 	end
 	local tag = self._tags[tpl_prop.name]
@@ -263,7 +265,7 @@ function app:publish_prop_data(tag_name, prop, value, timestamp)
 	local buf = self._prop_buf[prop][timestamp]
 	if not buf then
 		local name = prop..'['..os.date('%c', timestamp)..']'
-		log:debug("Create publish prop data item", name)
+		--log:debug("Create publish prop data item", name)
 		buf = {
 			id = {},
 			list = {},
@@ -277,11 +279,13 @@ function app:publish_prop_data(tag_name, prop, value, timestamp)
 				log:error("Uncompleted item", name)
 				for k, v in pairs(self._tags) do
 					if v.station and not buf.list[k] then
-						log:error('Missing item', k)
+						log:error('Missing item', k, name)
+					else
+						log:debug('Has item', k, name)
 					end
 				end
 			else
-				log:debug("Completed item", name)
+				--log:debug("Completed item", name)
 				local list = buf.list
 				self._prop_buf[prop][timestamp] = nil
 				buf = nil
@@ -291,7 +295,6 @@ function app:publish_prop_data(tag_name, prop, value, timestamp)
 		end)
 	end
 
-	log:debug(tag_name, prop, value, timestamp)
 	buf.list[tag_name] = value
 
 	for k, v in pairs(self._tags) do
@@ -300,7 +303,7 @@ function app:publish_prop_data(tag_name, prop, value, timestamp)
 		end
 	end
 	buf.completed = true
-	log:debug("Completed item", prop)
+	--log:debug("Completed item", prop)
 	sys:wakeup(buf.id)
 end
 
@@ -423,6 +426,35 @@ function app:on_mqtt_output(topic, id, data)
 		self._log:error('Set output prop failed!', err)
 		return self:on_mqtt_result(id, false, err or 'Set output prop failed')
 	end
+end
+
+function app:on_output(app_src, sn, output, prop, value, timestamp)
+	if sn ~= self._dev_sn then
+		return nil, "Device Serial Number incorrect!"
+	end
+	if prop ~= 'value' then
+		return nil, "Only value property is supported"
+	end
+
+	local sys = self:sys_api()
+	local conf = sys:get_conf()
+	conf.settings = conf.settings or {}
+	for _, v in ipairs(self._dev_inputs) do
+		if v.name == output then
+			self._dev:set_input_prop(output, 'value', value)
+			for _, v in ipairs(conf.settings) do
+				if v.name == output then
+					v.value = tostring(value)
+					sys:set_conf(conf)
+					return true
+				end
+			end
+			table.insert(conf.settings, {name=output, value=tostring(value)})
+			sys:set_conf(conf)
+			return true
+		end
+	end
+	return nil, "Output not found"
 end
 
 function app:on_output_result(app_src, priv, result, err)
