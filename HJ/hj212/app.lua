@@ -175,6 +175,11 @@ function app:on_close(reason)
 	self._clients = {}
 end
 
+function app:on_ctrl(app_src, command, param, priv)
+	self._log:debug('on_ctrl', app_src, command, param, priv)
+	return true
+end
+
 function app:on_output(app_src, sn, output, prop, value, timestamp)
 	if sn ~= self._dev_sn then
 		return nil, "Device Serial Number incorrect!"
