@@ -58,11 +58,8 @@ end
 
 function base:save_samples()
 	local list = self._samples
-	local r, err = self:write('SAMPLE', list, true)
-	if r then
-		self._samples = {}
-	end
-	return r, err
+	self._samples = {}
+	return self:write('SAMPLE', list, true)
 end
 
 function base:read_samples(start_time, end_time)

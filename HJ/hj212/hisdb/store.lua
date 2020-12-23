@@ -23,12 +23,23 @@ local meta_example = {
 	}
 }
 
+local function meta_to_cols(meta)
+	local cols = {'timestamp'}
+	for _, v in ipairs(meta) do
+		if v.name ~= 'timestamp' then
+			cols[#cols + 1] = v.name
+		end
+	end
+	return cols
+end
+
 function store:initialize(meta, creation, duration, file)
 	assert(meta, "Meta missing")
 	assert(creation, "Creation missing")
 	assert(duration, "Duration missing")
 	assert(file, "File missing")
 	self._meta = meta
+	self._cols = meta_to_cols(meta)
 	self._start_time = creation
 	self._end_time = utils.duration_calc(creation, duration)
 	self._file = file
@@ -88,11 +99,11 @@ function store:open()
 	local r, err = db:first_row([[SELECT name FROM sqlite_master WHERE type='table' AND name='data';]])
 	if not r then
 		local sql = string.format(data_create_sql, table.concat(sql_data, ',\n'))
-		print(sql)
+		--print(sql)
 
 		r, err = db:exec(sql)
 	else
-		print('TABLE "store" already exists')
+		--print('TABLE "store" already exists')
 	end
 
 	if r then
@@ -108,44 +119,41 @@ function store:close()
 	end
 end
 
-local function check_meta(val, meta)
-	local cols = {}
-	for _, v in ipairs(meta) do
-		if not val[v.name] and v.default == nil then
-			return nil, "Missing column value "..v.name
-		end
-		if v.name ~= 'timestamp' then
-			cols[#cols + 1] = v.name
-		end
-	end
-	return val, cols
-end
-
 local data_insert_sql = [[
 INSERT INTO data (%s) VALUES (%s)
 ]]
-function store:insert(val)
+function store:insert(val, is_array)
 	assert(self._db)
 
-	if not val.timestamp then
-		return nil, "Timestamp missing"
+	local stmt = self._insert_stmt
+	if not stmt then
+		local cols = self._cols
+		local cols_str = table.concat(cols, ',')
+		local fmt_str = ':'..table.concat(cols, ', :')
+		local sql_str = string.format(data_insert_sql, cols_str, fmt_str)
+		local _stmt, err = self._db:prepare(sql_str)
+		if not _stmt then
+			return nil, err
+		end
+		self._insert_stmt = _stmt
+		stmt = _stmt
 	end
-	assert(val.timestamp >= self._start_time and val.timestamp < self._end_time)
 
-	local val, cols = check_meta(val, self._meta)
-	if not val then
-		return nil, cols
+	if not is_array then
+		if not val.timestamp then
+			return nil, "Timestamp missing"
+		end
+		assert(val.timestamp >= self._start_time and val.timestamp < self._end_time)
+
+		return stmt:bind(val):exec()
+	else
+		for k, v in ipairs(val) do
+			assert(v.timestamp)
+			assert(v.timestamp >= self._start_time and v.timestamp < self._end_time)
+			assert(stmt:bind(v):exec())
+		end
+		return true
 	end
-
-	--- Insert timestmap column
-	table.insert(cols, 'timestamp')
-
-	local cols_str = table.concat(cols, ',')
-	local fmt_str = ':'..table.concat(cols, ', :')
-	local sql_str = string.format(data_insert_sql, cols_str, fmt_str)
-	local stmt, err = self._db:prepare(sql_str)
-
-	return stmt:bind(val):exec()
 end
 
 local data_query_sql = [[

@@ -137,6 +137,10 @@ function index:create(key, cate, meta, creation)
 
 	local duration = self._durations[cate] or self._duration
 	local creation = utils.duration_base(duration, creation)
+	local ikey = index_key(key, cate, creation)
+	if self._db_map[ikey] then
+		return self._db_map[ikey]
+	end
 
 	local sub_folder = string.format('%s/%s', self._folder, cate)
 	if not lfs.attributes(sub_folder, 'mode') then
@@ -158,9 +162,7 @@ function index:create(key, cate, meta, creation)
 		return nil, err
 	end
 
-	local key = index_key(key, cate, creation)
-
-	self._db_map[key] = obj
+	self._db_map[ikey] = obj
 	return obj
 end
 
@@ -209,19 +211,18 @@ function index:list(key, cate, start_time, end_time)
 	for row in db:rows(sql) do
 		--print("INDEX.LIST", row.id, row.key, row.category, row.file, row.creation, row.duration)
 
-		local duration = self._durations[cate] or self._duration
-		local key = index_key(key, cate, row.creation)
-		local obj = self._db_map[key]
+		local ikey = index_key(key, cate, row.creation)
+		local obj = self._db_map[ikey]
 		if not obj then
 			local meta = cjson.decode(row.meta) or {}
-			obj = store:new(meta, creation, duration, self._folder..'/'..file)
+			obj = store:new(meta, row.creation, row.duration, self._folder..'/'..row.file)
 			if not obj:open() then
 				obj = nil
 				print('Store open failed')
 			end
 		end
 		if obj then
-			self._db_map[key] = obj
+			self._db_map[ikey] = obj
 			list[#list + 1] = obj
 		end
 	end
