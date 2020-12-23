@@ -219,12 +219,12 @@ end
 
 function app:save_samples()
 	self._sys:sleep(3) --- TODO: delay the saving
-	self._log:debug("Saving sample data")
+	--self._log:debug("Saving sample data")
 	local station = self._station
 	for _, meter in ipairs(station:meters()) do
-		self._log:debug("Saving sample data for meter:"..meter:sn())
+		--self._log:debug("Saving sample data for meter:"..meter:sn())
 		for tag_name, tag in pairs(meter:tag_list()) do
-			self._log:debug("Saving sample data for tag:"..tag_name)
+			--self._log:debug("Saving sample data for tag:"..tag_name)
 			local r, err = tag:save_samples()
 			if not r then
 				self._log:error("Failed saving sample data for tag:"..tag_name, err)

@@ -67,7 +67,7 @@ function conn:start_connect()
 		local basexx = require 'basexx'
 		log:info(io, basexx.to_hex(msg))
 		]]--
-		log:debug(io, msg)
+		--log:debug(io, msg)
 		local dev = self._dev
 		local dev_stat = self._dev_stat
 		if dev then

@@ -85,6 +85,7 @@ function client:send(session, raw_data)
 
 	local result = self._results[session] or {false, "Timeout"}
 	self._results[session] = nil
+	self._requests[session] = nil
 	if not result[1] then
 		--print(os.date(), 'Request failed', session, table.unpack(result))
 	else
