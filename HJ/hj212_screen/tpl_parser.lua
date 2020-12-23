@@ -10,10 +10,6 @@ local function valid_prop(prop, err_cb)
 		return false
 	end
 
-	if string.len(prop.sn or '') == 0 then
-		return log_cb('Invalid device serial number found', prop.name, prop.sn)
-	end
-
 	if string.len(prop.input or '') == 0 then
 		return log_cb('Invalid tag input name found', prop.name, prop.input)
 	end

@@ -7,12 +7,35 @@
 	},
 	{
 		"name": "station",
+		"desc": "HJ212 Station Name",
+		"type": "string",
+		"default": "HJ212"
+	},
+	{
+		"name": "station_type",
 		"desc": "型号",
 		"type": "dropdown",
 		"default": "AOC",
 		"values": [
 			"AOC",
 			"WATER"
+		]
+	},
+	{
+		"name": "settings",
+		"desc": "Settings List",
+		"type": "table",
+		"cols": [
+			{
+				"name": "name",
+				"desc": "Name",
+				"type": "string"
+			},
+			{
+				"name": "value",
+				"desc": "Value",
+				"type": "string"
+			}
 		]
 	}
 ]
