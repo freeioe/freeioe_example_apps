@@ -108,24 +108,7 @@ function app:on_start()
 	self._dev_inputs = inputs
 
 	sys:timeout(10, function()
-		for _, v in ipairs(inputs) do
-			self._dev:set_input_prop(v.name, 'value', self._settings[v.name])
-		end
-		local api = self:data_api()
-		local tags = self._tags
-		for sn, dev in pairs(self._devs) do
-			local dev_api = api:get_device(sn)
-			if dev_api then
-				for input, v in pairs(dev) do
-					local value, timestamp = dev_api:get_input_prop(v.input, 'value')
-					print('GOT', v.input, value, timestamp)
-					if value then
-						tags[v.name].value = value
-						tags[v.name].timestamp = timestamp
-					end
-				end
-			end
-		end
+		self:read_tags()
 	end)
 
 	self._ctrl_no = 1
@@ -134,6 +117,29 @@ function app:on_start()
 	self._app_reg = nil
 
 	return mqtt_app.on_start(self)
+end
+
+function app:read_tags()
+	local inputs = self._dev_inputs
+	for _, v in ipairs(inputs) do
+		self._dev:set_input_prop(v.name, 'value', self._settings[v.name])
+	end
+	local api = self:data_api()
+	local tags = self._tags
+	for sn, dev in pairs(self._devs) do
+		local dev_api = api:get_device(sn)
+		if dev_api then
+			for input, v in pairs(dev) do
+				local value, timestamp = dev_api:get_input_prop(v.input, 'value')
+				print('GOT', v.input, value, timestamp)
+				if value then
+					tags[v.name].value = value
+					tags[v.name].timestamp = timestamp
+				end
+			end
+		end
+	end
+
 end
 
 function app:hj212_ctrl(cmd, param, timeout)
@@ -149,7 +155,7 @@ function app:hj212_ctrl(cmd, param, timeout)
 	self._ctrl_no = self._ctrl_no + 1
 
 	self._ctrl_co[t.id] = t
-	api:send_ctrl(conf.app_inst, 'unreg', param, t)
+	api:send_ctrl(conf.app_inst, cmd, param, t)
 
 	sys:sleep(timeout, t)
 	self._ctrl_co[t.id] = nil
