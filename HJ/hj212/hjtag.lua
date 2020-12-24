@@ -24,7 +24,7 @@ local function load_hj212_calc(tag, tag_name, name)
 	--- TODO: Mask and Upper Tag
 	local calc = m:new(function(type_name, val, timestamp)
 		tag:on_sum_value(type_name, val, timestamp)
-	end, mask, upper_tag)
+	end, mask, tag_name, upper_tag)
 
 	return calc
 end

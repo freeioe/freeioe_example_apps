@@ -116,6 +116,7 @@ function app:on_start()
 			tag:set_value_callback(function(prop, value, timestamp)
 				local dev = app_inst._dev
 				if not dev then
+					-- self._log:warning('Device object not found', p_name, prop, value, timestamp)
 					return
 				end
 				dev:set_input_prop(p_name, prop, value, timestamp)
@@ -158,7 +159,34 @@ function app:on_start()
 
 	--- Start timers
 	self:start_timers()
+
+	sys:timeout(10, function()
+		self:read_tags()
+	end)
+
 	return true
+end
+
+function app:read_tags()
+	local api = self:data_api()
+	local sys_id = self:sys_api():id()
+
+	for sn, dev in pairs(self._devs) do
+		local dev_api = api:get_device(sn)
+		if not dev_api then
+			dev_api = api:get_device(sys_id..'.'..sn)
+		end
+		if dev_api then
+			for input, tags in pairs(dev) do
+				local value, timestamp = dev_api:get_input_prop(input, 'value')
+				if value then
+					for _, v in ipairs(tags) do
+						self._station:set_tag_value(v.name, value, timestamp)
+					end
+				end
+			end
+		end
+	end
 end
 
 function app:on_run(tms)
