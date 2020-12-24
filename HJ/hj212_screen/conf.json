@@ -1,11 +1,5 @@
 [
 	{
-		"name": "app_inst",
-		"desc": "HJ212 App instance ID",
-		"type": "string",
-		"default": "hj212"
-	},
-	{
 		"name": "station",
 		"desc": "HJ212 Station Name",
 		"type": "string",

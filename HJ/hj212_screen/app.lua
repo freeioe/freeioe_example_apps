@@ -25,8 +25,11 @@ function app:initialize(name, sys, conf)
 	conf.port = conf.port or '1883'
 	conf.period = 0 -- disable Period Buffer
 
+	-- defaults
+	conf.station = conf.station or 'HJ212'
+	conf.station_type = conf.station_type or 'example'
+
 	-- for test
-	conf.app_inst = 'test'
 	conf.port = 3883
 	conf.settings = conf.settings or {
 		{name='Kv', value='10.2'}
@@ -51,7 +54,11 @@ function app:on_start()
 	local log = self:log_api()
 	local sys_id = sys:id()
 
-	local tpl_file = string.format('%s/tpl/%s.csv', sys:app_dir(), conf.station_type or 'example')
+	self._log:info("Wait for station application instance", conf.station)
+	conf.app_inst = ioe.env.wait('HJ212.STATION', conf.station)
+	self._log:info("Got application instance name", conf.app_inst)
+
+	local tpl_file = string.format('%s/tpl/%s.csv', sys:app_dir(), conf.station_type)
 	local tpl, err = tpl_parser(tpl_file)
 	if not tpl then
 		return nil, err
@@ -59,11 +66,16 @@ function app:on_start()
 	self._tpl = tpl
 
 	local devs = {}
+	local inputs_r = {
+		{ name = 'station', desc = 'Station name', vt = 'string'},
+		{ name = 'station_type', desc = 'Station type', vt = 'string'},
+		{ name = 'app_inst', desc = 'Station app instance name', vt = 'string'},
+	}
 	local inputs = {}
 	local tags = {}
 	for _, v in ipairs(tpl.props) do
 		if not v.setting then
-			local dev_sn = sys_id..'.'..(conf.station or 'HJ212')
+			local dev_sn = sys_id..'.'..conf.station
 			if v.sn then
 				dev_sn = dev_sn .. '.' ..v.sn
 			end
@@ -91,9 +103,10 @@ function app:on_start()
 	self._settings = settings
 	for _, v in ipairs(inputs) do
 		if not settings[v.name] then
-			return nil, "Mising settings value"
+			return nil, "Mising settings ["..v.name.."] value"
 		end
 		log:info("Setting:", v.name, settings[v.name])
+		table.insert(inputs_r, v)
 	end
 
 	local meta = self._api:default_meta()
@@ -104,7 +117,7 @@ function app:on_start()
 
 	local dev_sn = sys_id..'.HJ212.SETTINGS'
 	self._dev_sn = dev_sn
-	self._dev = self._api:add_device(dev_sn, meta, inputs, inputs)
+	self._dev = self._api:add_device(dev_sn, meta, inputs_r, inputs)
 	self._dev_inputs = inputs
 
 	sys:timeout(10, function()
@@ -131,7 +144,6 @@ function app:read_tags()
 		if dev_api then
 			for input, v in pairs(dev) do
 				local value, timestamp = dev_api:get_input_prop(v.input, 'value')
-				print('GOT', v.input, value, timestamp)
 				if value then
 					tags[v.name].value = value
 					tags[v.name].timestamp = timestamp
@@ -179,6 +191,12 @@ end
 
 function app:on_run(tms)
 	local sys = self:sys_api()
+	if self._dev then
+		local conf = self:app_conf()
+		self._dev:set_input_prop('app_inst', 'value', conf.app_inst)
+		self._dev:set_input_prop('station', 'value', conf.station)
+		self._dev:set_input_prop('station_type', 'value', conf.station_type)
+	end
 
 	local now = sys:now()
 	if not self._app_reg then

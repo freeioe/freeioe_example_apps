@@ -1,4 +1,5 @@
 --- 导入需求的模块
+local ioe = require 'ioe'
 local app_base = require 'app.base'
 local conf = require 'app.conf'
 local sysinfo = require 'utils.sysinfo'
@@ -163,6 +164,9 @@ function app:on_start()
 	sys:timeout(10, function()
 		self:read_tags()
 	end)
+
+	self._log:info("Register station", conf.station, self:app_name())
+	ioe.env.set('HJ212.STATION', conf.station or 'HJ212', self:app_name())
 
 	return true
 end

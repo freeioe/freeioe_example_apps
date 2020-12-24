@@ -46,3 +46,4 @@ luac.out
 tpl
 
 other/sqlite3/lualib
+*sqlite3*
