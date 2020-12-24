@@ -8,6 +8,7 @@ local lfs = require 'lfs'
 local meter = require 'hj212.client.meter'
 local station = require 'hj212.client.station'
 local calc_mgr = require 'hj212.calc.manager'
+local hj212_logger = require 'hj212.logger'
 
 local csv_tpl = require 'csv_tpl'
 local conn = require 'conn'
@@ -25,6 +26,14 @@ function app:on_init()
 	self._devs = {}
 	self._clients = {}
 	self._childs = {}
+	local log = self:log_api()
+	hj212_logger.set_log(function(level, ...)
+		if not log[level] then
+			log.info(...)
+		else
+			log[level](log, ...)
+		end
+	end)
 end
 
 --- 应用启动函数
