@@ -17,6 +17,10 @@ RELEASE_APP modbus/smc
 RELEASE_APP hw_test/reboot 
 RELEASE_APP hw_test/serial_socket
 
+# HJ212
+RELEASE_APP HJ/hj212
+RELEASE_APP HJ/hj212_screen
+
 RELEASE_APP tools/frpc
 RELEASE_APP tools/network_uci
 
