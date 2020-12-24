@@ -115,7 +115,7 @@ function app:on_start()
 	meta.description = 'HJ212 Smart Device Settings' 
 	meta.series = 'N/A'
 
-	local dev_sn = sys_id..'.HJ212.SETTINGS'
+	local dev_sn = sys_id..'.'..conf.station..'.SETTINGS'
 	self._dev_sn = dev_sn
 	self._dev = self._api:add_device(dev_sn, meta, inputs_r, inputs)
 	self._dev_inputs = inputs

@@ -41,6 +41,7 @@ end
 function app:on_start()
 	local sys = self:sys_api()
 	local conf = self:app_conf()
+	conf.station = conf.station or 'HJ212'
 	self._samples_interval = tonumber(conf.samples_interval) or -1 -- seconds
 	self._rdata_interval = tonumber(conf.rdata_interval) or -1
 	self._min_interval = tonumber(conf.min_interval) or 10
@@ -130,6 +131,9 @@ function app:on_start()
 			tag_list[prop.name] = tag
 			self._calc_mgr:reg(tag:his_calc())
 		end
+		if sn == 'SETTINGS' then
+			sn = conf.station..'.SETTINGS'
+		end
 		self._devs[sn] = dev
 		self._station:add_meter(meter:new(sn, {}, tag_list))
 	end
@@ -142,7 +146,7 @@ function app:on_start()
 	meta.description = 'HJ212 Smart Device' 
 	meta.series = 'N/A'
 
-	local dev_sn = sys_id..'.'..(conf.station or 'HJ212')
+	local dev_sn = sys_id..'.'..conf.station
 	self._dev_sn = dev_sn
 
 	self._dev = self._api:add_device(dev_sn, meta, inputs)
