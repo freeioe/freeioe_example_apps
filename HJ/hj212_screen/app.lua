@@ -30,15 +30,19 @@ function app:initialize(name, sys, conf)
 	conf.station_type = conf.station_type or 'example'
 
 	-- for test
+	--[[
 	conf.port = 3883
 	conf.settings = conf.settings or {
 		{name='Kv', value='10.2'}
 	}
+	]]--
 
 	--- 基础类初始化
 	mqtt_app.initialize(self, name, sys, conf)
 
 	self._mqtt_id = conf.client_id
+	self._devs = {}
+	self._tags = {}
 
 	self._prop_buf = {
 		RDATA = {},
@@ -155,6 +159,9 @@ function app:read_tags()
 end
 
 function app:hj212_ctrl(cmd, param, timeout)
+	if cmd then
+		return true
+	end
 	assert(cmd)
 	local param = param or {}
 	local timeout = timeout or 3000
