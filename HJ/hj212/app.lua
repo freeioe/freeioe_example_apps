@@ -97,6 +97,9 @@ function app:on_start()
 
 	local inputs = {}
 	local app_inst = self
+	local map_dev_sn = function(sn)
+		return string.gsub(sn, '^STATION(%w+)$', conf.station..'%1')
+	end
 	for sn, tags in pairs(tpl.devs) do
 		local dev = {}
 		local tag_list = {}
@@ -131,14 +134,10 @@ function app:on_start()
 			tag_list[prop.name] = tag
 			self._calc_mgr:reg(tag:his_calc())
 		end
-		if sn == 'SETTINGS' then
-			sn = conf.station..'.SETTINGS'
-		end
+		local dev_sn = map_dev_sn(sn)
 		self._devs[sn] = dev
 		self._station:add_meter(meter:new(sn, {}, tag_list))
 	end
-
-	local sys_id = self._sys:id()
 
 	local meta = self._api:default_meta()
 	meta.name = 'HJ212' 
@@ -146,10 +145,11 @@ function app:on_start()
 	meta.description = 'HJ212 Smart Device' 
 	meta.series = 'N/A'
 
-	local dev_sn = sys_id..'.'..conf.station
-	self._dev_sn = dev_sn
+	local sys_id = self._sys:id()
+	local station_sn = sys_id..'.'..conf.station
+	self._dev_sn = station_sn
 
-	self._dev = self._api:add_device(dev_sn, meta, inputs)
+	self._dev = self._api:add_device(self._dev_sn, meta, inputs)
 
 	--- initialize connections
 	self._clients = {}

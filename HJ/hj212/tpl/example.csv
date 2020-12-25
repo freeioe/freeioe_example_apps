@@ -22,6 +22,7 @@ a01012,烟气温度,摄氏度,float,sim.sim,float_9,,,,,,
 a01013,烟气压力,千帕,float,sim.sim,float_10,,,,,,
 a01014,烟气湿度,%,float,sim.sim,float_11,,,,,,
 a01015,制冷温度,摄氏度,float,sim.sim,float_1,,,,,,
-a01016,烟道截面积,平方米,float,HJ212.SETTINGS,Kv,,,,,,
+a01016,烟道截面积,平方米,float,STATION.SETTINGS,a01016,,,,,,
 a01017,烟气动压,千帕,float,sim.sim,float_1,,,,,,
 3c0113,总径,毫克/立方米,float,sim.sim,float_12,,N6.2,0,100,air.Cq:24>air.Csn,air
+Kv,速度场系数,,float,STATION.SETTINGS,Kv,,,,,,

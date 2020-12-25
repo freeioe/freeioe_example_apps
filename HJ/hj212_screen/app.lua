@@ -27,14 +27,17 @@ function app:initialize(name, sys, conf)
 
 	-- defaults
 	conf.station = conf.station or 'HJ212'
-	conf.station_type = conf.station_type or 'example'
+	conf.station_type = conf.station_type or 'AOC'
 
 	-- for test
-	--[[
-	conf.port = 3883
-	conf.settings = conf.settings or {
-		{name='Kv', value='10.2'}
+	conf.server = '172.30.1.99'
+	conf.port = 1883
+	conf.settings = {
+		{name='section_area', value='11.2'},
+		{name='filed_coefficient', value='1'},
+		{name='local_Pressure', value='10.2'},
 	}
+	--[[
 	]]--
 
 	--- 基础类初始化
@@ -42,7 +45,6 @@ function app:initialize(name, sys, conf)
 
 	self._mqtt_id = conf.station
 	self._devs = {}
-	self._tags = {}
 
 	self._prop_buf = {
 		RDATA = {},
@@ -63,55 +65,92 @@ function app:on_start()
 	self._log:info("Got application instance name", conf.app_inst)
 
 	local tpl_file = string.format('%s/tpl/%s.csv', sys:app_dir(), conf.station_type)
-	local tpl, err = tpl_parser(tpl_file)
+	local tpl, err = tpl_parser(tpl_file, function(...)
+		log:error(...)
+	end)
 	if not tpl then
 		return nil, err
 	end
 	self._tpl = tpl
 
-	local devs = {}
-	local inputs_r = {
+	local inputs = {
 		{ name = 'station', desc = 'Station name', vt = 'string'},
 		{ name = 'station_type', desc = 'Station type', vt = 'string'},
 		{ name = 'app_inst', desc = 'Station app instance name', vt = 'string'},
 	}
-	local inputs = {}
-	local tags = {}
-	for _, v in ipairs(tpl.props) do
-		if not v.setting then
-			local dev_sn = sys_id..'.'..conf.station
-			if v.sn then
-				dev_sn = dev_sn .. '.' ..v.sn
-			end
-			devs[dev_sn] = devs[dev_sn] or {}
-			devs[dev_sn][v.input] = v
-			tags[v.name] = {
-				value = 0,
-				timestamp = sys:time(),
-				station = v.sn == nil
-			}
-		else
-			inputs[#inputs + 1] = {
-				name = v.name,
-				desc = v.desc,
-				vt = v.input == 'int' and 'int' or 'float'
-			}
-		end
+	local value_map = {
+		station = { value = conf.station },
+		station_type = { value = conf.station_type },
+		app_inst = { value = conf.app_inst }
+	}
+	local outputs = {}
+	local inputs_map = {}
+	local status_map = {}
+	local settings_map = {}
+	local devs = {}
+
+	local station_sn = sys_id..'.'..conf.station
+	local function map_dev_sn(sn)
+		local sn = sn or 'STATION'
+		sn = string.gsub(sn, '^STATION(.*)$', station_sn..'%1')
+		sn = string.gsub(sn, '^GW(.*)$', sys_id..'%1')
+		return sn
 	end
-	self._devs = devs
-	self._tags = tags
-	local settings = {}
+	local function map_dev(prop)
+		prop.sn = map_dev_sn(prop.sn)
+		devs[prop.sn] = devs[prop.sn] or {}
+		devs[prop.sn][prop.input] = devs[prop.sn][prop.input] or {}
+		table.insert(devs[prop.sn][prop.input], prop)
+	end
+
+	for _, v in ipairs(tpl.inputs) do
+		map_dev(v)
+		inputs_map[v.name] = v
+		inputs[#inputs + 1] = {
+			name = v.name,
+			desc = v.desc,
+		}
+	end
+	for _, v in ipairs(tpl.status) do
+		map_dev(v)
+		status_map[v.name] = v
+		inputs[#inputs + 1] = {
+			name = v.name,
+			desc = v.desc,
+		}
+	end
+	for _, v in ipairs(tpl.settings) do
+		settings_map[v.name] = v
+		inputs[#inputs + 1] = {
+			name = v.name,
+			desc = v.desc,
+			vt = v.vt
+		}
+		table.insert(outputs, inputs[#inputs])
+		inputs[#inputs + 1] = {
+			name = v.hj212,
+			desc = v.desc,
+			vt = v.vt
+		}
+	end
+
 	for _, v in ipairs(conf.settings) do
-		settings[v.name] = v.value
+		log:info("Setting:", v.name, v.value)
+		value_map[v.name] = { value = v.value }
 	end
-	self._settings = settings
-	for _, v in ipairs(inputs) do
-		if not settings[v.name] then
-			return nil, "Mising settings ["..v.name.."] value"
+	for k, v in pairs(settings_map) do
+		if not value_map[k] then
+			return nil, string.format("Mising settings [%s] value", k)
 		end
-		log:info("Setting:", v.name, settings[v.name])
-		table.insert(inputs_r, v)
 	end
+
+	self._devs = devs
+	self._inputs = inputs
+	self._outputs = outputs
+	self._inputs_map = inputs_map
+	self._status_map = status_map
+	self._settings_map = settings_map
+	self._value_map = value_map
 
 	local meta = self._api:default_meta()
 	meta.name = 'HJ212 Settings' 
@@ -121,7 +160,7 @@ function app:on_start()
 
 	local dev_sn = sys_id..'.'..conf.station..'.SETTINGS'
 	self._dev_sn = dev_sn
-	self._dev = self._api:add_device(dev_sn, meta, inputs_r, inputs)
+	self._dev = self._api:add_device(dev_sn, meta, inputs, outputs)
 	self._dev_inputs = inputs
 
 	sys:timeout(10, function()
@@ -137,25 +176,32 @@ function app:on_start()
 end
 
 function app:read_tags()
-	local inputs = self._dev_inputs
-	for _, v in ipairs(inputs) do
-		self._dev:set_input_prop(v.name, 'value', self._settings[v.name])
-	end
 	local api = self:data_api()
-	local tags = self._tags
+	local value_map = self._value_map
 	for sn, dev in pairs(self._devs) do
 		local dev_api = api:get_device(sn)
 		if dev_api then
-			for input, v in pairs(dev) do
-				local value, timestamp = dev_api:get_input_prop(v.input, 'value')
-				if value then
-					tags[v.name].value = value
-					tags[v.name].timestamp = timestamp
+			for input, props in pairs(dev) do
+				local value, timestamp = dev_api:get_input_prop(input, 'value')
+				if value ~= nil then
+					self._log:debug("Input value got", sn, input, value, timestamp)
+				else
+					self._log:error("Failed to read input value", sn, input)
+					value = -1
+				end
+				for _, prop in ipairs(props) do
+					value_map[prop.name] = { value = value, timestamp = timestamp }
 				end
 			end
+		else
+			self._log:error("Failed to find device", sn)
 		end
 	end
 
+	for k, v in pairs(value_map) do
+		v.timestamp = v.timestamp or ioe.time()
+		self._dev:set_input_prop(k, 'value', v.value, v.timestamp)
+	end
 end
 
 function app:hj212_ctrl(cmd, param, timeout)
@@ -198,11 +244,14 @@ end
 
 function app:on_run(tms)
 	local sys = self:sys_api()
+	local value_map = self._value_map
 	if self._dev then
-		local conf = self:app_conf()
-		self._dev:set_input_prop('app_inst', 'value', conf.app_inst)
-		self._dev:set_input_prop('station', 'value', conf.station)
-		self._dev:set_input_prop('station_type', 'value', conf.station_type)
+		for k, v in pairs(value_map) do
+			if not v.timestamp or v.timestamp < ioe.time() - 5 then
+				v.timestamp = ioe.time()
+				self._dev:set_input_prop(k, 'value', v.value or 0)
+			end
+		end
 	end
 
 	local now = sys:now()
@@ -223,16 +272,60 @@ function app:on_run(tms)
 		end
 	end
 
-	local data = {}
-	data.TS = sys:time()
-	data.id = 1
-	for k, v in pairs(self._tags) do
-		data[k] = v.value
-	end
-
-	self:publish(self._mqtt_id..'/data', cjson.encode(data), 1, false)
+	self:publish_status()
+	self:publish_inputs()
 
 	return 1000
+end
+
+function app:publish_status()
+	local data = {}
+	local value_map = self._value_map
+	for k, v in pairs(self._status_map) do
+		if value_map[k] then
+			data['Gsys_'..k] = self._value_map[k].value
+		else
+			self._log:error('Status value not found', k)
+		end
+	end
+	local now = math.floor(ioe.time())
+	data.Gsys_timeStr = os.date('%F %T', now)
+	data.Gsys_UTC = now
+	local d = os.date("*t", now)
+	data.Gsys_year = d.year
+	data.Gsys_month = d.month
+	data.Gsys_day = d.day
+	data.Gsys_hour = d.hour
+	data.Gsys_minute = d.min
+	data.Gsys_second = d.sec
+	data.Gsys_year = d.year
+
+	return self:publish('inputs/gsys', cjson.encode({
+		datas = data,
+		time_utc = now,
+		time_str = os.date("%F %T", now)
+	}), 1, false)
+end
+
+function app:publish_inputs()
+	local data = {}
+	local value_map = self._value_map
+	for k, v in pairs(self._inputs_map) do
+		if value_map[k] then
+			data['GIO_'..k] = self._value_map[k].value
+		else
+			self._log:error('Input value not found', k)
+		end
+	end
+	local now = math.floor(ioe.time())
+	data.Grt_Time = os.date('%F %T', now)
+	data.Grt_ID = now
+
+	return self:publish('inputs/gio', cjson.encode({
+		datas = data,
+		time_utc = now,
+		time_str = os.date("%F %T", now)
+	}), 1, false)
 end
 
 function app:on_close()
@@ -241,20 +334,22 @@ function app:on_close()
 		self._app_reg = false
 	end
 
-	mqtt_app.on_close(self)
+	return mqtt_app.on_close(self)
 end
 
-function app:pack_key(app_src, device_sn, ...)
+function app:pack_key(app_src, device_sn, input, ...)
+	if dev_sn == self._dev_sn then
+		return
+	end
 	--- if deivce not in allowed list
 	if not self._devs[device_sn] then
 		return
 	end
-	if dev_sn == self._dev_sn then
+	if not self._devs[device_sn][input] then
 		return
 	end
-
 	--- using the base pack key
-	return mqtt_app.pack_key(self, app_src, device_sn, ...)
+	return mqtt_app.pack_key(self, app_src, device_sn, input, ...)
 end
 
 function app:on_publish_data(key, value, timestamp, quality)
@@ -263,24 +358,23 @@ function app:on_publish_data(key, value, timestamp, quality)
 		return true
 	end
 
-	local tpl_prop = self._devs[sn][input]
-	if not tpl_prop then
+	local tpl_props = self._devs[sn][input]
+	if not tpl_props then
 		return true
 	end
 
 	if prop ~= 'value' then
-		--self._log:debug(input, prop, value, timestamp)
 		value = assert(cjson.decode(value))
 	end
-	local tag = self._tags[tpl_prop.name]
-	assert(tag)
 
-	if prop == 'value' then
-		tag.value = value
-		tag.timestamp = timestamp
-	else
-		if tag.station then
+	for _, tpl_prop in ipairs(tpl_props) do
+		local tag = self._inputs_map[tpl_prop.name]
+		assert(tag)
+
+		if prop ~= 'value' then
 			self:publish_prop_data(tpl_prop.name, prop, value, timestamp)
+		else
+			self._value_map[tag.name] = {value = value, timestamp = timestamp}
 		end
 	end
 
@@ -308,28 +402,28 @@ function app:publish_prop_data(tag_name, prop, value, timestamp)
 			sys:sleep(3000, buf.id)
 			if not buf.completed then
 				log:error("Uncompleted item", name)
-				for k, v in pairs(self._tags) do
-					if v.station and not buf.list[k] then
+				for k, v in pairs(self._inputs_map) do
+					if not buf.list[k] then
 						log:error('Missing item', k, name)
 					else
 						log:debug('Has item', k, name)
 					end
 				end
-			else
-				--log:debug("Completed item", name)
-				local list = buf.list
-				self._prop_buf[prop][timestamp] = nil
-				buf = nil
-
-				self:publish_prop_list(prop, list, timestamp)
 			end
+
+			log:debug("Completed item", name)
+			local list = buf.list
+			self._prop_buf[prop][timestamp] = nil
+			buf = nil
+
+			self:publish_prop_list(prop, list, timestamp)
 		end)
 	end
 
 	buf.list[tag_name] = value
 
-	for k, v in pairs(self._tags) do
-		if v.station and not buf.list[k] then
+	for k, v in pairs(self._inputs_map) do
+		if not buf.list[k] then
 			return
 		end
 	end
@@ -338,15 +432,44 @@ function app:publish_prop_data(tag_name, prop, value, timestamp)
 	sys:wakeup(buf.id)
 end
 
+local prop_map = {
+	RDATA = 'GIO',
+	MIN = 'TenMinsCOU',
+	HOUR = 'HourCOT',
+	DAY = 'DayCOU',
+}
+
+local topic_map = {
+	RDATA = 'grt',
+	MIN = 'tenminscou',
+	HOUR = 'hourcou',
+	DAY = 'daycou',
+}
+
 function app:publish_prop_list(prop, list, timestamp)
-	local data = {
-		TS = timestamp,
-		id = os.time()
-	}
+	local datas = {}
+	local now = math.floor(timestamp)
+	datas.Grt_Time = os.date('%F %T', now)
+	datas.Grt_ID = now
+
 	for k, v in pairs(list) do
-		data[string.upper(prop)..k] = v
+		local name = prop_map[prop]..'_'..k
+		if prop == 'RDATA' then
+			datas[name] = v.value
+		else
+			datas[name] = v.avg
+		end
 	end
-	return self:publish(self._mqtt_id..'/prop_data', cjson.encode(data), 1, false)
+	local topic = 'inputs/'..topic_map[prop]
+
+	local data = {
+		datas = datas,
+		time_utc = now,
+		time_str = os.date("%F %T", now)
+	}
+	--print(cjson.encode(data))
+
+	return self:publish(topic, cjson.encode(data), 1, false)
 end
 
 function app:on_publish_data_list(val_list)
@@ -466,26 +589,28 @@ function app:on_output(app_src, sn, output, prop, value, timestamp)
 	if prop ~= 'value' then
 		return nil, "Only value property is supported"
 	end
+	local setting = self._settings_map[output]
+	if not setting then
+		return nil, "Output not found"
+	end
 
 	local sys = self:sys_api()
 	local conf = sys:get_conf()
 	conf.settings = conf.settings or {}
-	for _, v in ipairs(self._dev_inputs) do
+
+	self._value_map[output] = { value = value, timestamp = ioe.time() }
+	self._dev:set_input_prop(output, 'value', value)
+	self._dev:set_input_prop(setting.hj212, 'value', value)
+	for _, v in ipairs(conf.settings) do
 		if v.name == output then
-			self._dev:set_input_prop(output, 'value', value)
-			for _, v in ipairs(conf.settings) do
-				if v.name == output then
-					v.value = tostring(value)
-					sys:set_conf(conf)
-					return true
-				end
-			end
-			table.insert(conf.settings, {name=output, value=tostring(value)})
+			v.value = tostring(value)
 			sys:set_conf(conf)
 			return true
 		end
 	end
-	return nil, "Output not found"
+	table.insert(conf.settings, {name=output, value=tostring(value)})
+	sys:set_conf(conf)
+	return true
 end
 
 function app:on_output_result(app_src, priv, result, err)
