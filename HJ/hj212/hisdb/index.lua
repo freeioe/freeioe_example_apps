@@ -113,9 +113,11 @@ function index:purge(key, cate)
 		--print("INDEX.PURGE", row.id, row.key, row.category, row.file, row.creation, row.duration)
 		local diff = utils.duration_div(row.creation, now, row.duration)
 		if diff >= 2 then
+			local file = string.format('%s/%s_%d_%s.sqlite3.db', cate, key, row.creation, row.duration)
 			-- Purge db
-			local sql = 'DELETE FROM index WHERE id='..row.id
+			local sql = "DELETE FROM 'index' WHERE id="..row.id
 			assert(db:exec(sql))
+			os.execute('rm -f '..file)
 			-- Remove db_map
 			local key = index_key(key, cate, row.creation)
 			self._db_map[key] = nil

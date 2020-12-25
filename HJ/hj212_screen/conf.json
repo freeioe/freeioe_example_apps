@@ -1,5 +1,17 @@
 [
 	{
+		"name": "server",
+		"desc": "MQTT Server Host",
+		"type": "string",
+		"default": "127.0.0.1"
+	},
+	{
+		"name": "port",
+		"desc": "MQTT Server Port",
+		"type": "number",
+		"default": 1883
+	},
+	{
 		"name": "station",
 		"desc": "HJ212 Station Name",
 		"type": "string",

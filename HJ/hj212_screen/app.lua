@@ -40,7 +40,7 @@ function app:initialize(name, sys, conf)
 	--- 基础类初始化
 	mqtt_app.initialize(self, name, sys, conf)
 
-	self._mqtt_id = conf.client_id
+	self._mqtt_id = conf.station
 	self._devs = {}
 	self._tags = {}
 
@@ -230,7 +230,7 @@ function app:on_run(tms)
 		data[k] = v.value
 	end
 
-	self:publish('/data', cjson.encode(data), 1, false)
+	self:publish(self._mqtt_id..'/data', cjson.encode(data), 1, false)
 
 	return 1000
 end
@@ -346,7 +346,7 @@ function app:publish_prop_list(prop, list, timestamp)
 	for k, v in pairs(list) do
 		data[string.upper(prop)..k] = v
 	end
-	return self:publish('/prop_data', cjson.encode(data), 1, false)
+	return self:publish(self._mqtt_id..'/prop_data', cjson.encode(data), 1, false)
 end
 
 function app:on_publish_data_list(val_list)
