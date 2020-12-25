@@ -30,6 +30,7 @@ function app:initialize(name, sys, conf)
 	conf.station_type = conf.station_type or 'AOC'
 
 	-- for test
+	--[[
 	conf.server = '172.30.1.99'
 	conf.port = 1883
 	conf.settings = {
@@ -37,7 +38,6 @@ function app:initialize(name, sys, conf)
 		{name='filed_coefficient', value='1'},
 		{name='local_Pressure', value='10.2'},
 	}
-	--[[
 	]]--
 
 	--- 基础类初始化
