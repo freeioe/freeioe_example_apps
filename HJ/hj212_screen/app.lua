@@ -31,8 +31,7 @@ function app:initialize(name, sys, conf)
 
 	-- for test
 	--[[
-	conf.server = '172.30.1.99'
-	conf.port = 1883
+	conf.port = 3883
 	conf.settings = {
 		{name='section_area', value='11.2'},
 		{name='filed_coefficient', value='1'},
@@ -108,7 +107,7 @@ function app:on_start()
 		inputs_map[v.name] = v
 		inputs[#inputs + 1] = {
 			name = v.name,
-			desc = v.desc,
+			desc = string.format('[%s]%s', v.input, v.desc),
 		}
 	end
 	for _, v in ipairs(tpl.status) do
