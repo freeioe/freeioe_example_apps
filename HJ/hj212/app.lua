@@ -98,7 +98,7 @@ function app:on_start()
 	local inputs = {}
 	local app_inst = self
 	local map_dev_sn = function(sn)
-		return string.gsub(sn, '^STATION(%w+)$', conf.station..'%1')
+		return string.gsub(sn, '^STATION(.*)$', conf.station..'%1')
 	end
 	for sn, tags in pairs(tpl.devs) do
 		local dev = {}
@@ -135,7 +135,7 @@ function app:on_start()
 			self._calc_mgr:reg(tag:his_calc())
 		end
 		local dev_sn = map_dev_sn(sn)
-		self._devs[sn] = dev
+		self._devs[dev_sn] = dev
 		self._station:add_meter(meter:new(sn, {}, tag_list))
 	end
 
@@ -191,8 +191,12 @@ function app:read_tags()
 					for _, v in ipairs(tags) do
 						self._station:set_tag_value(v.name, value, timestamp)
 					end
+				else
+					self._log:error("Cannot read input value", sn, input)
 				end
 			end
+		else
+			self._log:error("Cannot find device", sn)
 		end
 	end
 end

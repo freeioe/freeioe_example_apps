@@ -137,6 +137,8 @@ function app:on_start()
 	for _, v in ipairs(conf.settings) do
 		log:info("Setting:", v.name, v.value)
 		value_map[v.name] = { value = v.value }
+		local setting = settings_map[v.name]
+		value_map[setting.hj212] = { value = v.value }
 	end
 	for k, v in pairs(settings_map) do
 		if not value_map[k] then
@@ -368,8 +370,8 @@ function app:on_publish_data(key, value, timestamp, quality)
 	end
 
 	for _, tpl_prop in ipairs(tpl_props) do
-		local tag = self._inputs_map[tpl_prop.name]
-		assert(tag)
+		local tag = self._inputs_map[tpl_prop.name] or self._status_map[tpl_prop.name]
+		assert(tag, string.format("missing input map:%s", tpl_prop.name))
 
 		if prop ~= 'value' then
 			self:publish_prop_data(tpl_prop.name, prop, value, timestamp)
