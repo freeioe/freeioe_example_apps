@@ -1,0 +1,48 @@
+[
+	{
+		"name": "cycle",
+		"desc": "Data generation cycle time (ms)",
+		"type": "number",
+		"default": 5000
+	},
+	{
+		"name": "tpls",
+		"type": "templates"
+	},
+	{
+		"name": "devs",
+		"desc": "SIM 设备列表(Sim Device List)",
+		"type": "table",
+		"cols": [
+			{
+				"name": "sn",
+				"desc": "Serial NO.",
+				"type": "string",
+				"default": "sim"
+			},
+			{
+				"name": "name",
+				"desc": "Name",
+				"type": "string",
+				"default": "sim"
+			},
+			{
+				"name": "desc",
+				"desc": "Description",
+				"type": "string",
+				"default": "Simulation Device"
+			},
+			{
+				"name": "tpl",
+				"desc": "模板(Template)",
+				"type": "template"
+			}
+		]
+	},
+	{
+		"name": "dev_sn_prefix",
+		"desc": "Use gateway sn as prefix for device sn",
+		"type": "boolean",
+		"default": true
+	}
+]
