@@ -7,7 +7,7 @@ local calc = base:subclass('HJ212_CALC_AIR_QSH')
 function calc:calc(value)
 	local cems = self:station():cems()
 	assert(cems)
-	return air_helper.Qsh(cmes:F(), value)
+	return air_helper.Qsh(cems:F(), value)
 end
 
 return calc

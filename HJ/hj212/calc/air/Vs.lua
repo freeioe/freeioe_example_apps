@@ -6,7 +6,7 @@ local calc = base:subclass('HJ212_CALC_AIR_VS')
 function calc:calc(value)
 	local cems = self:station():cems()
 	assert(cems)
-	return air_helper.Vs(cmes:Kv(), value)
+	return air_helper.Vs(cems:Kv(), value)
 end
 
 return calc
