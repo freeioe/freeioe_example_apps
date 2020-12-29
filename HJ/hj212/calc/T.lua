@@ -9,7 +9,9 @@ function calc:initialize(...)
 end
 
 function calc:calc(value, timestamp)
-	local t = self:param()
+	assert(value ~= nil)
+	assert(timestamp ~= nil)
+	local t = tonumber(self:param())
 	if t then
 		return value * t
 	else

@@ -53,10 +53,12 @@ function tag:set_value_callback(cb)
 end
 
 function tag:set_value(value, timestamp)
+	assert(value ~= nil)
+	assert(timestamp ~= nil)
 	local value = value 
 	if self._calc then
 		value = self._calc(value, timestamp)
-		value = math.floor(value * 100000) * 100000
+		value = math.floor(value * 100000) / 100000
 	end
 	base.set_value(self, value, timestamp)
 	if self._value_callback then

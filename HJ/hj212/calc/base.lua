@@ -22,7 +22,7 @@ end
 
 function base:__call(value, timestamp)
 	if self._next then
-		return self._next(self:calc(value, timestamp))
+		return self._next(self:calc(value, timestamp), timestamp)
 	end
 	return self:calc(value, timestamp)
 end
