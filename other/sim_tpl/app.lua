@@ -111,11 +111,12 @@ function app:gen_device_data(dev)
 			if not r then
 				log:error(val)
 			else
-				dev.dev:set_input_prop(v.name, 'value', v.base + val)
+				v.last_value = v.base + val
+				dev.dev:set_input_prop(v.name, 'value', v.last_value)
 			end
 			v.last = now
 		else
-			--print(v.name, 'no need update', now, v.last, v.freq)
+			dev.dev:set_input_prop(v.name, 'value', v.last_value)
 		end
 	end
 end
