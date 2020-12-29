@@ -1,4 +1,5 @@
 local ftcsv = require 'ftcsv'
+local utils_sort = require 'hj212.utils.sort'
 
 local tpl_dir = 'tpl/'
 
@@ -30,7 +31,7 @@ end
 
 local function sort_props(props)
 	table.sort(props, function(a, b)
-		return a.name < b.name
+		return utils_sort.string_compare(a.name, b.name)
 	end)
 
 	return props
@@ -71,11 +72,11 @@ local function load_tpl(name, err_cb)
 				prop.rate = 1
 			end
 
-			prop.fmt = string.len(v[8]) > 0 and v[8] or nil
-			prop.min = string.len(v[9]) > 0 and tonumber(v[9]) or nil
-			prop.max = string.len(v[10]) > 0 and tonumber(v[10]) or nil
+			prop.min = string.len(v[8]) > 0 and tonumber(v[8]) or nil
+			prop.max = string.len(v[9]) > 0 and tonumber(v[9]) or nil
+			prop.fmt = string.len(v[10]) > 0 and v[10] or nil
 			prop.calc = string.len(v[11]) > 0 and v[11] or nil
-			prop.sum = string.len(v[12]) > 0 and v[12] or nil
+			prop.cou = string.len(v[12]) > 0 and v[12] or nil
 
 			if valid_prop(prop, err_cb) then
 				if not devs[prop.sn] then

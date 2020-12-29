@@ -305,7 +305,7 @@ function app:publish_status()
 		datas = data,
 		time_utc = now,
 		time_str = os.date("%F %T", now)
-	}), 1, false)
+	}), 1, true)
 end
 
 function app:publish_inputs()
@@ -326,7 +326,7 @@ function app:publish_inputs()
 		datas = data,
 		time_utc = now,
 		time_str = os.date("%F %T", now)
-	}), 1, false)
+	}), 1, true)
 end
 
 function app:on_close()
@@ -387,7 +387,7 @@ function app:publish_prop_data(tag_name, prop, value, timestamp)
 	local sys = self:sys_api()
 	local log = self:log_api()
 	local prop = prop
-	assert(self._prop_buf[prop])
+	assert(self._prop_buf[prop], string.format('Prop %s invalid!', prop))
 	local buf = self._prop_buf[prop][timestamp]
 	if not buf then
 		local name = prop..'['..os.date('%c', timestamp)..']'
@@ -470,7 +470,7 @@ function app:publish_prop_list(prop, list, timestamp)
 	}
 	--print(cjson.encode(data))
 
-	return self:publish(topic, cjson.encode(data), 1, false)
+	return self:publish(topic, cjson.encode(data), 1, true)
 end
 
 function app:on_publish_data_list(val_list)
@@ -493,7 +493,7 @@ function app:on_event(app, sn, level, type_, info, data, timestamp)
 		data = data,
 		app = app
 	}
-	return self:publish(self._mqtt_id.."/event", cjson.encode({sn, event, timestamp} ), 1, false)
+	return self:publish(self._mqtt_id.."/event", cjson.encode({sn, event, timestamp} ), 1, true)
 end
 
 function app:on_stat(app, sn, stat, prop, value, timestamp)
@@ -509,7 +509,7 @@ function app:on_stat(app, sn, stat, prop, value, timestamp)
 		value = value,
 		timestamp = timestamp,
 	}
-	return self:publish(self._mqtt_id.."/stat", cjson.encode(msg), 1, false)
+	return self:publish(self._mqtt_id.."/stat", cjson.encode(msg), 1, true)
 end
 
 function app:on_mqtt_connect_ok()
@@ -559,7 +559,7 @@ function app:on_mqtt_result(id, result, message)
 		timestamp = ioe.time(),
 		timestamp_str = os.date()
 	}
-	self:publish(self._mqtt_id..'/result/output', cjson.encode(data), 0, false)
+	self:publish(self._mqtt_id..'/result/output', cjson.encode(data), 1, true)
 end
 
 function app:on_mqtt_output(topic, id, data)

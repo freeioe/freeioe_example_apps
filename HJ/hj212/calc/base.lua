@@ -20,14 +20,14 @@ function base:param()
 	return self._param
 end
 
-function base:__call(value)
+function base:__call(value, timestamp)
 	if self._next then
-		return self._next(self:calc(value))
+		return self._next(self:calc(value, timestamp))
 	end
-	return self:calc(value)
+	return self:calc(value, timestamp)
 end
 
-function base:calc(value)
+function base:calc(value, timestamp)
 	assert(nil, "Not implemented")
 end
 

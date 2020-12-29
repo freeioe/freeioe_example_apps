@@ -92,7 +92,10 @@ function app:on_start()
 	self._tpl = tpl
 	self._devs = {}
 
-	self._station = station:new(conf.system, conf.dev_id)
+	self._station = station:new(conf.system, conf.dev_id, function(ms)
+		sys:sleep(ms)
+	end)
+
 	self._calc_mgr = calc_mgr:new()
 
 	local inputs = {}
@@ -116,7 +119,7 @@ function app:on_start()
 				dev[prop.input] = {prop}
 			end
 
-			local tag = tag:new(self._hisdb, self._station, prop.name, prop.min, prop.max, prop.sum, prop.calc)
+			local tag = tag:new(self._hisdb, self._station, prop.name, prop.min, prop.max, prop.calc, prop.cou)
 			local p_name = prop.name
 			tag:set_value_callback(function(prop, value, timestamp)
 				local dev = app_inst._dev
@@ -126,18 +129,14 @@ function app:on_start()
 				end
 				dev:set_input_prop(p_name, prop, value, timestamp)
 			end)
-			local r, err = tag:init_db()
-			if not r then
-				self._log:error('Failed to init tag db', err)
-			end
-
 			tag_list[prop.name] = tag
-			self._calc_mgr:reg(tag:his_calc())
 		end
 		local dev_sn = map_dev_sn(sn)
 		self._devs[dev_sn] = dev
 		self._station:add_meter(meter:new(sn, {}, tag_list))
 	end
+
+	self._station:init(self._calc_mgr)
 
 	local meta = self._api:default_meta()
 	meta.name = 'HJ212' 

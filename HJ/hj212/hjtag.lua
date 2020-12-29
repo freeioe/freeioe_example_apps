@@ -6,39 +6,12 @@ local hisdb_tag = require 'hisdb.tag'
 
 local tag = base:subclass('HJ212_HJTAG')
 
-local function load_hj212_calc(tag, tag_name, name)
-	assert(tag and tag_name)
-	local calc_name = name
-	if not calc_name then
-		if string.sub(tag_name, 1, 1) == 'w' then
-			calc_name = 'water'
-		elseif string.sub(tag_name, 1, 1) == 'a' then
-			calc_name = 'air'
-		else
-			calc_name = 'simple'
-		end
-	end
-
-	local m = assert(require('hj212.calc.'..calc_name))
-
-	--- TODO: Mask and Upper Tag
-	local calc = m:new(function(type_name, val, timestamp)
-		tag:on_sum_value(type_name, val, timestamp)
-	end, mask, tag_name, upper_tag)
-
-	return calc
-end
-
-function tag:initialize(hisdb, station, name, min, max, sum, calc)
-	--- Sumation calculation
-	local sum_calc = load_hj212_calc(self, name, sum)
-
+function tag:initialize(hisdb, station, name, min, max, calc, cou)
 	--- Base initialize
-	base.initialize(self, name, min, max, sum_calc)
+	base.initialize(self, station, name, min, max, cou, cou)
 
 	--- Member objects
 	self._hisdb = hisdb
-	self._station = station
 	if calc then
 		--- Value calc
 		self._calc = calc_parser(station, calc)
@@ -61,7 +34,17 @@ function tag:init_db()
 	return true
 end
 
+function tag:init(calc_mgr)
+	base.init(self, calc_mgr)
+	if not self._tagdb then
+		self:init_db()
+	end
+end
+
 function tag:save_samples()
+	if not self._tagdb then
+		return nil, "Database is not loaded correctly"
+	end
 	return self._tagdb:save_samples()
 end
 
@@ -72,7 +55,7 @@ end
 function tag:set_value(value, timestamp)
 	local value = value 
 	if self._calc then
-		value = self._calc(value)
+		value = self._calc(value, timestamp)
 		value = math.floor(value * 100000) * 100000
 	end
 	base.set_value(self, value, timestamp)
@@ -82,7 +65,7 @@ function tag:set_value(value, timestamp)
 end
 
 --- Forward to MQTT application
-function tag:on_sum_value(type_name, val, timestamp)
+function tag:on_calc_value(type_name, val, timestamp)
 	assert(type_name ~= 'value')
 	assert(val and type(val) == 'table')
 	local val_str, err = cjson.encode(val)
@@ -95,7 +78,7 @@ function tag:on_sum_value(type_name, val, timestamp)
 		end
 		return
 	end
-	--print('on_sum_value', self._name, type_name, cjson.encode(val))
+	--print('on_calc_value', self._name, type_name, cjson.encode(val))
 	if self._value_callback then
 		self._value_callback(type_name, val_str, timestamp)
 	end

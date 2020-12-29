@@ -3,12 +3,13 @@ local base = require 'hj212.calc.db'
 local tag = base:subclass("HJ212_APP_TAG_DB_DB")
 
 local sum_attrs = {
-	{ name = 'total', type = 'DOUBLE', not_null = true },
+	{ name = 'cou', type = 'DOUBLE', not_null = true },
 	{ name = 'avg', type = 'DOUBLE', not_null = true },
 	{ name = 'min', type = 'DOUBLE', not_null = true },
 	{ name = 'max', type = 'DOUBLE', not_null = true },
 	{ name = 'stime', type = 'INTEGER', not_null = true },
 	{ name = 'etime', type = 'INTEGER', not_null = true },
+	{ name = 'flag', type = 'INTEGER', not_null = true },
 }
 
 local rdata_attrs = {

@@ -7,7 +7,6 @@ function object:initialize(hisdb, key, cate)
 	self._key = key
 	self._cate = cate
 	self._store = nil
-	self._store_map = {}
 end
 
 function object:key()
@@ -41,7 +40,6 @@ function object:init()
 		return nil, err
 	end
 
-	self._store_map = {store}
 	self._store = store
 	return true
 end
@@ -50,24 +48,11 @@ function object:insert(val)
 	assert(self._store)
 	local store = self._store
 	if not store:in_time(val.timestamp) then
-		store = nil
-		for _, v in ipairs(self._store_map) do
-			if v:in_time(val.timestamp) then
-				store = v
-			end
-		end
-	end
-
-	if not store then
 		store, err = self._hisdb:find_store(self, val.timestamp)
 		if not store then
 			return nil, err
 		end
-
-		table.insert(self._store_map, store)
-		table.sort(self._store_map, function(a, b)
-			return a:start_time() < b:start_time()
-		end)
+		self._store = store
 	end
 	return store:insert(val)
 end
