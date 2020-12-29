@@ -97,7 +97,6 @@ function app:on_run(tms)
 		self:gen_device_data(dev)
 	end
 
-	print(self._cycle)
 	return self._cycle
 end
 
