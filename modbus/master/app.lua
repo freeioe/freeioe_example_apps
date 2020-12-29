@@ -404,6 +404,9 @@ function app:on_run(tms)
 		return
 	end
 
+	local begin_time = self._sys:time()
+	local gap = self._loop_gap or 5000
+
 	for _, dev in ipairs(self._devs) do
 		if not self._modbus then
 			break
@@ -411,7 +414,8 @@ function app:on_run(tms)
 		self:read_dev(dev.dev, dev.stat, dev.unit, dev.packets)
 	end
 
-	return self._loop_gap or 5000
+	local next_tms = gap - ((self._sys:time() - begin_time) * 1000)
+	return next_tms > 0 and next_tms or 0
 end
 
 --- 返回应用对象
