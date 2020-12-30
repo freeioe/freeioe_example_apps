@@ -21,9 +21,9 @@
 		"name": "station_type",
 		"desc": "型号",
 		"type": "dropdown",
-		"default": "AOC",
+		"default": "VOCs",
 		"values": [
-			"AOC",
+			"VOCs",
 			"WATER"
 		]
 	},

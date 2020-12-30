@@ -24,6 +24,7 @@ function app:initialize(name, sys, conf)
 	conf.server = conf.server or '127.0.0.1'
 	conf.port = conf.port or '1883'
 	conf.period = 0 -- disable Period Buffer
+	conf.disable_cov = true -- disable COV
 
 	-- defaults
 	conf.station = conf.station or 'HJ212'
@@ -435,9 +436,9 @@ end
 
 local prop_map = {
 	RDATA = 'GIO',
-	MIN = 'TenMinsCOU',
-	HOUR = 'HourCOT',
-	DAY = 'DayCOU',
+	MIN = 'TenMins',
+	HOUR = 'Hour',
+	DAY = 'Day',
 }
 
 local topic_map = {
@@ -454,11 +455,12 @@ function app:publish_prop_list(prop, list, timestamp)
 	datas.Grt_ID = now
 
 	for k, v in pairs(list) do
-		local name = prop_map[prop]..'_'..k
+		local name = prop_map[prop]
 		if prop == 'RDATA' then
-			datas[name] = v.value
+			datas[name..'_'..k] = v.value
 		else
-			datas[name] = v.avg
+			datas[name..'COU_'..k] = v.cou
+			datas[name..'AVG_'..k] = v.avg
 		end
 	end
 	local topic = 'inputs/'..topic_map[prop]
