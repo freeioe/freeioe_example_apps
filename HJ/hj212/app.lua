@@ -134,8 +134,6 @@ function app:on_start()
 		self._station:add_meter(meter:new(sn, {}, tag_list))
 	end
 
-	self._station:init(self._calc_mgr)
-
 	local meta = self._api:default_meta()
 	meta.name = 'HJ212' 
 	meta.manufacturer = "FreeIOE.org"
@@ -163,13 +161,13 @@ function app:on_start()
 		table.insert(self._clients, client)
 	end
 
-	--- Start timers
-	self:start_timers()
-
 	sys:timeout(10, function()
+		--- Start timers
+		self:start_timers()
+		self._station:init(self._calc_mgr)
 		self:read_tags()
+		self._inited = true
 	end)
-	self._inited = true
 
 	self._log:info("Register station", conf.station, self:app_name())
 	ioe.env.set('HJ212.STATION', conf.station or 'HJ212', self:app_name())
