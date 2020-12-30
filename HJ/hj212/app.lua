@@ -265,9 +265,9 @@ end
 function app:on_command(app_src, sn, command, param, priv)
 	if command == 'purge_hisdb' then
 		if param.pwd == self:app_name() then
-			return self._hisdb:clean_all(), "HISDB purged"
+			return self._hisdb:clean_all(), "History database has been purged"
 		else
-			return false, "PWD incorrect"
+			return false, "Password incorrect"
 		end
 	end
 	return false, "Unknown command"
