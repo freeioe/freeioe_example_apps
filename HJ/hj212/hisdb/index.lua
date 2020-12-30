@@ -160,11 +160,12 @@ end
 
 --- Internal
 function index:purge_db(key, cate, creation, duration, id)
+	--- Remove file
 	local file = string.format('%s/%s_%d_%s.sqlite3.db', cate, key, creation, duration)
+	os.execute('rm -f '..file)
 	-- Purge db
 	local sql = "DELETE FROM 'index' WHERE id="..id
-	assert(self._db:exec(sql))
-	os.execute('rm -f '..file)
+	self._db:exec(sql)
 	-- Remove db_map
 	local key = index_key(key, cate, creation)
 	self._db_map[key] = nil
