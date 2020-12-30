@@ -443,9 +443,9 @@ local prop_map = {
 
 local time_map = {
 	RDATA = 'Grt',
-	MIN = 'TenMins',
-	HOUR = 'Hour',
-	DAY = 'Day',
+	MIN = 'TenMinsCOU',
+	HOUR = 'HourCOU',
+	DAY = 'DayCOU',
 }
 
 local topic_map = {
