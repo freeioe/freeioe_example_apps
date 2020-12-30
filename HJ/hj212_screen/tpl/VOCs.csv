@@ -6,6 +6,11 @@ INPUT,Pressure,烟气压力,STATION,a01013
 INPUT,Humidity,烟气湿度,STATION,a01014
 INPUT,NTHA,非甲烷总烃,STATION,a24088
 INPUT,THA,总烃,STATION,3c0113
+INPUT,CH4,甲烷,STATION,a05002
+INPUT,C6H6,苯,STATION,a25002
+INPUT,C7H8,甲苯,STATION,a25003
+INPUT,C6H4,二甲苯,STATION,a25005
+INPUT,O2,氧气含量,STATION,a19001
 STATUS,ministryStatus,部级平台状态,STATION.localhost,status
 STATUS,provinceStatus,省级平台状态,STATION.localhost,status
 STATUS,cityStatus,市级平台状态,STATION.localhost,status

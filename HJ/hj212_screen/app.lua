@@ -28,7 +28,7 @@ function app:initialize(name, sys, conf)
 
 	-- defaults
 	conf.station = conf.station or 'HJ212'
-	conf.station_type = conf.station_type or 'AOC'
+	conf.station_type = conf.station_type or 'VOCs'
 
 	-- for test
 	--[[
@@ -435,7 +435,14 @@ function app:publish_prop_data(tag_name, prop, value, timestamp)
 end
 
 local prop_map = {
-	RDATA = 'GIO',
+	RDATA = 'Grt',
+	MIN = 'TenMins',
+	HOUR = 'Hour',
+	DAY = 'Day',
+}
+
+local time_map = {
+	RDATA = 'Grt',
 	MIN = 'TenMins',
 	HOUR = 'Hour',
 	DAY = 'Day',
@@ -451,11 +458,13 @@ local topic_map = {
 function app:publish_prop_list(prop, list, timestamp)
 	local datas = {}
 	local now = math.floor(timestamp)
-	datas.Grt_Time = os.date('%F %T', now)
-	datas.Grt_ID = now
+	local name = prop_map[prop]
+	local time_name = time_map[prop]
+
+	datas[time_name..'_Time'] = os.date('%F %T', now)
+	datas[time_name..'_ID'] = now
 
 	for k, v in pairs(list) do
-		local name = prop_map[prop]
 		if prop == 'RDATA' then
 			datas[name..'_'..k] = v.value
 		else
