@@ -4,7 +4,6 @@ local app_base = require 'app.base'
 local conf = require 'app.conf'
 local sysinfo = require 'utils.sysinfo'
 local timer = require 'utils.timer'
-local lfs = require 'lfs'
 
 local meter = require 'hj212.client.meter'
 local station = require 'hj212.client.station'
@@ -47,7 +46,6 @@ function app:on_start()
 	self._min_interval = tonumber(conf.min_interval) or 10
 
 	local db_folder = sysinfo.data_dir() .. "/db_" .. self._name
-	lfs.mkdir(db_folder)
 	self._hisdb = hisdb:new(db_folder, {SAMPLE='1d'})
 	local r, err = self._hisdb:open()
 	if not r then
@@ -119,7 +117,7 @@ function app:on_start()
 				dev[prop.input] = {prop}
 			end
 
-			local tag = tag:new(self._hisdb, self._station, prop.name, prop.min, prop.max, prop.calc, prop.cou)
+			local tag = tag:new(self._hisdb, self._station, prop)
 			local p_name = prop.name
 			tag:set_value_callback(function(prop, value, timestamp)
 				local dev = app_inst._dev
@@ -148,7 +146,11 @@ function app:on_start()
 	local station_sn = sys_id..'.'..conf.station
 	self._dev_sn = station_sn
 
-	self._dev = self._api:add_device(self._dev_sn, meta, inputs)
+	local commands = {
+		{ name = 'purge_hisdb', desc = "Purge history db" }
+	}
+
+	self._dev = self._api:add_device(self._dev_sn, meta, inputs, nil, commands)
 
 	--- initialize connections
 	self._clients = {}
@@ -167,6 +169,7 @@ function app:on_start()
 	sys:timeout(10, function()
 		self:read_tags()
 	end)
+	self._inited = true
 
 	self._log:info("Register station", conf.station, self:app_name())
 	ioe.env.set('HJ212.STATION', conf.station or 'HJ212', self:app_name())
@@ -188,14 +191,17 @@ function app:read_tags()
 				local value, timestamp = dev_api:get_input_prop(input, 'value')
 				if value then
 					for _, v in ipairs(tags) do
-						self._station:set_tag_value(v.name, value, timestamp)
+						local r, err =self._station:set_tag_value(v.name, value, timestamp)
+						if not r then
+							self._log:error("Cannot set input value", v.name, value, err)
+						end
 					end
 				else
-					self._log:error("Cannot read input value", sn, input)
+					--self._log:debug("Cannot read input value", sn, input)
 				end
 			end
 		else
-			self._log:error("Cannot find device", sn)
+			self._log:debug("Cannot find device", sn)
 		end
 	end
 end
@@ -256,7 +262,22 @@ function app:on_output(app_src, sn, output, prop, value, timestamp)
 	return nil, "Output not found!"
 end
 
+function app:on_command(app_src, sn, command, param, priv)
+	if command == 'purge_hisdb' then
+		if param.pwd == self:app_name() then
+			return self._hisdb:clean_all(), "HISDB purged"
+		else
+			return false, "PWD incorrect"
+		end
+	end
+	return false, "Unknown command"
+end
+
 function app:on_input(app_src, sn, input, prop, value, timestamp, quality)
+	if not self._inited then
+		return
+	end
+
 	if quality ~= 0 or prop ~= 'value' then
 		return
 	end
@@ -280,7 +301,10 @@ function app:on_input(app_src, sn, input, prop, value, timestamp, quality)
 	end
 
 	for _, v in ipairs(inputs) do
-		self._station:set_tag_value(v.name, value, timestamp)
+		local r, err = self._station:set_tag_value(v.name, value, timestamp)
+		if not r then
+			self._log:warning("Failed set tag value", v.name, value, err)
+		end
 	end
 end
 
@@ -312,19 +336,16 @@ function app:upload_rdata(now, save)
 end
 
 function app:upload_min_data(now)
-	local now = now - self._min_interval * 60
 	local data = self._station:min_data(now, now)
 	self:for_earch_client('upload_min_data', data)
 end
 
 function app:upload_hour_data(now)
-	local now = now - 3600
 	local data = self._station:hour_data(now, now)
 	self:for_earch_client('upload_hour_data', data)
 end
 
 function app:upload_day_data(now)
-	local now = now - 3600 * 24
 	local data = self._station:day_data(now, now)
 	self:for_earch_client('upload_day_data', data)
 end

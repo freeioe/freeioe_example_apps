@@ -112,18 +112,36 @@ function store:open()
 	return r, err
 end
 
+function store:set_watch(cb)
+	self._watch = cb
+end
+
 function store:close()
 	if self._db then
 		self._db:close()
 		self._db = nil
+		if self._watch then
+			self._watch(self)
+		end
 	end
 end
 
 local data_insert_sql = [[
 INSERT INTO data (%s) VALUES (%s)
 ]]
+local data_insert_query = [[
+SELECT * FROM data WHERE timestamp == %f
+]]
 function store:insert(val)
 	assert(self._db)
+
+	local r, err = self._db:first_row(string.format(data_insert_query, val.timestamp))
+	if r then
+		print(r, err)
+		local cjson = require 'cjson.safe'
+		print(cjson.encode(r), cjson.encode(val))
+		return nil, "Data already exists!!"
+	end
 
 	local stmt = self._insert_stmt
 	if not stmt then
@@ -144,11 +162,17 @@ function store:insert(val)
 	end
 	assert(val.timestamp >= self._start_time and val.timestamp < self._end_time)
 
-	return stmt:bind(val):exec()
+	local r, err = stmt:bind(val):exec()
+	if not r then
+		local cjson = require 'cjson.safe'
+		print(cjson.encode(val))
+	end
+	return r, err
+	--return stmt:bind(val):exec()
 end
 
 local data_query_sql = [[
-SELECT * FROM data WHERE timestamp >= %d AND timestamp <= %d %s
+SELECT * FROM data WHERE timestamp >= %f AND timestamp <= %f %s
 ]]
 function store:query(start_time, end_time, order_by, limit)
 	assert(self._db)

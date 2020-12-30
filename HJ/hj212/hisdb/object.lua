@@ -35,24 +35,48 @@ end
 ]]--
 
 function object:init()
+	local r, err = self:get_store()
+	if r then
+		return true
+	end
+	return nil, err
+end
+
+function object:set_store(store)
+	if self._store then
+		self._store:set_watch(nil)
+	end
+	store:set_watch(function(store)
+		if store == self._store then
+			self._store = nil
+		end
+	end)
+	self._store = store
+end
+
+function object:get_store()
+	if self._store then
+		return self._store
+	end
+
 	local store, err = self._hisdb:create_store(self)
 	if not store then
 		return nil, err
 	end
 
-	self._store = store
-	return true
+	self:set_store(store)
+
+	return self._store
 end
 
 function object:insert(val)
-	assert(self._store)
-	local store = self._store
+	local store = self:get_store()
 	if not store:in_time(val.timestamp) then
 		store, err = self._hisdb:find_store(self, val.timestamp)
 		if not store then
 			return nil, err
 		end
-		self._store = store
+		self:set_store(store)
 	end
 	return store:insert(val)
 end

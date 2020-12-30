@@ -27,6 +27,8 @@ CREATE TABLE "index" (
 ]]
 
 local function init_index_db(folder)
+	lfs.mkdir(folder)
+
 	local path = folder..'/index.db'
 	local db = assert(sqlite3.open(path))
 	local r, err = db:first_row([[SELECT name FROM sqlite_master WHERE type='table' AND name='meta';]])
@@ -44,6 +46,28 @@ index.static.DEFAULT_DURATION = '6m'
 
 local function index_key(key, cate, creation)
 	return string.format('%s-%s-%d', key, cate, creation)
+end
+
+local function check_db_meta(new, old)
+	if #new ~= #old then
+		return false
+	end
+
+	for i, v in ipairs(new) do
+		local ov = old[i]
+		for k, vv in pairs(v) do
+			if vv ~= ov[k] then
+				return false
+			end
+		end
+		for k, vv in pairs(ov) do
+			if vv ~= v[k] then
+				return false
+			end
+		end
+	end
+
+	return true
 end
 
 ---
@@ -65,6 +89,22 @@ function index:open()
 	self._db = db
 	self:load_meta()
 	return true
+end
+
+function index:close()
+	for key, store in pairs(self._db_map) do
+		store:close()
+	end
+	self._db_map = {}
+	self._db:close()
+	self._db = nil
+end
+
+function index:delete_all()
+	self:close()
+	local cmd = string.format('mv %s %s_%d', self._folder, self._folder, os.time())
+	os.execute(cmd)
+	return self:open()
 end
 
 function index:load_meta(default_durations)
@@ -113,16 +153,28 @@ function index:purge(key, cate)
 		--print("INDEX.PURGE", row.id, row.key, row.category, row.file, row.creation, row.duration)
 		local diff = utils.duration_div(row.creation, now, row.duration)
 		if diff > 2 then
-			local file = string.format('%s/%s_%d_%s.sqlite3.db', cate, key, row.creation, row.duration)
-			-- Purge db
-			local sql = "DELETE FROM 'index' WHERE id="..row.id
-			assert(db:exec(sql))
-			os.execute('rm -f '..file)
-			-- Remove db_map
-			local key = index_key(key, cate, row.creation)
-			self._db_map[key] = nil
+			self:purge_db(key, cate, row.creation, row.duration, row.id)
 		end
 	end
+end
+
+--- Internal
+function index:purge_db(key, cate, creation, duration, id)
+	local file = string.format('%s/%s_%d_%s.sqlite3.db', cate, key, creation, duration)
+	-- Purge db
+	local sql = "DELETE FROM 'index' WHERE id="..id
+	assert(self._db:exec(sql))
+	os.execute('rm -f '..file)
+	-- Remove db_map
+	local key = index_key(key, cate, creation)
+	self._db_map[key] = nil
+end
+
+function index:backup_db_file(key, cate, creation, duration)
+	local file = string.format('%s/%s_%d_%s.sqlite3.db', cate, key, creation, duration)
+	local back_file = file..os.time()
+	local cmd = string.format('mv %s/%s %s/%s', self._folder, file, self._folder, back_file)
+	os.execute(cmd)
 end
 
 local insert_sql = [[
@@ -131,9 +183,8 @@ INSERT INTO 'index' (key, category, file, meta, creation, duration) VALUES('%s',
 function index:create(key, cate, meta, creation)
 	assert(self._db)
 
-	local obj, err = self:find(key, cate, creation)
+	local obj, err = self:_find(key, cate, creation, meta)
 	if obj then
-		--- TODO: Check meta
 		return obj
 	end
 
@@ -158,7 +209,7 @@ function index:create(key, cate, meta, creation)
 		return nil, err
 	end
 
-	local obj = store:new(meta, creation, duration, self._folder..'/'..file)
+	obj = store:new(meta, creation, duration, self._folder..'/'..file)
 	local r, err = obj:open()
 	if not r then
 		return nil, err
@@ -171,6 +222,10 @@ end
 --
 local find_sql = "SELECT * FROM 'index' WHERE key='%s' AND category='%s' AND creation=%d"
 function index:find(key, cate, timestamp)
+	return self:_find(key, cate, timestamp)
+end
+
+function index:_find(key, cate, timestamp, new_meta)
 	local duration = self._durations[cate] or self._duration
 	local creation = utils.duration_base(duration, timestamp)
 	local ikey = index_key(key, cate, creation)
@@ -192,6 +247,15 @@ function index:find(key, cate, timestamp)
 	end
 
 	local meta = cjson.decode(row.meta) or {}
+	if new_meta then
+		if not check_db_meta(new_meta, meta) then
+			print('META different')
+			self:backup_db_file(key, cate, creation, duration)
+			self:purge_db(key, cate, creation, duration, row.id)
+			return nil, "Meta different"
+		end
+	end
+
 	local store = store:new(meta, creation, duration, self._folder..'/'..row.file)
 	local r, err = store:open()
 	if not r then

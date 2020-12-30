@@ -6,9 +6,11 @@ local hisdb_tag = require 'hisdb.tag'
 
 local tag = base:subclass('HJ212_HJTAG')
 
-function tag:initialize(hisdb, station, name, min, max, calc, cou)
+function tag:initialize(hisdb, station, prop) --name, min, max, calc, cou, has_cou, upload)
 	--- Base initialize
-	base.initialize(self, station, name, min, max, cou, cou)
+	base.initialize(self, station, prop.name, prop.min, prop.max, prop.cou, prop.has_cou)
+	self._upload = prop.upload
+	self._has_cou = prop.has_cou
 
 	--- Member objects
 	self._hisdb = hisdb
@@ -20,6 +22,14 @@ function tag:initialize(hisdb, station, name, min, max, calc, cou)
 	end
 	self._value_callback = nil
 	self._sum_callback = nil
+end
+
+function tag:upload()
+	return self._upload
+end
+
+function tag:has_cou()
+	return self._has_cou
 end
 
 function tag:init_db()
@@ -60,10 +70,15 @@ function tag:set_value(value, timestamp)
 		value = self._calc(value, timestamp)
 		value = math.floor(value * 100000) / 100000
 	end
-	base.set_value(self, value, timestamp)
+	local r, err = base.set_value(self, value, timestamp)
+	if not r then
+		return nil, err
+	end
+
 	if self._value_callback then
 		self._value_callback('value', self._value, timestamp)
 	end
+	return true
 end
 
 --- Forward to MQTT application

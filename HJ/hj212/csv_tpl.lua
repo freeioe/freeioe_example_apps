@@ -77,6 +77,12 @@ local function load_tpl(name, err_cb)
 			prop.fmt = string.len(v[10]) > 0 and v[10] or nil
 			prop.calc = string.len(v[11]) > 0 and v[11] or nil
 			prop.cou = string.len(v[12]) > 0 and v[12] or nil
+			if prop.cou and (string.upper(prop.cou) == 'N/A' or string.upper(prop.cou) == 'N') then
+				prop.has_cou = false
+			else
+				prop.has_cou = true
+			end
+			prop.upload = (string.upper((v[13] or '')) ~= 'N')
 
 			if valid_prop(prop, err_cb) then
 				if not devs[prop.sn] then

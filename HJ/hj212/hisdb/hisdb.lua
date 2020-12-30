@@ -72,4 +72,8 @@ function hisdb:cleanup(now)
 	end
 end
 
+function hisdb:clean_all()
+	return self._index_db:delete_all()
+end
+
 return hisdb

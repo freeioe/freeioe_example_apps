@@ -23,10 +23,6 @@ function tag:initialize(hisdb, tag_name, sample_attrs)
 	self._samples = {}
 	self._attrs = sample_attrs
 	self._db_map = {}
-	self._attrs_map = {}
-	for i, v in ipairs(sample_attrs) do
-		self._attrs_map[v.name] = i
-	end
 end
 
 function tag:init()
@@ -49,12 +45,7 @@ function tag:init()
 end
 
 function tag:push_sample(data)
-	local val = {}
-	for i, v in ipairs(self._attrs) do
-		val[v.name] = data[i]
-	end
-
-	table.insert(self._samples, val)
+	table.insert(self._samples, data)
 end
 
 function tag:save_samples()
@@ -64,23 +55,7 @@ function tag:save_samples()
 end
 
 function tag:read_samples(start_time, end_time)
-	local data, err = self:read('SAMPLE', start_time, end_time)
-	if not data then
-		return nil, err
-	end
-	local list = {}
-	local attrs_map = self._attrs_map
-	for _, d in ipairs(data) do
-		local val = {}
-		for k, v in pairs(d) do
-			if k ~= 'id' then	
-				val[attrs_map[k]] = v
-			end
-		end
-		list[#list + 1] = val
-	end
-
-	return list
+	return self:read('SAMPLE', start_time, end_time)
 end
 
 function tag:read(cate, start_time, end_time)
