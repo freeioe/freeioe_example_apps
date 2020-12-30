@@ -188,8 +188,8 @@ function app:read_tags()
 				if value ~= nil then
 					self._log:debug("Input value got", sn, input, value, timestamp)
 				else
-					self._log:error("Failed to read input value", sn, input)
-					value = -1
+					--self._log:error("Failed to read input value", sn, input)
+					value = 0
 				end
 				for _, prop in ipairs(props) do
 					value_map[prop.name] = { value = value, timestamp = timestamp }
