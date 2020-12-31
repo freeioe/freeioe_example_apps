@@ -228,6 +228,7 @@ function app:on_close(reason)
 		v:close()
 	end
 	self._clients = {}
+	return true
 end
 
 function app:on_ctrl(app_src, command, param, priv)

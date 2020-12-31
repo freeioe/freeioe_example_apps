@@ -352,9 +352,13 @@ function app:first_run()
 		self._dev:set_input_prop('uptime', "value", uptime)
 
 		--- System memory usage
-		local mem = sysinfo.meminfo()
-		self._dev:set_input_prop('mem_total', 'value', mem.total)
-		self._dev:set_input_prop('mem_used', 'value', mem.used)
+		local mem, err = sysinfo.meminfo()
+		if mem then
+			self._dev:set_input_prop('mem_total', 'value', mem.total)
+			self._dev:set_input_prop('mem_used', 'value', mem.used)
+		else
+			self._log:error('Failed to read memeory info', err)
+		end
 		--self._dev:set_input_prop('mem_free', 'value', mem.free)
 
 		--- CPU temperature
