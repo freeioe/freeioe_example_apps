@@ -101,6 +101,7 @@ function app:on_start()
 	local map_dev_sn = function(sn)
 		return string.gsub(sn, '^STATION(.*)$', conf.station..'%1')
 	end
+	local no_hisdb = conf.no_hisdb
 	for sn, tags in pairs(tpl.devs) do
 		local dev = {}
 		local tag_list = {}
@@ -115,6 +116,10 @@ function app:on_start()
 				table.insert(dev[prop.input], prop)
 			else
 				dev[prop.input] = {prop}
+			end
+
+			if no_hisdb then
+				prop.no_hisdb = true
 			end
 
 			local tag = tag:new(self._hisdb, self._station, prop)
@@ -164,7 +169,9 @@ function app:on_start()
 	sys:timeout(10, function()
 		--- Start timers
 		self:start_timers()
-		self._station:init(self._calc_mgr)
+		self._station:init(self._calc_mgr, function(...)
+			self._log:error("Init tag failed", ...)
+		end)
 		self:read_tags()
 		self._inited = true
 	end)

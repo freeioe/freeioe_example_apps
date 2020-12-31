@@ -17,22 +17,30 @@ local rdata_attrs = {
 	{ name = 'flag', type = 'INTEGER', not_null = true },
 }
 
-function tag:initialize(hisdb, tag_name, sample_attrs)
+local db_version = 1
+
+function tag:initialize(hisdb, tag_name, sample_attrs, sample_version, no_db)
 	self._hisdb = hisdb
 	self._tag_name = tag_name
 	self._samples = {}
 	self._attrs = sample_attrs
+	self._version = sample_version or db_version
+	self._no_db = no_db
 	self._db_map = {}
 end
 
 function tag:init()
+	if self._no_db then
+		return true
+	end
+
 	local hisdb = self._hisdb
 	local db_map = {
-		SAMPLE = hisdb:create_object(self._tag_name, 'SAMPLE', self._attrs),
-		RDATA = hisdb:create_object(self._tag_name, 'RDATA', rdata_attrs),
-		MIN = hisdb:create_object(self._tag_name, 'MIN', sum_attrs),
-		HOUR = hisdb:create_object(self._tag_name, 'HOUR', sum_attrs),
-		DAY = hisdb:create_object(self._tag_name, 'DAY', sum_attrs),
+		SAMPLE = hisdb:create_object('SAMPLE', 'SAMPLE', self._tag_name, self._version, self._attrs),
+		RDATA = hisdb:create_object('HISDB', self._tag_name, 'RDATA', db_version, rdata_attrs),
+		MIN = hisdb:create_object('HISDB', self._tag_name, 'MIN', db_version, sum_attrs),
+		HOUR = hisdb:create_object('HISDB', self._tag_name, 'HOUR', db_version, sum_attrs),
+		DAY = hisdb:create_object('HISDB', self._tag_name, 'DAY', db_version, sum_attrs),
 	}
 	for k,v in pairs(db_map) do
 		local r, err = v:init()
@@ -60,6 +68,10 @@ end
 
 function tag:read(cate, start_time, end_time)
 	assert(cate and start_time and end_time)
+	if self._no_db then
+		return {}
+	end
+
 	local db = self._db_map[cate]
 	if not db then
 		return nil, "Not found db for "..cate
@@ -69,6 +81,10 @@ function tag:read(cate, start_time, end_time)
 end
 
 function tag:write(cate, data, is_array)
+	if self._no_db then
+		return true
+	end
+
 	local db = self._db_map[cate]
 	if not db then
 		return nil, "Not found db for "..cate

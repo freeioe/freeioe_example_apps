@@ -6,6 +6,7 @@ local function to_seconds(val)
 	return date.diff(val:toutc(), date(0)):spanseconds()
 end
 
+-- Duration Start Time
 function _M.duration_base(duration, start)
 	assert(duration, 'Duration missing')
 	local now = start and date(start):tolocal() or date(false) -- local time
@@ -31,6 +32,7 @@ function _M.duration_base(duration, start)
 	return to_seconds(now)
 end
 
+-- Duration DIV
 function _M.duration_div(start_time, end_time, duration)
 	local c, unit = string.match(duration, '^(%d+)(%w+)$')
 	c = tonumber(c)
@@ -59,7 +61,8 @@ function _M.duration_div(start_time, end_time, duration)
 	return nil, 'Invalid duration'
 end
 
-function _M.duration_calc(start_time, duration)
+--- Duration END Time
+function _M.duration_add(start_time, duration)
 	local c, unit = string.match(duration, '^(%d+)(%w+)$')
 	c = tonumber(c)
 	unit = string.lower(unit)

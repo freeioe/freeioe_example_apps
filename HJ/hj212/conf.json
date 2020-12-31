@@ -83,5 +83,11 @@
 		"desc": "设备模板",
 		"type": "templates",
 		"limit": 1
+	},
+	{
+		"name": "no_hisdb",
+		"desc": "Disable history data saving",
+		"type": "boolean",
+		"default": false
 	}
 ]

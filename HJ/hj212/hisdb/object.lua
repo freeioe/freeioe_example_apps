@@ -2,10 +2,14 @@ local class = require 'middleclass'
 
 local object = class('hisdb.object')
 
-function object:initialize(hisdb, key, cate)
+function object:initialize(hisdb, group, key, cate, version, meta, duration)
 	self._hisdb = hisdb
+	self._group = group
 	self._key = key
 	self._cate = cate
+	self._version = version
+	self._meta = meta
+	self._duration = duration
 	self._store = nil
 end
 
@@ -13,8 +17,24 @@ function object:key()
 	return self._key
 end
 
+function object:group()
+	return self._group
+end
+
 function object:cate()
 	return self._cate
+end
+
+function object:version()
+	return self._version
+end
+
+function object:duration()
+	return self._duration
+end
+
+function object:meta()
+	return self._meta
 end
 
 --[[
@@ -44,9 +64,10 @@ end
 
 function object:set_store(store)
 	if self._store then
-		self._store:set_watch(nil)
+		self._store:remove_watch(self)
 	end
-	store:set_watch(function(store)
+	assert(store:init(self._cate, self._meta))
+	store:add_watch(self, function(store)
 		if store == self._store then
 			self._store = nil
 		end
@@ -70,7 +91,7 @@ function object:get_store()
 end
 
 function object:insert(val)
-	local store = self:get_store()
+	local store = assert(self:get_store())
 	if not store:in_time(val.timestamp) then
 		store, err = self._hisdb:find_store(self, val.timestamp)
 		if not store then
@@ -78,21 +99,20 @@ function object:insert(val)
 		end
 		self:set_store(store)
 	end
-	return store:insert(val)
+	return store:insert(self._cate, val)
 end
 
 function object:query(start_time, end_time)
 	assert(start_time and end_time)
 	local stores = self._hisdb:list_store(self, start_time, end_time)
 
-	local data = nil
+	local data = {}
 	for _, v in ipairs(stores) do
-		local list = v:query(start_time, end_time)
-		if not data then
-			data = list
-		else
+		local list = v:query(self._cate, start_time, end_time)
+		if list and #list > 0 then
 			table.move(list, 1, #list, #data + 1, data)
 		end
+		v:done()
 	end
 
 	return data

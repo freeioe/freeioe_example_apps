@@ -11,6 +11,7 @@ function tag:initialize(hisdb, station, prop) --name, min, max, calc, cou, has_c
 	base.initialize(self, station, prop.name, prop.min, prop.max, prop.cou, prop.has_cou)
 	self._upload = prop.upload
 	self._has_cou = prop.has_cou
+	self._no_hisdb = prop.no_hisdb
 
 	--- Member objects
 	self._hisdb = hisdb
@@ -34,7 +35,8 @@ end
 
 function tag:init_db()
 	local sum_calc = self:his_calc()
-	local db = hisdb_tag:new(self._hisdb, self:tag_name(), sum_calc:sample_meta())
+	local meta, version = sum_calc:sample_meta()
+	local db = hisdb_tag:new(self._hisdb, self:tag_name(), meta, version, self._no_hisdb)
 	local r, err = db:init()
 	if not r then
 		return nil, err
@@ -46,9 +48,7 @@ end
 
 function tag:init(calc_mgr)
 	base.init(self, calc_mgr)
-	if not self._tagdb then
-		self:init_db()
-	end
+	return self:init_db()
 end
 
 function tag:save_samples()
@@ -92,6 +92,16 @@ function tag:on_calc_value(type_name, val, timestamp)
 		print(type(val))
 		for k,v in pairs(val) do
 			print(k,v, type(v))
+			if tostring(v) == '-nan' then
+				val[k] = 0
+			end
+			if tostring(v) == 'inf' then
+				if k == 'avg' then
+					val[k] = 0xFFFFFFFF
+				else
+					val[k] = 0
+				end
+			end
 		end
 		return
 	end

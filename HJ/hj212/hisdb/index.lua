@@ -1,84 +1,63 @@
-local cjson = require 'cjson.safe'
 local lfs = require 'lfs'
 local sqlite3 = require 'sqlite3'
 local class = require 'middleclass'
 local store = require 'hisdb.store'
 local utils = require 'hisdb.utils'
+local meta = require 'hisdb.meta'
 
 local index = class('hisdb.index')
 
-local info_create_sql = [[
-CREATE TABLE "meta" (
-	"key"		TEXT PRIMARY KEY UNIQUE,
-	"value"		TEXT NOT NULL
-);
-]]
+index.static.DEFAULT_DURATION = '6m'
+index.static.VERSION = 4
 
 local db_create_sql = [[
 CREATE TABLE "index" (
 	"id"		INTEGER PRIMARY KEY AUTOINCREMENT UNIQUE,
+	"grp"		TEXT NOT NULL,		-- Saving group
 	"key"		TEXT NOT NULL,		-- Saving key
-	"category"	TEXT NOT NULL,		-- Saving Category
-	"file"		TEXT NOT NULL,		-- File path
-	"meta"		TEXT NOT NULL,		-- Meta information
+	"version"	INTEGER NOT NULL,	-- Version information
+	"duration"	TEXT NOT NULL,		-- Duration time string
 	"creation"	INTEGER NOT NULL,	-- Db file creation time (seconds since EPOCH)
-	"duration"	TEXT NOT NULL		-- Duration time string
-);
+	"file"		TEXT NOT NULL		-- File path
+)
 ]]
 
 local function init_index_db(folder)
-	lfs.mkdir(folder)
+	if not lfs.attributes(folder, 'mode') then
+		lfs.mkdir(folder)
+	end
 
 	local path = folder..'/index.db'
 	local db = assert(sqlite3.open(path))
-	local r, err = db:first_row([[SELECT name FROM sqlite_master WHERE type='table' AND name='meta';]])
-	if not r then
-		assert(db:exec(info_create_sql))
-	end
-	local r, err = db:first_row([[SELECT name FROM sqlite_master WHERE type='table' AND name='index';]])
+	local r, err = db:first_row([[SELECT name FROM sqlite_master WHERE type='table' AND name='index']])
 	if not r then
 		assert(db:exec(db_create_sql))
 	end
 	return db
 end
 
-index.static.DEFAULT_DURATION = '6m'
-
-local function index_key(key, cate, creation)
-	return string.format('%s-%s-%d', key, cate, creation)
-end
-
-local function check_db_meta(new, old)
-	if #new ~= #old then
-		return false
+local function clean_index_db(folder)
+	local path = folder..'/index.db'
+	os.execute('rm -f '..path)
+	if not lfs.attributes(folder, 'mode') then
+		return false, "Delete failed"
 	end
-
-	for i, v in ipairs(new) do
-		local ov = old[i]
-		for k, vv in pairs(v) do
-			if vv ~= ov[k] then
-				return false
-			end
-		end
-		for k, vv in pairs(ov) do
-			if vv ~= v[k] then
-				return false
-			end
-		end
-	end
-
 	return true
 end
 
+local function index_key(group, key, creation, version)
+	return string.format('%s/%s/%d/%d', group, key, creation, version)
+end
+
 ---
--- duration 1d 1m 1y default duration
+-- default_duration 1d 1m 1y
 --
-function index:initialize(folder, durations)
+function index:initialize(folder, default_duration)
 	self._folder = folder
 	self._db_map = {}
-	self._duration = index.static.DEFAULT_DURATION
-	self._durations = durations or {}
-	self._start = nil --- Start base
+	self._default_duration = default_duration or index.static.DEFAULT_DURATION
+	self._start = utils.duration_base(self._default_duration, os.time())
+	self._version = index.static.VERSION
 end
 
 function index:open()
@@ -87,7 +66,20 @@ function index:open()
 		return nil, err
 	end
 	self._db = db
-	self:load_meta()
+	self._meta = meta:new(db)
+	self:_load_meta()
+
+	if self._version ~= index.static.VERSION then
+		print('Clean db as version diff', self._version, index.static.VERSION)
+		self:purge_all()
+		self:close()
+		local r, err = clean_index_db(self._folder)
+		if not r then
+			return nil, err
+		end
+		return self:open()
+	end
+
 	return true
 end
 
@@ -98,120 +90,131 @@ function index:close()
 	self._db_map = {}
 	self._db:close()
 	self._db = nil
+	self._meta = nil
 end
 
-function index:delete_all()
+function index:backup()
 	self:close()
-	local cmd = string.format('mv %s %s_%d', self._folder, self._folder, os.time())
+	local cmd = string.format('cp %s %s_%d', self._folder, self._folder, os.time())
 	os.execute(cmd)
 	return self:open()
 end
 
-function index:load_meta(default_durations)
-	local val = self:get_meta('start')
+function index:meta()
+	return self._meta
+end
+
+function index:_load_meta()
+	local meta = self._meta
+	local val = meta:get('start')
 	if not val then
-		val = utils.duration_base(self._duration)
-		self:set_meta('start', val)
+		assert(meta:set('start', self._start))
+		assert(meta:set('version', self._version))
+		assert(meta:set('default_duration', self._default_duration))
+	else
+		self._start = tonumber(val)
+		local val = meta:get('version')
+		if not val then
+			self._version = 0
+		end
 	end
-	self._start = val
 
-	local val = self:get_meta('duration')
-	if not val then
-		val = duration or index.static.DEFAULT_DURATION
-		self:set_meta('duration', val)
+	local val = meta:get('default_duration')
+	if val then
+		self._default_duration = val
 	end
-	self._duration = val
-
-	for k, v in pairs(self._durations) do
-		self:set_meta('duration.'..k, v)
+	local val = meta:get('version')
+	if val then
+		self._version = tonumber(val)
 	end
 end
 
-function index:get_meta(key)
-	assert(self._db)
-	assert(key)
-	for now in self._db:rows('SELECT * FROM meta WHERE key=\''..key..'\'') do
-		return now.value
-	end
-	return nil, 'Not found'
+function index:db_file(group, key, duration, creation)
+	local time_str = os.date('%FT%H%M%S')
+	return string.format('%s/%s_%s.%s.sqlite3.db', group, key, duration, time_str)
 end
 
-function index:set_meta(key, value)
-	local sql = [[INSERT INTO meta (key, value) VALUES('%s', '%s')]]
-	return self._db:exec(string.format(sql, key, value))
-end
-
---- Returns Database Objects if exists
---
-local select_sql = "SELECT * FROM 'index' WHERE key='%s' AND category='%s' ORDER BY creation ASC"
-function index:purge(key, cate)
+function index:retain_check()
 	local db = self._db
-	local sql = string.format(select_sql, key, cate)
-
 	local now = os.time()
+	local sql = [[SELECT * FROM 'index' ORDER BY creation ASC]]
 	for row in db:rows(sql) do
-		--print("INDEX.PURGE", row.id, row.key, row.category, row.file, row.creation, row.duration)
+		--print("INDEX.PURGE", row.id, row.key, row.group, row.file, row.creation, row.duration)
 		local diff = utils.duration_div(row.creation, now, row.duration)
 		if diff > 2 then
-			self:purge_db(key, cate, row.creation, row.duration, row.id)
+			self:purge_db(key, group, row.creation, row.duration, row.id)
 		end
 	end
 end
 
+--- Purge all databases
+function index:purge_all()
+	for row in self._db:rows("SELECT * FROM 'index'") do
+		self:delete_db_row(row)
+	end
+end
+
+--- Returns Database Objects if exists
+--
+local purge_select_sql = "SELECT * FROM 'index' WHERE grp='%s' AND key='%s'"
+function index:purge(group, key)
+	local sql = string.format(purge_select_sql, group, key)
+	for row in self._db:rows(sql) do
+		self:delete_db_row(row)
+	end
+end
+
 --- Internal
-function index:purge_db(key, cate, creation, duration, id)
-	--- Remove file
-	local file = string.format('%s/%s_%d_%s.sqlite3.db', cate, key, creation, duration)
-	os.execute('rm -f '..file)
+function index:delete_db_row(row)
+	-- Delete file
+	local file = self:db_file(row.group, row.key, row.duration, row.creation)
+	local cmd = string.format('rm -f %s/%s', self._folder, file)
+	os.execute(cmd)
+
 	-- Purge db
-	local sql = "DELETE FROM 'index' WHERE id="..id
+	local sql = "DELETE FROM 'index' WHERE id="..row.id
 	self._db:exec(sql)
+
 	-- Remove db_map
-	local key = index_key(key, cate, creation)
+	local key = index_key(row.group, row.key, row.creation, row.version)
 	self._db_map[key] = nil
 end
 
-function index:backup_db_file(key, cate, creation, duration)
-	local file = string.format('%s/%s_%d_%s.sqlite3.db', cate, key, creation, duration)
-	local back_file = file..os.time()
-	local cmd = string.format('mv %s/%s %s/%s', self._folder, file, self._folder, back_file)
-	os.execute(cmd)
-end
-
 local insert_sql = [[
-INSERT INTO 'index' (key, category, file, meta, creation, duration) VALUES('%s', '%s', '%s', '%s', %d, '%s')
+INSERT INTO 'index' (grp, key, version, duration, creation, file) VALUES('%s', '%s', '%d', '%s', %d, '%s')
 ]]
-function index:create(key, cate, meta, creation)
+function index:create(group, key, version, duration, timestamp)
 	assert(self._db)
+	local duration = duration or self._default_duration
+	local creation = utils.duration_base(duration, timestamp)
 
-	local obj, err = self:_find(key, cate, creation, meta)
+	local obj, err = self:find(group, key, version, duration, timestamp)
 	if obj then
 		return obj
 	end
 
-	local duration = self._durations[cate] or self._duration
-	local creation = utils.duration_base(duration, creation)
-	local ikey = index_key(key, cate, creation)
+	local ikey = index_key(group, key, creation, version)
 	if self._db_map[ikey] then
 		return self._db_map[ikey]
 	end
 
-	local sub_folder = string.format('%s/%s', self._folder, cate)
+	local sub_folder = string.format('%s/%s', self._folder, group)
 	if not lfs.attributes(sub_folder, 'mode') then
 		lfs.mkdir(sub_folder)
 	end
 
-	local file = string.format('%s/%s_%d_%s.sqlite3.db', cate, key, creation, duration)
-	local meta = meta or {}
-	local sql = string.format(insert_sql, key, cate, file, cjson.encode(meta), creation, duration)
+	local file = self:db_file(group, key, duration, creation)
+	local sql = string.format(insert_sql, group, key, version, duration, creation, file)
 
 	local r, err = self._db:exec(sql)
 	if not r then
 		return nil, err
 	end
 
-	obj = store:new(meta, creation, duration, self._folder..'/'..file)
-	local r, err = obj:open()
+	obj = store:new(duration, creation, self._folder..'/'..file, function()
+		self._db_map[ikey] = nil
+	end)
+	local r, err = obj:_open()
 	if not r then
 		return nil, err
 	end
@@ -221,17 +224,17 @@ function index:create(key, cate, meta, creation)
 end
 
 --
-local find_sql = "SELECT * FROM 'index' WHERE key='%s' AND category='%s' AND creation=%d"
-function index:find(key, cate, timestamp)
-	return self:_find(key, cate, timestamp)
-end
-
-function index:_find(key, cate, timestamp, new_meta)
-	local duration = self._durations[cate] or self._duration
+local find_sql = "SELECT * FROM 'index' WHERE grp='%s' AND key='%s' AND version=%d AND creation=%d"
+function index:find(group, key, version, duration, timestamp)
+	assert(group, "Group missing")
+	assert(key, "Key missing")
+	assert(version, "Version missing")
+	local duration = duration or self._default_duration
 	local creation = utils.duration_base(duration, timestamp)
-	local ikey = index_key(key, cate, creation)
+	local ikey = index_key(group, key, creation, version)
 
 	local db = self._db
+	assert(db)
 	if self._db_map[ikey] then
 		return self._db_map[ikey]
 	end
@@ -240,25 +243,17 @@ function index:_find(key, cate, timestamp, new_meta)
 		assert(tostring(k) ~= tostring(ikey))
 	end
 
-	local sql = string.format(select_sql, key, cate, creation)
+	local sql = string.format(find_sql, group, key, version, creation)
 
 	local row, err = db:first_row(sql)
 	if not row then
 		return nil, err
 	end
 
-	local meta = cjson.decode(row.meta) or {}
-	if new_meta then
-		if not check_db_meta(new_meta, meta) then
-			print('META different')
-			self:backup_db_file(key, cate, creation, duration)
-			self:purge_db(key, cate, creation, duration, row.id)
-			return nil, "Meta different"
-		end
-	end
-
-	local store = store:new(meta, creation, duration, self._folder..'/'..row.file)
-	local r, err = store:open()
+	local store = store:new(duration, creation, self._folder..'/'..row.file, function()
+		self._db_map[ikey] = nil
+	end)
+	local r, err = store:_open()
 	if not r then
 		return nil, err
 	end
@@ -266,24 +261,28 @@ function index:_find(key, cate, timestamp, new_meta)
 	return store
 end
 
-function index:list(key, cate, start_time, end_time)
+local select_sql = "SELECT * FROM 'index' WHERE grp='%s' AND key='%s' AND version=%d AND creation>=%d AND creation<=%d"
+function index:list(group, key, version, duration, start_time, end_time)
+	local duration = duration or self._default_duration
+	local stime = utils.duration_base(duration, start_time)
+	local etime = utils.duration_base(duration, end_time)
+
 	local db = self._db
 	assert(db)
-	local sql = string.format(select_sql, key, cate)
+	local sql = string.format(select_sql, group, key, version, stime, etime)
 
 	local list = {}
-	local now = os.time()
-
 	--print(sql)
 	for row in db:rows(sql) do
-		--print("INDEX.LIST", row.id, row.key, row.category, row.file, row.creation, row.duration)
+		--print("INDEX.LIST", row.id, row.key, row.group, row.file, row.creation, row.duration)
 
-		local ikey = index_key(key, cate, row.creation)
+		local ikey = index_key(row.group, row.key, row.creation, row.version)
 		local obj = self._db_map[ikey]
 		if not obj then
-			local meta = cjson.decode(row.meta) or {}
-			obj = store:new(meta, row.creation, row.duration, self._folder..'/'..row.file)
-			if not obj:open() then
+			obj = store:new(row.duration, row.creation, self._folder..'/'..row.file, function()
+				self._db_map[ikey] = nil
+			end)
+			if not obj:_open() then
 				obj = nil
 				print('Store open failed')
 			end

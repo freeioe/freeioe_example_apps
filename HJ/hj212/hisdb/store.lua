@@ -1,6 +1,8 @@
 local sqlite3 = require 'sqlite3'
+local cjson = require 'cjson.safe'
 local class = require 'middleclass'
 local utils = require 'hisdb.utils'
+local meta = require 'hisdb.meta'
 
 local store = class('hisdb.store')
 
@@ -33,16 +35,41 @@ local function meta_to_cols(meta)
 	return cols
 end
 
-function store:initialize(meta, creation, duration, file)
-	assert(meta, "Meta missing")
+local function check_db_meta(new, old)
+	if #new ~= #old then
+		return false
+	end
+
+	for i, v in ipairs(new) do
+		local ov = old[i]
+		for k, vv in pairs(v) do
+			if vv ~= ov[k] then
+				return false
+			end
+		end
+		for k, vv in pairs(ov) do
+			if vv ~= v[k] then
+				return false
+			end
+		end
+	end
+
+	return true
+end
+
+function store:initialize(duration, creation, file, clean_cb)
 	assert(creation, "Creation missing")
 	assert(duration, "Duration missing")
 	assert(file, "File missing")
-	self._meta = meta
-	self._cols = meta_to_cols(meta)
+	self._meta_map = {}
+	self._stmts = {}
+	self._db = nil
+	self._meta = nil
 	self._start_time = creation
-	self._end_time = utils.duration_calc(creation, duration)
+	self._end_time = utils.duration_add(creation, duration)
 	self._file = file
+	self._watches = {}
+	self._clean_cb = clean_cb
 end
 
 function store:start_time()
@@ -58,14 +85,7 @@ function store:in_time(timestamp)
 	return timestamp >= self._start_time and timestamp < self._end_time
 end
 
-local data_create_sql = [[
-CREATE TABLE "data" (
-	"id"	INTEGER PRIMARY KEY AUTOINCREMENT UNIQUE,
-	"timestamp"	DOUBLE NOT NULL,
-%s
-);
-]]
-function store:open()
+function store:_open()
 	if self._db then
 		return
 	end
@@ -73,9 +93,100 @@ function store:open()
 	if not db then
 		return nil, err
 	end
+	self._db = db
+
+	self._meta = meta:new(db)
+
+	return true
+end
+
+function store:add_watch(obj, cb)
+	table.insert(self._watches, {obj=obj, cb=cb})
+end
+
+function store:remove_watch(obj)
+	for i, v in ipairs(self._watches) do
+		if v.obj == obj then
+			table.remove(self._watches, i)
+		end
+	end
+	self:done()
+end
+
+function store:done()
+	if #self._watches == 0 then
+		self:close()
+	end
+end
+
+function store:close()
+	for k, stmt in pairs(self._stmts) do
+		stmt:close()
+	end
+	self._stmts = {}
+	if self._db then
+		self._db:close()
+		self._db = nil
+	end
+	for _, v in ipairs(self._watches) do
+		v.cb(self)
+	end
+	self._watches = {}
+	self._clean_cb()
+end
+
+local table_create_sql = [[
+CREATE TABLE 'DATA_%s' (
+	"id"	INTEGER PRIMARY KEY AUTOINCREMENT UNIQUE,
+	"timestamp"	DOUBLE NOT NULL,
+%s
+)
+]]
+
+local table_drop_sql = [[
+DROP TABLE 'DATA_%s'
+]]
+
+local table_query = [[
+SELECT name FROM sqlite_master WHERE type='table' AND name='DATA_%s'
+]]
+
+local insert_sql = [[
+INSERT INTO 'DATA_%s' (%s) VALUES (%s)
+]]
+
+local insert_query = [[
+SELECT * FROM 'DATA_%s' WHERE timestamp == %f
+]]
+
+local data_query_sql = [[
+SELECT * FROM 'DATA_%s' WHERE timestamp >= %f AND timestamp <= %f %s
+]]
+
+function store:init(cate, meta)
+	assert(cate, "Cate missing")
+	assert(meta, "Meta missing")
+
+	if not self._meta_map[cate] then
+		local old_meta = self._meta:get('table_meta_'..cate)
+		if old_meta then
+			local old = cjson.decode(old_meta)
+			if not check_db_meta(meta, old) then
+				self:drop(cate)
+			end
+		end
+	else
+		if not check_db_meta(meta, self._meta_map[cate]) then
+			return nil, "Meta different for this store"
+		end
+		-- Already inited!
+		return true
+	end
+
+	assert(self._stmts[cate] == nil)
 
 	local sql_data = {}
-	for _, v in ipairs(self._meta) do
+	for _, v in ipairs(meta) do
 		local col = string.format('\t"%s"\t%s', v.name, v.type)
 		if v.default then
 			if type(v.default) == 'string' then
@@ -96,71 +207,52 @@ function store:open()
 		end
 	end
 
-	local r, err = db:first_row([[SELECT name FROM sqlite_master WHERE type='table' AND name='data';]])
+	local db = self._db
+	assert(db)
+	local r, err = db:first_row(string.format(table_query, cate))
 	if not r then
-		local sql = string.format(data_create_sql, table.concat(sql_data, ',\n'))
+		local sql = string.format(table_create_sql, cate, table.concat(sql_data, ',\n'))
 		--print(sql)
 
 		r, err = db:exec(sql)
-	else
-		--print('TABLE "store" already exists')
-	end
-
-	if r then
-		self._db = db
-	end
-	return r, err
-end
-
-function store:set_watch(cb)
-	self._watch = cb
-end
-
-function store:close()
-	if self._db then
-		self._db:close()
-		self._db = nil
-		if self._watch then
-			self._watch(self)
-		end
-	end
-end
-
-local data_insert_sql = [[
-INSERT INTO data (%s) VALUES (%s)
-]]
-local data_insert_query = [[
-SELECT * FROM data WHERE timestamp == %f
-]]
-function store:insert(val)
-	assert(self._db)
-
-	local r, err = self._db:first_row(string.format(data_insert_query, val.timestamp))
-	if r then
-		print(r, err)
-		local cjson = require 'cjson.safe'
-		print(cjson.encode(r), cjson.encode(val))
-		return nil, "Data already exists!!"
-	end
-
-	local stmt = self._insert_stmt
-	if not stmt then
-		local cols = self._cols
-		local cols_str = table.concat(cols, ',')
-		local fmt_str = ':'..table.concat(cols, ', :')
-		local sql_str = string.format(data_insert_sql, cols_str, fmt_str)
-		local _stmt, err = self._db:prepare(sql_str)
-		if not _stmt then
+		if not r then
 			return nil, err
 		end
-		self._insert_stmt = _stmt
-		stmt = _stmt
+	end
+
+	local cols = meta_to_cols(meta)
+	local cols_str = table.concat(cols, ',')
+	local fmt_str = ':'..table.concat(cols, ', :')
+	local sql_str = string.format(insert_sql, cate, cols_str, fmt_str)
+	local stmt, err = self._db:prepare(sql_str)
+	if not stmt then
+		return nil, err
+	end
+
+	self._stmts[cate] = stmt
+	self._meta_map[cate] = meta
+	self._meta:set('table_meta_'..cate, cjson.encode(meta))
+
+	return true
+end
+
+function store:insert(cate, val)
+	assert(cate)
+	assert(self._db)
+
+	local r, err = self._db:first_row(string.format(insert_query, cate, val.timestamp))
+	if r then
+		print(r, err)
+		print(cjson.encode(r), cjson.encode(val))
+		return nil, "Data already exists!!"
 	end
 
 	if not val.timestamp then
 		return nil, "Timestamp missing"
 	end
 	assert(val.timestamp >= self._start_time and val.timestamp < self._end_time)
+
+	local stmt = assert(self._stmts[cate])
 
 	local r, err = stmt:bind(val):exec()
 	if not r then
@@ -171,20 +263,24 @@ function store:insert(val)
 	--return stmt:bind(val):exec()
 end
 
-local data_query_sql = [[
-SELECT * FROM data WHERE timestamp >= %f AND timestamp <= %f %s
-]]
-function store:query(start_time, end_time, order_by, limit)
+function store:query(cate, start_time, end_time, order_by, limit)
+	assert(cate)
 	assert(self._db)
 
 	local more = 'ORDER BY '..(order_by or 'timestamp ASC')..(limit and ' '..limit or '')
 	local data = {}
-	local sql = string.format(data_query_sql, start_time, end_time, more)
+	local sql = string.format(data_query_sql, cate, start_time, end_time, more)
 	for row in self._db:rows(sql) do
 		data[#data + 1] = row
 	end
 
 	return data
+end
+
+function store:drop(cate)
+	assert(cate)
+	assert(self._db)
+	assert(self._db:exec(string.format(table_drop_sql, cate)))
 end
 
 return store
