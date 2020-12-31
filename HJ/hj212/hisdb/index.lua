@@ -8,7 +8,7 @@ local meta = require 'hisdb.meta'
 local index = class('hisdb.index')
 
 index.static.DEFAULT_DURATION = '6m'
-index.static.VERSION = 4
+index.static.VERSION = 5
 
 local db_create_sql = [[
 CREATE TABLE "index" (
@@ -77,6 +77,7 @@ function index:open()
 		if not r then
 			return nil, err
 		end
+		self._version = index.static.VERSION
 		return self:open()
 	end
 
