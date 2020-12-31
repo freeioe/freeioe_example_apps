@@ -41,8 +41,11 @@ function app:on_start()
 	local sys = self:sys_api()
 	local conf = self:app_conf()
 	conf.station = conf.station or 'HJ212'
-	self._samples_interval = tonumber(conf.samples_interval) or -1 -- seconds
-	self._rdata_interval = tonumber(conf.rdata_interval) or -1
+	self._samples_interval = tonumber(conf.samples_interval) or 120 -- seconds
+	if self._samples_interval <= 0 then
+		self._samples_interval = 120
+	end
+	self._rdata_interval = tonumber(conf.rdata_interval) or 30
 	self._min_interval = tonumber(conf.min_interval) or 10
 
 	local db_folder = sysinfo.data_dir() .. "/db_" .. self._name
@@ -223,6 +226,9 @@ end
 --- 应用退出函数
 function app:on_close(reason)
 	self._log:warning('Application closing', reason)
+	if self._samples_timer then
+		self:save_samples()
+	end
 	if self._rdata_timer then
 		self._rdata_timer:stop()
 		self._rdata_timer = nil

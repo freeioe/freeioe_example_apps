@@ -167,6 +167,14 @@ end
 
 --- Internal
 function index:delete_db_row(row)
+	-- Remove db_map
+	local key = index_key(row.group, row.key, row.creation, row.version)
+	local store = self._db_map[key]
+	if store then
+		self._db_map[key] = nil
+		store:close()
+	end
+
 	-- Delete file
 	local cmd = string.format('rm -f %s/%s', self._folder, row.file)
 	os.execute(cmd)
@@ -174,10 +182,6 @@ function index:delete_db_row(row)
 	-- Purge db
 	local sql = "DELETE FROM 'index' WHERE id="..row.id
 	self._db:exec(sql)
-
-	-- Remove db_map
-	local key = index_key(row.group, row.key, row.creation, row.version)
-	self._db_map[key] = nil
 end
 
 local insert_sql = [[
