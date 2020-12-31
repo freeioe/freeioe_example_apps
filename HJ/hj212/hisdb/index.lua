@@ -46,7 +46,7 @@ local function clean_index_db(folder)
 end
 
 local function index_key(group, key, creation, version)
-	return string.format('%s/%s/%d/%d', group, key, creation, version)
+	return string.format('%s/%s/%d/%d', group or 'GRP', key or 'KEY', creation or 0, version or 0)
 end
 
 ---
@@ -167,8 +167,7 @@ end
 --- Internal
 function index:delete_db_row(row)
 	-- Delete file
-	local file = self:db_file(row.group, row.key, row.duration, row.creation)
-	local cmd = string.format('rm -f %s/%s', self._folder, file)
+	local cmd = string.format('rm -f %s/%s', self._folder, row.file)
 	os.execute(cmd)
 
 	-- Purge db
