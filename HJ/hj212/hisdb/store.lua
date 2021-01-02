@@ -82,7 +82,7 @@ end
 
 function store:in_time(timestamp)
 	assert(timestamp)
-	return timestamp >= self._start_time and timestamp < self._end_time
+	return timestamp > self._start_time and timestamp <= self._end_time
 end
 
 function store:_open()
