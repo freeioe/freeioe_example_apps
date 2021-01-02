@@ -143,7 +143,7 @@ function index:retain_check()
 		--print("INDEX.PURGE", row.id, row.key, row.group, row.file, row.creation, row.duration)
 		local diff = utils.duration_div(row.creation, now, row.duration)
 		if diff > 2 then
-			self:purge_db(key, group, row.creation, row.duration, row.id)
+			self:delete_db_row(row)
 		end
 	end
 end
