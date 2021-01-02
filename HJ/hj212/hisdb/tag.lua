@@ -60,7 +60,7 @@ end
 function tag:save_samples()
 	local list = self._samples
 	if #list == 0 then
-		return
+		return true
 	end
 	self._samples = {}
 	return self:write('SAMPLE', list, true)

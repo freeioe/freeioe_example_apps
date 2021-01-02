@@ -26,7 +26,6 @@ function app:on_init()
 	self._devs = {}
 	self._clients = {}
 	self._childs = {}
-	self._last_retain_check = ioe.time()
 	local log = self:log_api()
 	hj212_logger.set_log(function(level, ...)
 		if not log[level] then
@@ -42,10 +41,12 @@ function app:on_start()
 	local sys = self:sys_api()
 	local conf = self:app_conf()
 	conf.station = conf.station or 'HJ212'
-	self._samples_interval = tonumber(conf.samples_interval) or 120 -- seconds
-	if self._samples_interval <= 0 then
-		self._samples_interval = 120
-	end
+	self._last_samples_save = sys:now()
+	self._last_retain_check = sys:now()
+
+	local sint = tonumber(conf.samples_interval) or 120 -- seconds
+	self._samples_interval = sint > 0 and sint * 100 or 120 * 100
+
 	self._rdata_interval = tonumber(conf.rdata_interval) or 30
 	self._min_interval = tonumber(conf.min_interval) or 10
 
@@ -216,13 +217,21 @@ function app:read_tags()
 end
 
 function app:on_run(tms)
-	local now = ioe.time()
-	if now - self._last_retain_check > 60 then
+	local sys = self:sys_api()
+	local now = sys:now()
+	if now - self._last_retain_check > 60 * 100 then
 		self._last_retain_check = now
 		self._hisdb:retain_check()
 	end
 
 	self:for_earch_client('on_run')
+
+	if now - self._last_samples_save > self._samples_interval * 100 then
+		if sys:time() % 60 > 3 then
+			self._last_samples_save = now
+			self:save_samples()
+		end
+	end
 
 	return 1000
 end
@@ -230,11 +239,7 @@ end
 --- 应用退出函数
 function app:on_close(reason)
 	self._log:warning('Application closing', reason)
-	if self._samples_timer then
-		self._samples_timer:stop()
-		self._samples_timer = nil
-		self:save_samples()
-	end
+	self:save_samples()
 	if self._rdata_timer then
 		self._rdata_timer:stop()
 		self._rdata_timer = nil
@@ -416,12 +421,6 @@ function app:set_min_interval(interval)
 end
 
 function app:start_timers()
-	if self._samples_interval > 0 then
-		self._samples_timer = timer:new(function(now)
-			self:save_samples()
-		end, self._samples_interval)
-		self._samples_timer:start()
-	end
 	if self._rdata_interval > 0 then
 		self._rdata_timer = timer:new(function(now)
 			self:upload_rdata(now, true)

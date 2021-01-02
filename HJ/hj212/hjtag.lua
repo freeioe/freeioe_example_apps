@@ -105,7 +105,7 @@ function tag:on_calc_value(type_name, val, timestamp)
 		end
 		return
 	end
-	--print('on_calc_value', self._name, type_name, cjson.encode(val))
+	--print('on_calc_value', self._name, type_name, timestamp, cjson.encode(val))
 	if self._value_callback then
 		self._value_callback(type_name, val_str, timestamp)
 	end
