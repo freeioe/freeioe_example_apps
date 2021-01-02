@@ -45,7 +45,7 @@ function app:on_start()
 	self._last_retain_check = sys:now()
 
 	local sint = tonumber(conf.samples_interval) or 120 -- seconds
-	self._samples_interval = sint > 0 and sint * 100 or 120 * 100
+	self._samples_interval = sint > 0 and sint or 120
 
 	self._rdata_interval = tonumber(conf.rdata_interval) or 30
 	self._min_interval = tonumber(conf.min_interval) or 10
@@ -217,16 +217,16 @@ function app:read_tags()
 end
 
 function app:on_run(tms)
+	self:for_earch_client('on_run')
+
 	local sys = self:sys_api()
 	local now = sys:now()
-	if now - self._last_retain_check > 60 * 100 then
+	if now - self._last_retain_check > 60 * 1000 then
 		self._last_retain_check = now
 		self._hisdb:retain_check()
 	end
 
-	self:for_earch_client('on_run')
-
-	if now - self._last_samples_save > self._samples_interval * 100 then
+	if (now - self._last_samples_save) > (self._samples_interval * 1000) then
 		if sys:time() % 60 > 3 then
 			self._last_samples_save = now
 			self:save_samples()
