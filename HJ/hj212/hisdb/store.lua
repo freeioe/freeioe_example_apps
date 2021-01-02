@@ -91,7 +91,8 @@ function store:_open()
 	end
 	local db, err = sqlite3.open(self._file)
 	if not db then
-		return nil, err
+		local er = string.format('Open db file:%s\terror:%s', self._file, err)
+		return nil, er
 	end
 	self._db = db
 
