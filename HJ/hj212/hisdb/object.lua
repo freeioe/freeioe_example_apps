@@ -1,4 +1,5 @@
 local class = require 'middleclass'
+local utils = require 'hisdb.utils'
 
 local object = class('hisdb.object')
 
@@ -90,16 +91,46 @@ function object:get_store()
 	return self._store
 end
 
-function object:insert(val)
+function object:insert(val, is_array)
+	assert(is_array and #val > 0 or true)
+
 	local store = assert(self:get_store())
-	if not store:in_time(val.timestamp) then
-		store, err = self._hisdb:find_store(self, val.timestamp)
+	local v = is_array and val[1] or val
+
+	if not store:in_time(v.timestamp) then
+		store, err = self._hisdb:find_store(self, v.timestamp)
 		if not store then
 			return nil, err
 		end
 		self:set_store(store)
 	end
-	return store:insert(self._cate, val)
+
+	if not is_array then
+		return store:insert(self._cate, v)
+	else
+		local last = val[#val]
+		--- All data in current store then insert them
+		if store:in_time(last.timestamp) then
+			return store:insert(self._cate, val, true)
+		else
+			local val_list = {}
+			local left = {}
+			for _, v in ipairs(val) do
+				if store:in_time(v.timestamp) then
+					val_list[#val_list + 1] = v
+				else
+					left[#left + 1] = v
+				end
+			end
+			--- Insert current
+			local r, err = store:insert(self._cate, val_list, true)
+			if not r then
+				return nil, err
+			end
+			--- Insert left
+			return self:insert(left, true)
+		end
+	end
 end
 
 function object:query(start_time, end_time)

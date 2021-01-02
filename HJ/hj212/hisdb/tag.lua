@@ -59,6 +59,9 @@ end
 
 function tag:save_samples()
 	local list = self._samples
+	if #list == 0 then
+		return
+	end
 	self._samples = {}
 	return self:write('SAMPLE', list, true)
 end
@@ -91,15 +94,7 @@ function tag:write(cate, data, is_array)
 		return nil, "Not found db for "..cate
 	end
 
-	if is_array then
-		for _, v in ipairs(data) do
-			assert(db:insert(v))
-		end
-	else
-		assert(db:insert(data))
-	end
-
-	return true
+	return db:insert(data, is_array)
 end
 
 return tag

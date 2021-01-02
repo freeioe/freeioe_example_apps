@@ -237,31 +237,43 @@ function store:init(cate, meta)
 	return true
 end
 
-function store:insert(cate, val)
+function store:insert(cate, val, is_array)
 	assert(cate)
 	assert(self._db)
 
-	local r, err = self._db:first_row(string.format(insert_query, cate, val.timestamp))
-	if r then
-		print(r, err)
-		print(cjson.encode(r), cjson.encode(val))
-		return nil, "Data already exists!!"
-	end
-
-	if not val.timestamp then
-		return nil, "Timestamp missing"
-	end
-	assert(val.timestamp >= self._start_time and val.timestamp < self._end_time)
-
 	local stmt = assert(self._stmts[cate])
 
-	local r, err = stmt:bind(val):exec()
-	if not r then
-		local cjson = require 'cjson.safe'
-		print(cjson.encode(val))
+	if not is_array then
+		if not val.timestamp then
+			return nil, "Timestamp missing"
+		end
+		assert(val.timestamp >= self._start_time and val.timestamp < self._end_time)
+
+		local r, err = self._db:first_row(string.format(insert_query, cate, val.timestamp))
+		if r then
+			print(r, err)
+			print(cjson.encode(r), cjson.encode(val))
+			return nil, "Data already exists!!"
+		end
+
+		--[[
+		local r, err = stmt:bind(val):exec()
+		if not r then
+			local cjson = require 'cjson.safe'
+			print(cjson.encode(val))
+		end
+		return r, err
+		]]--
+		return stmt:bind(val):exec()
+	else
+		for _, v in ipairs(val) do
+			local r, err = stmt:bind(v):exec()
+			if not r then
+				return nil, err
+			end
+		end
+		return true
 	end
-	return r, err
-	--return stmt:bind(val):exec()
 end
 
 function store:query(cate, start_time, end_time, order_by, limit)

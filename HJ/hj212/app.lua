@@ -26,6 +26,7 @@ function app:on_init()
 	self._devs = {}
 	self._clients = {}
 	self._childs = {}
+	self._last_retain_check = ioe.time()
 	local log = self:log_api()
 	hj212_logger.set_log(function(level, ...)
 		if not log[level] then
@@ -215,8 +216,11 @@ function app:read_tags()
 end
 
 function app:on_run(tms)
-	self._count = (self._count or 0) + 1
-	self._hisdb:cleanup(self._count)
+	local now = ioe.time()
+	if now - self._last_retain_check > 60 then
+		self._last_retain_check = now
+		self._hisdb:retain_check()
+	end
 
 	self:for_earch_client('on_run')
 
@@ -227,6 +231,8 @@ end
 function app:on_close(reason)
 	self._log:warning('Application closing', reason)
 	if self._samples_timer then
+		self._samples_timer:stop()
+		self._samples_timer = nil
 		self:save_samples()
 	end
 	if self._rdata_timer then
@@ -277,7 +283,7 @@ end
 function app:on_command(app_src, sn, command, param, priv)
 	if command == 'purge_hisdb' then
 		if param.pwd == self:app_name() then
-			return self._hisdb:clean_all(), "History database has been purged"
+			return self._hisdb:purge_all(), "History database has been purged"
 		else
 			return false, "Password incorrect"
 		end
@@ -321,8 +327,9 @@ function app:on_input(app_src, sn, input, prop, value, timestamp, quality)
 end
 
 function app:save_samples()
-	self._sys:sleep(3) --- TODO: delay the saving
-	--self._log:debug("Saving sample data")
+	local start = self._sys:time()
+	self._log:notice("Saving sample data start", start)
+
 	local station = self._station
 	for _, meter in ipairs(station:meters()) do
 		--self._log:debug("Saving sample data for meter:"..meter:sn())
@@ -332,8 +339,12 @@ function app:save_samples()
 			if not r then
 				self._log:error("Failed saving sample data for tag:"..tag_name, err)
 			end
+			self._sys:sleep(10)
 		end
 	end
+
+	local now = self._sys:time()
+	self._log:notice("Saving sample data done", now, now - start)
 end
 
 function app:for_earch_client(func, ...)
@@ -408,7 +419,7 @@ function app:start_timers()
 	if self._samples_interval > 0 then
 		self._samples_timer = timer:new(function(now)
 			self:save_samples()
-		end, self._samples_interval, true)
+		end, self._samples_interval)
 		self._samples_timer:start()
 	end
 	if self._rdata_interval > 0 then

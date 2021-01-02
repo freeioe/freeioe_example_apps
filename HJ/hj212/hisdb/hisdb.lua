@@ -60,14 +60,12 @@ function hisdb:list_store(obj, start_time, end_time)
 	return db:list(obj:group(), obj:key(), obj:version(), obj:duration(), start_time, end_time)
 end
 
-function hisdb:cleanup(now)
+function hisdb:retain_check()
 	--- Purge db files each minute
-	if (now % 60) == 9 then
-		self._index_db:retain_check()
-	end
+	self._index_db:retain_check()
 end
 
-function hisdb:clean_all()
+function hisdb:purge_all()
 	return self._index_db:purge_all()
 end
 
