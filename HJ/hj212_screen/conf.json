@@ -43,5 +43,11 @@
 				"type": "string"
 			}
 		]
+	},
+	{
+		"name": "wait_timeout",
+		"desc": "Timewait timeout in seconds",
+		"type": "number",
+		"default": 30
 	}
 ]

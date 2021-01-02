@@ -60,6 +60,8 @@ function app:on_start()
 	local log = self:log_api()
 	local sys_id = sys:id()
 
+	self._wait_timeout = (tonumber(conf.wait_timeout) or 30) * 1000
+
 	self._log:info("Wait for station application instance", conf.station)
 	conf.app_inst = ioe.env.wait('HJ212.STATION', conf.station)
 	self._log:info("Got application instance name", conf.app_inst)
@@ -401,7 +403,7 @@ function app:publish_prop_data(tag_name, prop, value, timestamp)
 		self._prop_buf[prop][timestamp] = buf
 
 		sys:fork(function()
-			sys:sleep(3000, buf.id)
+			sys:sleep(self._wait_timeout, buf.id)
 			if not buf.completed then
 				log:error("Uncompleted item", name)
 				for k, v in pairs(self._inputs_map) do
