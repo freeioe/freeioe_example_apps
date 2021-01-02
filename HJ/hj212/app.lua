@@ -239,7 +239,13 @@ end
 --- 应用退出函数
 function app:on_close(reason)
 	self._log:warning('Application closing', reason)
-	self:save_samples()
+	--- Close the client connections
+	for _, v in ipairs(self._clients) do
+		v:close()
+	end
+	self._clients = {}
+
+	--- Stop timers
 	if self._rdata_timer then
 		self._rdata_timer:stop()
 		self._rdata_timer = nil
@@ -248,10 +254,8 @@ function app:on_close(reason)
 		self._min_timer:stop()
 		self._min_timer = nil
 	end
-	for _, v in ipairs(self._clients) do
-		v:close()
-	end
-	self._clients = {}
+	-- Save samples before
+	self:save_samples()
 	return true
 end
 
