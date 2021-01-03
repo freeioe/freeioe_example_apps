@@ -205,6 +205,7 @@ function index:create(group, key, version, duration, timestamp)
 	end
 
 	--- Insert new now
+	local ikey = index_key(group, key, creation, version)
 	local file = self:db_file(group, key, duration, creation)
 	local sql = string.format(insert_sql, group, key, version, duration, creation, file)
 
