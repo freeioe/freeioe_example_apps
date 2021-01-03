@@ -56,7 +56,7 @@ end
 ]]--
 
 function object:init()
-	local r, err = self:get_store()
+	local r, err = self:get_store(os.time())
 	if r then
 		return true
 	end
@@ -76,33 +76,33 @@ function object:set_store(store)
 	self._store = store
 end
 
-function object:get_store()
-	if self._store then
-		return self._store
+function object:get_store(timestamp)
+	local store = self._store
+	if store then
+		if store:in_time(timestamp) then
+			return store
+		end
 	end
 
-	local store, err = self._hisdb:create_store(self)
+	--- Switch to correct store (normally it is an new created)
+	local store, err = self._hisdb:create_store(self, os.time())
 	if not store then
 		return nil, err
 	end
 
 	self:set_store(store)
 
-	return self._store
+	return store
 end
 
 function object:insert(val, is_array)
 	assert(is_array and #val > 0 or true)
 
-	local store = assert(self:get_store())
 	local v = is_array and val[1] or val
 
-	if not store:in_time(v.timestamp) then
-		store, err = self._hisdb:find_store(self, v.timestamp)
-		if not store then
-			return nil, err
-		end
-		self:set_store(store)
+	local store, err = self:get_store(v.timestamp)
+	if not store then
+		return nil, err
 	end
 
 	if not is_array then

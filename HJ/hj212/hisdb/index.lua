@@ -54,7 +54,7 @@ end
 --
 function index:initialize(folder, default_duration)
 	self._folder = folder
-	self._db_map = {}
+	self._store_map = {}
 	self._default_duration = default_duration or index.static.DEFAULT_DURATION
 	self._start = utils.duration_base(self._default_duration, os.time())
 	self._version = index.static.VERSION
@@ -85,10 +85,10 @@ function index:open()
 end
 
 function index:close()
-	for key, store in pairs(self._db_map) do
+	for key, store in pairs(self._store_map) do
 		store:close()
 	end
-	self._db_map = {}
+	self._store_map = {}
 	self._db:close()
 	self._db = nil
 	self._meta = nil
@@ -169,9 +169,9 @@ end
 function index:delete_db_row(row)
 	-- Remove db_map
 	local key = index_key(row.group, row.key, row.creation, row.version)
-	local store = self._db_map[key]
+	local store = self._store_map[key]
 	if store then
-		self._db_map[key] = nil
+		self._store_map[key] = nil
 		store:close()
 	end
 
@@ -197,16 +197,14 @@ function index:create(group, key, version, duration, timestamp)
 		return obj
 	end
 
-	local ikey = index_key(group, key, creation, version)
-	if self._db_map[ikey] then
-		return self._db_map[ikey]
-	end
-
+	--- Create new database store file
+	-- Make sure the sub folder exits
 	local sub_folder = string.format('%s/%s', self._folder, group)
 	if not lfs.attributes(sub_folder, 'mode') then
 		lfs.mkdir(sub_folder)
 	end
 
+	--- Insert new now
 	local file = self:db_file(group, key, duration, creation)
 	local sql = string.format(insert_sql, group, key, version, duration, creation, file)
 
@@ -215,15 +213,18 @@ function index:create(group, key, version, duration, timestamp)
 		return nil, err
 	end
 
+	--- Create Store object
 	obj = store:new(duration, creation, self._folder..'/'..file, function()
-		self._db_map[ikey] = nil
+		self._store_map[ikey] = nil
 	end)
+	-- Open store
 	local r, err = obj:_open()
 	if not r then
 		return nil, err
 	end
 
-	self._db_map[ikey] = obj
+	--- Set the database map
+	self._store_map[ikey] = obj
 	return obj
 end
 
@@ -239,11 +240,11 @@ function index:find(group, key, version, duration, timestamp)
 
 	local db = self._db
 	assert(db)
-	if self._db_map[ikey] then
-		return self._db_map[ikey]
+	if self._store_map[ikey] then
+		return self._store_map[ikey]
 	end
 
-	for k, v in pairs(self._db_map) do
+	for k, v in pairs(self._store_map) do
 		assert(tostring(k) ~= tostring(ikey))
 	end
 
@@ -255,13 +256,13 @@ function index:find(group, key, version, duration, timestamp)
 	end
 
 	local store = store:new(duration, creation, self._folder..'/'..row.file, function()
-		self._db_map[ikey] = nil
+		self._store_map[ikey] = nil
 	end)
 	local r, err = store:_open()
 	if not r then
 		return nil, err
 	end
-	self._db_map[ikey] = store
+	self._store_map[ikey] = store
 	return store
 end
 
@@ -281,10 +282,10 @@ function index:list(group, key, version, duration, start_time, end_time)
 		--print("INDEX.LIST", row.id, row.key, row.group, row.file, row.creation, row.duration)
 
 		local ikey = index_key(row.group, row.key, row.creation, row.version)
-		local obj = self._db_map[ikey]
+		local obj = self._store_map[ikey]
 		if not obj then
 			obj = store:new(row.duration, row.creation, self._folder..'/'..row.file, function()
-				self._db_map[ikey] = nil
+				self._store_map[ikey] = nil
 			end)
 			if not obj:_open() then
 				obj = nil
@@ -292,7 +293,7 @@ function index:list(group, key, version, duration, start_time, end_time)
 			end
 		end
 		if obj then
-			self._db_map[ikey] = obj
+			self._store_map[ikey] = obj
 			list[#list + 1] = obj
 		end
 	end

@@ -42,7 +42,8 @@ function hisdb:create_object(group, key, cate, version, meta)
 end
 
 function hisdb:create_store(obj, start_time)
-	assert(obj)
+	assert(obj, 'Object missing')
+	assert(start_time, 'Start time missing')
 	local start_time = start_time or os.time()
 	local db = self._index_db
 	return db:create(obj:group(), obj:key(), obj:version(), obj:duration(), start_time)

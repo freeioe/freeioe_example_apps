@@ -54,7 +54,10 @@ end
 
 function tag:push_sample(data)
 	table.insert(self._samples, data)
-	assert(#self._samples < 3600, 'Tag Name:'..self._tag_name)
+	if #self._samples < 360 then
+		assert(nil, 'Tag Name:'..self._tag_name..'\t reach max sample data unsaving')
+		self._samples = {}
+	end
 end
 
 function tag:save_samples()
