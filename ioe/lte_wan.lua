@@ -26,7 +26,7 @@ function lte_wan:initialize(app, sys, lte_wan_freq)
 	})
 end
 
-function is_symLink(sys_id)
+local function is_symlink(sys_id)
 	if string.sub(sys_id, 1, 8) == '2-30002-' then
 		return true -- Q102
 	end
