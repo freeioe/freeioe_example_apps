@@ -1,4 +1,5 @@
 --- 导入需求的模块
+local date = require 'date'
 local ioe = require 'ioe'
 local app_base = require 'app.base'
 local conf = require 'app.conf'
@@ -49,6 +50,10 @@ function app:on_start()
 
 	self._rdata_interval = tonumber(conf.rdata_interval) or 30
 	self._min_interval = tonumber(conf.min_interval) or 10
+	if (60 % self._min_interval) ~= 0 then
+		self._log:error("Minutes Interval Error, reset to 10")
+		self._min_interval = 10
+	end
 
 	local db_folder = sysinfo.data_dir() .. "/db_" .. self._name
 	self._hisdb = hisdb:new(db_folder, {SAMPLE='1d'})
@@ -406,7 +411,7 @@ end
 function app:set_min_interval(interval)
 	local interval = tonumber(interval)
 	assert(interval, "Min Interval missing")
-	if 60 % interval ~= 0 then 
+	if (60 % interval) ~= 0 then
 		return nil, "Interval number incorrect"
 	end
 
@@ -432,16 +437,22 @@ function app:start_timers()
 		self._rdata_timer:start()
 	end
 
+	-- If HH:MM:00 and min_interval
 	self._min_timer = timer:new(function(now)
 		self._calc_mgr:trigger(calc_mgr.TYPES.MIN, now, self._min_interval * 60)
 		self:upload_min_data(now)
+		--- If HH:00:00
 		if now % 3600 == 0 then
 			self._calc_mgr:trigger(calc_mgr.TYPES.HOUR, now, 3600)
 			self:upload_hour_data(now)
-		end
-		if now % (3600 * 24) == 0 then
-			self._calc_mgr:trigger(calc_mgr.TYPES.DAY, now, 3600 * 24)
-			self:upload_day_data(now)
+
+			local d = date(now):tolocal() --- To local time
+			-- 00:00:00
+			if d:gethours() == 0 then
+				assert(d:getminutes() == 0 and d:getseconds() == 0)
+				self._calc_mgr:trigger(calc_mgr.TYPES.DAY, now, 3600 * 24)
+				self:upload_day_data(now)
+			end
 		end
 	end, self._min_interval * 60, true)
 	self._min_timer:start()
