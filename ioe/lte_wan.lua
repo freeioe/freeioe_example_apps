@@ -23,14 +23,25 @@ function lte_wan:initialize(app, sys, lte_wan_freq)
 		key = 'wan',
 		span = 'month',
 		path = sysinfo.data_dir(),
-		--path = '/root', -- Q102's data/cache partition
 	})
+end
+
+function is_symLink(sys_id)
+	if string.sub(sys_id, 1, 8) == '2-30002-' then
+		return true -- Q102
+	end
+	if string.sub(sys_id, 1, 8) == '2-30102-' then
+		return true -- Q204
+	end
+	if string.sub(sys_id, 1, 8) == '2-31104-' then
+		return true -- Q208
+	end
 end
 
 function lte_wan:inputs()
 	local sys_id = self._sys:hw_id()
 	local id = self._sys:id()
-	if string.sub(sys_id, 1, 8) == '2-30002-' or string.sub(sys_id, 1, 8) == '2-30102-' then
+	if is_symlink(sys_id) then
 		self._led_single = true
 		self._led_control = true
 		self._gcom = true
