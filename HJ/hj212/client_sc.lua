@@ -68,14 +68,14 @@ function client:send(session, raw_data)
 	self._requests[session] = t
 
 	local cur = 0
-	while cur < self:retry() do
+	while cur <= self:retry() and self._socket do
 		if cur ~= 0 then
 			self:log('warning', 'Resend request', session, cur)
 		end
 		local r, err = socket.write(self._socket, raw_data)
 		if not r then
-			self._requests[session] = nil
-			return nil, err
+			self._results[session] = {false, err or 'Disconnected'}
+			break
 		end
 		self:dump_raw('OUT', raw_data)
 		skynet.sleep(timeout / 10, t)
@@ -86,13 +86,17 @@ function client:send(session, raw_data)
 	end
 
 	local result = self._results[session] or {false, "Timeout"}
+	-- Cleanup
 	self._results[session] = nil
 	self._requests[session] = nil
+
+	--[[
 	if not result[1] then
-		--print(os.date(), 'Request failed', session, table.unpack(result))
+		print(os.date(), 'Request failed', session, table.unpack(result))
 	else
-		--print(os.date(), 'Request done', session)
+		print(os.date(), 'Request done', session)
 	end
+	]]--
 	return table.unpack(result)
 end
 
@@ -134,6 +138,9 @@ function client:connect_proc()
 		end
 		self:watch_client_socket()
 	end
+	if self._closing then
+		skynet.wakeup(self._closing)
+	end
 end
 
 function client:watch_client_socket()
@@ -150,20 +157,26 @@ function client:watch_client_socket()
 		self._connection_cb(false)
 	end
 
+	for k, v in pairs(self._requests) do
+		skynet.wakeup(v)
+	end
+	skynet.sleep(10)
+	self._requests = {}
+	self._results = {}
+
 	if self._socket then
-		local to_close = self._socket
+		socket.close(self._socket)
 		self._socket = nil
-		socket.close(to_close)
 	end
 
-	if self._closing then
-		return
+	if not self._closing then
+		--- reconnection
+		skynet.timeout(100, function()
+			self:connect_proc()
+		end)
+	else
+		skynet.wakeup(self._closing)
 	end
-
-	--- reconnection
-	skynet.timeout(100, function()
-		self:connect_proc()
-	end)
 end
 
 function client:start_connect()
@@ -216,6 +229,7 @@ function client:connect()
 				self:log('error', err)
 			end
 		end
+		self:log('info', 'Client workproc quited', self._closing and 'closing' or 'exception')
 	end)
 	return true
 end
@@ -232,6 +246,7 @@ function client:process_socket_data()
 				if reply then
 					local req_co = self._requests[session]
 					if req_co then
+						self:log('debug', "Received response", session)
 						self._results[session] = {p}
 						skynet.wakeup(req_co)
 					else
@@ -241,27 +256,31 @@ function client:process_socket_data()
 					self:on_request(p)
 				end
 			end
+		else
+			self._buf_wait = {}
+			skynet.sleep(1000, self._buf_wait)
+			self._buf_wait = nil
 		end
-
-		self._buf_wait = {}
-		skynet.sleep(1000, self._buf_wait)
-		self._buf_wait = nil
 	end
 end
 
 function client:close()
-	self._closing = true
+	if self._closing then
+		return nil, "Closing"
+	end
+
+	self._closing = {}
+
 	if self._buf_wait then
 		skynet.wakeup(self._buf_wait) -- wakeup the process co
 	end
 	if self._connection_wait then
 		skynet.wakeup(self._connection_wait) -- wakeup the process co
 	end
-	for k, v in pairs(self._requests) do
-		skynet.wakeup(v)
-	end
-	self._requests = {}
-	self._results = {}
+	skynet.wait(self._closing)
+	assert(self._socket == nil)
+	skynet.sleep(100)
+	self._closing = nil
 end
 
 return client 

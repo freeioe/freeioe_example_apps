@@ -56,7 +56,7 @@
 				"name": "port",
 				"desc": "HJ232 Center Port",
 				"type": "string",
-				"default": "16000"
+				"default": "6000"
 			},
 			{
 				"name": "passwd",

@@ -68,7 +68,7 @@ function app:on_start()
 		table.insert(conf.servers, {
 			name = 'localhost',
 			host = '127.0.0.1',
-			port = 16000,
+			port = 6000,
 			passwd = '123456',
 		})
 	end

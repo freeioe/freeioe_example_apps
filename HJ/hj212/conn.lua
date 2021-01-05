@@ -1,6 +1,8 @@
 --- 导入需求的模块
 local class = require 'middleclass'
 local client = require 'client_sc'
+local types = require 'hj212.types'
+
 local conn = class("FREEIOE_HJ212_APP_CONN")
 
 --- 应用启动函数
@@ -128,44 +130,45 @@ function conn:on_output(app_src, sn, output, prop, value, timestamp)
 	return nil, "Output not found!"
 end
 
+function conn:data_request(req, key)
+	local r, err = self._client:request(req, function(resp, err)
+		if not resp then
+			return nil, "Upload "..key.." data failed. error:"..err
+		end
+		if resp:command() ~= types.COMMAND.DATA_ACK then
+			return nil, "Upload "..key.." data failed. Unknown response:"..resp:command()
+		end
+		return true
+	end)
+	if not r then
+		self._log:error(err)
+	else
+		self._log:error("Upload "..key.." success")
+	end
+end
+
 function conn:upload_rdata(data)
 	local request = require 'hj212.request.rdata_start'
 	local req = request:new(data, true)
-	return self._client:request(req, function(resp, err)
-		if not resp then
-			self._log:error("Upload RData failed", err)
-		end
-	end)
+	return self:data_request(req, 'RData')
 end
 
 function conn:upload_min_data(data)
 	local request = require 'hj212.request.min_data'
 	local req = request:new(data, true)
-	return self._client:request(req, function(resp, err)
-		if not resp then
-			self._log:error("Upload MIN failed", err)
-		end
-	end)
+	return self:data_request(req, 'MIN')
 end
 
 function conn:upload_hour_data(data)
 	local request = require 'hj212.request.hour_data'
 	local req = request:new(data, true)
-	return self._client:request(req, function(resp, err)
-		if not resp then
-			self._log:error("Upload HOUR failed", err)
-		end
-	end)
+	return self:data_request(req, 'HOUR')
 end
 
 function conn:upload_day_data(data)
 	local request = require 'hj212.request.day_data'
 	local req = request:new(data, true)
-	return self._client:request(req, function(resp, err)
-		if not resp then
-			self._log:error("Upload DAY failed", err)
-		end
-	end)
+	return self:data_request(req, 'DAY')
 end
 
 return conn

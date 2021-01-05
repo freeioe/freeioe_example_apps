@@ -8,7 +8,7 @@ local tag = base:subclass('HJ212_HJTAG')
 
 function tag:initialize(hisdb, station, prop) --name, min, max, calc, cou, has_cou, upload)
 	--- Base initialize
-	base.initialize(self, station, prop.name, prop.min, prop.max, prop.cou, prop.has_cou)
+	base.initialize(self, station, prop.name, prop.min, prop.max, prop.cou, prop.has_cou, prop.fmt)
 	self._upload = prop.upload
 	self._has_cou = prop.has_cou
 	self._no_hisdb = prop.no_hisdb
