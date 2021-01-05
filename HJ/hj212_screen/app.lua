@@ -437,21 +437,21 @@ function app:publish_prop_data(tag_name, prop, value, timestamp)
 end
 
 local prop_map = {
-	RDATA = 'Grt',
+	RDATA = 'Graw',
 	MIN = 'TenMins',
 	HOUR = 'Hour',
 	DAY = 'Day',
 }
 
 local time_map = {
-	RDATA = 'Grt',
+	RDATA = 'Graw',
 	MIN = 'TenMinsCOU',
 	HOUR = 'HourCOU',
 	DAY = 'DayCOU',
 }
 
 local topic_map = {
-	RDATA = 'grt',
+	RDATA = 'graw',
 	MIN = 'tenminscou',
 	HOUR = 'hourcou',
 	DAY = 'daycou',
