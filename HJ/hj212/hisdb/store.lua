@@ -96,6 +96,10 @@ function store:_open()
 	end
 	self._db = db
 
+	db:exec('PRAGMA journal_mode=wal;')
+	--db:exec('PRAGMA temp_store=2;') --- MEMORY
+	db:exec('PRAGMA locking_mode=EXCLUSIVE;')
+
 	self._meta = meta:new(db)
 
 	return true
@@ -266,12 +270,14 @@ function store:insert(cate, val, is_array)
 		]]--
 		return stmt:bind(val):exec()
 	else
+		self._db:exec('BEGIN;')
 		for _, v in ipairs(val) do
 			local r, err = stmt:bind(v):exec()
 			if not r then
 				return nil, err
 			end
 		end
+		self._db:exec('COMMIT;')
 		return true
 	end
 end

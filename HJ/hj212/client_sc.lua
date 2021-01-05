@@ -70,9 +70,7 @@ function client:send(session, raw_data)
 	local cur = 0
 	while cur < self:retry() do
 		if cur ~= 0 then
-			self:log('warning', 'Resend request')
-			-- TODO: Test
-			break
+			self:log('warning', 'Resend request', session, cur)
 		end
 		local r, err = socket.write(self._socket, raw_data)
 		if not r then

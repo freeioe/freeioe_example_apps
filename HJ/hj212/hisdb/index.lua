@@ -140,7 +140,7 @@ function index:retain_check()
 	local now = os.time()
 	local sql = [[SELECT * FROM 'index' ORDER BY creation ASC]]
 	for row in db:rows(sql) do
-		--print("INDEX.PURGE", row.id, row.key, row.group, row.file, row.creation, row.duration)
+		--print("INDEX.PURGE", row.id, row.key, row.grp, row.file, row.creation, row.duration)
 		local diff = utils.duration_div(row.creation, now, row.duration)
 		if diff > 2 then
 			self:delete_db_row(row)
@@ -168,7 +168,7 @@ end
 --- Internal
 function index:delete_db_row(row)
 	-- Remove db_map
-	local key = index_key(row.group, row.key, row.creation, row.version)
+	local key = index_key(row.grp, row.key, row.creation, row.version)
 	local store = self._store_map[key]
 	if store then
 		self._store_map[key] = nil
@@ -255,7 +255,6 @@ function index:find(group, key, version, duration, timestamp)
 	if not row then
 		return nil, err
 	end
-
 	local store = store:new(duration, creation, self._folder..'/'..row.file, function()
 		self._store_map[ikey] = nil
 	end)
@@ -280,9 +279,9 @@ function index:list(group, key, version, duration, start_time, end_time)
 	local list = {}
 	--print(sql)
 	for row in db:rows(sql) do
-		--print("INDEX.LIST", row.id, row.key, row.group, row.file, row.creation, row.duration)
+		--print("INDEX.LIST", row.id, row.key, row.grp, row.file, row.creation, row.duration)
 
-		local ikey = index_key(row.group, row.key, row.creation, row.version)
+		local ikey = index_key(row.grp, row.key, row.creation, row.version)
 		local obj = self._store_map[ikey]
 		if not obj then
 			obj = store:new(row.duration, row.creation, self._folder..'/'..row.file, function()
