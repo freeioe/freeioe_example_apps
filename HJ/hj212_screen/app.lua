@@ -161,7 +161,9 @@ function app:on_start()
 		log:info("Setting:", v.name, v.value)
 		value_map[v.name] = { value = v.value }
 		local setting = settings_map[v.name]
-		value_map[setting.hj212] = { value = v.value }
+		if setting then
+			value_map[setting.hj212] = { value = v.value }
+		end
 	end
 	for k, v in pairs(settings_map) do
 		if not value_map[k] then
