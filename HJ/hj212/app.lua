@@ -248,6 +248,7 @@ end
 --- 应用退出函数
 function app:on_close(reason)
 	self._log:warning('Application closing', reason)
+	self._inited = false
 	--- Close the client connections
 	for _, v in ipairs(self._clients) do
 		v:close()
