@@ -41,21 +41,25 @@ function client:watch_socket()
 		self:on_recv(data)
 	end
 
-	if self._closing then
-		if self._buf_wait then
-			skynet.wakeup(self._buf_wait)
-			skynet.sleep(10) -- Let the buf_wait been closed
-		end
+	-- Clean up
+	if self._buf_wait then
+		skynet.wakeup(self._buf_wait)
+		skynet.sleep(10) -- Let the buf_wait been closed
+	end
+
+	if not self._closing then
 		socket.close(self._socket)
 		self._socket = nil
+	end
 
-		--- completed the session requests
-		for session, co in pairs(self._requests) do
-			skynet.wakeup(co)
-		end
-		skynet.sleep(10) -- Let the request been terminated
+	--- completed the session requests
+	for session, co in pairs(self._requests) do
+		skynet.wakeup(co)
+	end
+	skynet.sleep(10) -- Let the request been terminated
 
-		--- Wake up closing coroutine
+	--- Wake up closing coroutine
+	if self._closing then
 		skynet.wakeup(self._closing)
 	end
 end
@@ -143,9 +147,14 @@ function client:close()
 		return nil, "Client is closing"
 	end
 
+	self:log('debug', "closing")
 	self._closing = {}
+
+	local to_close = self._socket
+	self._socket = nil
+	socket.close(to_close)
+
 	skynet.wait(self._closing)
-	assert(self._socket == nil)
 	self._closing = nil
 
 	return true

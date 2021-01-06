@@ -59,7 +59,6 @@ function server:listen_proc()
 	end
 	self._clients = {}
 
-	base.close(self)
 	-- Wakeup  closing
 	skynet.wakeup(self._closing)
 end
@@ -126,11 +125,16 @@ function server:stop()
 
 	self._closing = {}
 	skynet.wakeup(self)
+
+	for fd, cli in pairs(self._clients) do
+		cli:close()
+	end
 	skynet.wait(self._closing)
 	assert(self._socket == nil)
 	self._closing = nil
+	self._clients = {}
 
-	return true
+	return base.stop(self)
 end
 
 return server 

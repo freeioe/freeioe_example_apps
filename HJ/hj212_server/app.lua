@@ -59,11 +59,12 @@ end
 
 function app:on_client_disconnect(client)
 	local sn = client:sn()
+	client:set_sn(nil)
+
 	for k, v in pairs(self._stations) do
 		if v.sn == sn then
-			assert(v:client() == client)
-			v:set_client(nil)
-			client:set_client(nil)
+			v.station:set_client(nil)
+			return
 		end
 	end
 end

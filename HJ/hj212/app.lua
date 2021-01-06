@@ -68,6 +68,12 @@ function app:on_start()
 			port = 6000,
 			passwd = '123456',
 		})
+		table.insert(conf.servers, {
+			name = 'localhost_16000',
+			host = '127.0.0.1',
+			port = 16000,
+			passwd = '123456',
+		})
 	end
 
 	local tpl_id = conf.tpl

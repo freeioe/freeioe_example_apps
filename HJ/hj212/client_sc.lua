@@ -23,6 +23,7 @@ end
 function client:initialize(station, opt)
 	assert(station and opt)
 	base.initialize(self, station, opt.passwd, opt.timeout, opt.retry)
+	self._name = opt.name
 	self._closing = false
 	self._opt = opt
 	self._requests = {}
@@ -33,6 +34,10 @@ end
 
 function client:set_connection_cb(cb)
 	self._connection_cb = cb
+end
+
+function client:log(level, fmt, ...)
+	return base.log(self, level, '['..self._name..']'..fmt, ...)
 end
 
 function client:set_dump(cb)
@@ -50,11 +55,11 @@ function client:send(session, raw_data)
 	local timeout = self:timeout()
 	local t_left = timeout * 3
 	while not self._socket and t_left > 0 do
-		skynet.sleep(100)
-		t_left = t_left - 1000
 		if self._closing then
 			return nil, "Connection closing!!!"
 		end
+		skynet.sleep(100)
+		t_left = t_left - 1000
 	end
 	if t_left <= 0 then
 		return nil, "Not connected!!"
@@ -68,7 +73,7 @@ function client:send(session, raw_data)
 	self._requests[session] = t
 
 	local cur = 0
-	while cur <= self:retry() and self._socket do
+	while cur < self:retry() and self._socket do
 		if cur ~= 0 then
 			self:log('warning', 'Resend request', session, cur)
 		end
@@ -275,8 +280,13 @@ function client:close()
 	if self._connection_wait then
 		skynet.wakeup(self._connection_wait) -- wakeup the process co
 	end
+	if self._socket then
+		local to_close = self._socket
+		self._socket = nil
+		socket.close(to_close)
+	end
+
 	skynet.wait(self._closing)
-	assert(self._socket == nil)
 	skynet.sleep(100)
 	self._closing = nil
 end

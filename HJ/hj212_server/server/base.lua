@@ -1,8 +1,10 @@
-local class = require 'middleclass'
+local types = require 'hj212.types'
+local base = require 'hj212.server.base'
 
-local server = class('hj212_server.server.base')
+local server = base:subclass('hj212_server.server.base')
 
 function server:initialize(app)
+	base.initialize(self)
 	self._app = app
 	self._io_cb = nil
 	self._stations = {}
@@ -13,7 +15,7 @@ function server:create_station(client, system, dev_id, passwd)
 	local log = self:log_api()
 	if self._stations[dev_id] then
 		log:error('Client already exists', system, dev_id, passwd)
-		return nil, "Already has station"
+		return nil, types.REPLY.ERR_UNKNOWN
 	end
 	local station, err_code = self._app:create_station(client, system, dev_id, passwd)
 	if not station then
@@ -58,8 +60,9 @@ function server:dump_raw(sn, io, data)
 	end
 end
 
-function server:close()
+function server:stop()
 	self._stations = {}
+	return true
 end
 
 return server

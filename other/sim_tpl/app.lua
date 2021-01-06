@@ -107,7 +107,7 @@ function app:gen_device_data(dev)
 	for _, v in ipairs(dev.inputs) do
 		if v.last == nil or math.abs(now - v.last) > v.freq then
 			local r, val = pcall(v.method_func)
-			log:debug(v.name, v.method, r, val)
+			--log:debug(v.name, v.method, r, val)
 			if not r then
 				log:error(val)
 			else

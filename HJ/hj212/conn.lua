@@ -10,7 +10,6 @@ function conn:initialize(app, conf, station, dev_sn_base)
 	self._app = app
 	self._sys = app._sys
 	self._api = app._api
-	self._log = app._log
 	self._conf = conf
 	self._station = station
 	self._dev_sn_base = dev_sn_base
@@ -25,11 +24,16 @@ function conn:client()
 	return self._client
 end
 
+function conn:log(...)
+	return self._client:log(...)
+end
+
 function conn:on_run()
 	local timeout = self._client:timeout()
 	local retry = self._client:retry()
 	self._dev:set_input_prop('timeout', 'value', timeout)
 	self._dev:set_input_prop('retry', 'value', retry)
+	return true
 end
 
 function conn:start()
@@ -75,20 +79,11 @@ function conn:start()
 end
 
 function conn:start_connect()
-	local log = self._log
-
 	self._client:set_connection_cb(function(status)
 		self._dev:set_input_prop('status', 'value', status)
 	end)
 
-	self._client:set_logger(self._log)
-
 	self._client:set_dump(function(io, msg)
-		--[[
-		local basexx = require 'basexx'
-		log:info(io, basexx.to_hex(msg))
-		]]--
-		--log:debug(io, msg)
 		local dev = self._dev
 		local dev_stat = self._dev_stat
 		if dev then
@@ -112,7 +107,6 @@ end
 
 --- 应用退出函数
 function conn:close(reason)
-	self._log:warning('Connection closing', reason)
 	self._client:close()
 end
 
@@ -141,10 +135,11 @@ function conn:data_request(req, key)
 		return true
 	end)
 	if not r then
-		self._log:error(err)
+		self:log("error", err)
 	else
-		self._log:error("Upload "..key.." success")
+		self:log("debug", "Upload "..key.." success")
 	end
+	return r, err
 end
 
 function conn:upload_rdata(data)

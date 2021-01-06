@@ -8,6 +8,7 @@ function client:initialize(server)
 	self._server = server
 	self._sn = nil
 	self._log = server:log_api()
+	self:add_handler('handler')
 end
 
 function client:sn()
@@ -40,8 +41,7 @@ function client:on_station_create(system, dev_id, passwd)
 end
 
 function client:on_disconnect()
-	self._server:on_disconnect(self)
-	return base.on_disconnect(self)
+	return self._server:on_disconnect(self)
 end
 
 return client
