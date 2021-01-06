@@ -11,10 +11,10 @@ INPUT,C6H6,苯,STATION,a25002
 INPUT,C7H8,甲苯,STATION,a25003
 INPUT,C6H4,二甲苯,STATION,a25005
 INPUT,O2,氧气含量,STATION,a19001
-STATUS,ministryStatus,部级平台状态,STATION.localhost,status
-STATUS,provinceStatus,省级平台状态,STATION.localhost,status
-STATUS,cityStatus,市级平台状态,STATION.localhost,status
-STATUS,countryStatus,县级平台状态,STATION.localhost,status
+STATUS,ministryStatus,部级平台状态,STATION.ministry,status
+STATUS,provinceStatus,省级平台状态,STATION.province,status
+STATUS,cityStatus,市级平台状态,STATION.city,status
+STATUS,countryStatus,县级平台状态,STATION.country,status
 STATUS,lteSignal,4G网络信号强度,GW,csq
 STATUS,lteStatus,4G网络拨号状态,GW,let_status
 STATUS,lteCCID,4G网络CCID,GW,ccid

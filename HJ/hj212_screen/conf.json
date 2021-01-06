@@ -18,14 +18,10 @@
 		"default": "HJ212"
 	},
 	{
-		"name": "station_type",
-		"desc": "型号",
-		"type": "dropdown",
-		"default": "VOCs",
-		"values": [
-			"VOCs",
-			"WATER"
-		]
+		"name": "tpls",
+		"desc": "型号模板",
+		"type": "templates",
+		"limit": 1
 	},
 	{
 		"name": "settings",

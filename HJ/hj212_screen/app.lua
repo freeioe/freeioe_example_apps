@@ -66,7 +66,30 @@ function app:on_start()
 	conf.app_inst = ioe.env.wait('HJ212.STATION', conf.station)
 	self._log:info("Got application instance name", conf.app_inst)
 
-	local tpl_file = string.format('%s/tpl/%s.csv', sys:app_dir(), conf.station_type)
+	local tpl_file = 'example'
+	if conf.station_type then
+		tpl_file = string.format('%s/tpl/%s.csv', sys:app_dir(), conf.station_type)
+	else
+		local tpl_id = conf.tpl
+		local tpl_ver = conf.ver
+
+		if conf.tpls and #conf.tpls >= 1 then
+			tpl_id = conf.tpls[1].id
+			tpl_ver = conf.tpls[1].ver
+		end
+
+		if tpl_id and tpl_ver then
+			local capi = sys:conf_api(tpl_id)
+			local data, err = capi:data(tpl_ver)
+			if not data then
+				self._log:error("Failed loading template from cloud!!!", err)
+				return false
+			end
+			tpl_file = tpl_id..'_'..tpl_ver
+		end
+	end
+
+	self._log:info("Loading template", tpl_file)
 	local tpl, err = tpl_parser(tpl_file, function(...)
 		log:error(...)
 	end)
@@ -82,7 +105,7 @@ function app:on_start()
 	}
 	local value_map = {
 		station = { value = conf.station },
-		station_type = { value = conf.station_type },
+		station_type = { value = conf.station_type or 'Template' },
 		app_inst = { value = conf.app_inst }
 	}
 	local outputs = {}
