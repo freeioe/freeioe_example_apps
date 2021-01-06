@@ -29,11 +29,8 @@ function app:on_init()
 	self._childs = {}
 	local log = self:log_api()
 	hj212_logger.set_log(function(level, ...)
-		if not log[level] then
-			log.info(...)
-		else
-			log[level](log, ...)
-		end
+		assert(level and log[level])
+		log[level](log, ...)
 	end)
 end
 
