@@ -135,6 +135,16 @@ function app:on_start()
 			rdata_interval = 30, -- 30 seconds
 			min_interval = 10, -- 10 mins
 		})
+		table.insert(conf.stations, {
+			name = 'station_1',
+			system = '31',
+			dev_id = 'DQ0000A8900016F000169DC0',
+			passwd = '123456',
+			timeout = 5,
+			retry = 3,
+			rdata_interval = 30, -- 30 seconds
+			min_interval = 10, -- 10 mins
+		})
 	end
 
 	self._stations = {}
