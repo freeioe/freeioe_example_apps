@@ -159,7 +159,7 @@ function app:on_start()
 			info = v,
 		}
 		inputs[#inputs + 1] = {
-			name = 'station_'..v.name,
+			name = 'station_'..#inputs,
 			desc = 'Station '..v.name..' connection',
 			vt = 'string'
 		}
