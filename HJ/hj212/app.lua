@@ -73,6 +73,7 @@ function app:on_start()
 			host = '127.0.0.1',
 			port = 16000,
 			passwd = '123456',
+			retry = 1,
 		})
 	end
 
