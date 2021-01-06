@@ -146,7 +146,7 @@ function app:on_start()
 	}
 	local sys_id = sys:id()
 
-	for _, v in ipairs(conf.stations) do
+	for i, v in ipairs(conf.stations) do
 		local st = station:new(v, function(ms)
 			sys:sleep(ms)
 		end)
@@ -159,7 +159,7 @@ function app:on_start()
 			info = v,
 		}
 		inputs[#inputs + 1] = {
-			name = 'station_'..#inputs,
+			name = 'station_'..i,
 			desc = 'Station '..v.name..' connection',
 			vt = 'string'
 		}
