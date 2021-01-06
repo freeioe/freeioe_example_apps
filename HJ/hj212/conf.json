@@ -89,5 +89,17 @@
 		"desc": "Disable history data saving",
 		"type": "boolean",
 		"default": false
+	},
+	{
+		"name": "timezone",
+		"desc": "Timezone",
+		"type": "string",
+		"default": "CST-8"
+	},
+	{
+		"name": "timezone_name",
+		"desc": "Timezone Name",
+		"type": "string",
+		"default": "Asia/Shanghai"
 	}
 ]

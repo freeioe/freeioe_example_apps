@@ -34,10 +34,31 @@ function app:on_init()
 	end)
 end
 
+local cmd = [[
+uci set system.@system[0].timezone='%s' && uci set system.@system[0].zonename='%s' && uci commit system
+]]
+function app:check_timezone(conf)
+	local lfs = require 'lfs'
+	if lfs.attributes('/sbin/uci', 'mode') then
+		local tz = conf.timezone or 'CST-8'
+		local tz_name = conf.timezone_name or 'Asia/Shanghai'
+		local otz = sysinfo.exec([[uci get system.@system[0].timezone]])
+		if otz ~=  tz then
+			self._log:warning("Correct timezone to "..tz..' from '..otz)
+			os.execute(string.format(cmd, tz, tz_name))
+		end
+	else
+		self._log:warning("Timezone check and fixes only in OpenWRT")
+	end
+end
+
 --- 应用启动函数
 function app:on_start()
 	local sys = self:sys_api()
 	local conf = self:app_conf()
+
+	self:check_timezone(conf)
+
 	conf.station = conf.station or 'HJ212'
 	self._last_samples_save = sys:now()
 	self._last_retain_check = sys:now()
