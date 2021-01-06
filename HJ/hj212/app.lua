@@ -265,6 +265,10 @@ function app:on_close(reason)
 	end
 	-- Save samples before
 	self:save_samples()
+
+	self._hisdb:close()
+	self._hisdb = nil
+
 	return true
 end
 

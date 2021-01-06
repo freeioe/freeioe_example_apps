@@ -15,6 +15,10 @@ function hisdb:open()
 	return self._index_db:open()
 end
 
+function hisdb:close()
+	return self._index_db:close()
+end
+
 function hisdb:index_db()
 	return self._index_db
 end
