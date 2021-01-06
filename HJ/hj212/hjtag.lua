@@ -87,7 +87,7 @@ function tag:on_calc_value(type_name, val, timestamp)
 	assert(val and type(val) == 'table')
 	local val_str, err = cjson.encode(val)
 	if not val_str then
-		print(self:tag_name())
+		print('JSON ENCODE ERROR', self:tag_name())
 		print(val)
 		print(type(val))
 		for k,v in pairs(val) do

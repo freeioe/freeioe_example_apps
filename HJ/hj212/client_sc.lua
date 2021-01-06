@@ -61,8 +61,8 @@ function client:send(session, raw_data)
 	end
 
 	--local basexx = require 'basexx'
-	--print(os.date(), 'Send request', session)
-	--print(os.date(), 'OUT:', basexx.to_hex(raw_data))
+	--self:log('debug', 'Send request', session)
+	--self:log('debug', 'OUT:', basexx.to_hex(raw_data))
 
 	local t = {}
 	self._requests[session] = t
@@ -92,9 +92,9 @@ function client:send(session, raw_data)
 
 	--[[
 	if not result[1] then
-		print(os.date(), 'Request failed', session, table.unpack(result))
+		self:log('debug', 'Request failed', session, table.unpack(result))
 	else
-		print(os.date(), 'Request done', session)
+		self:log('debug', 'Request done', session)
 	end
 	]]--
 	return table.unpack(result)
@@ -201,8 +201,6 @@ function client:start_connect()
 end
 
 function client:on_recv(data)
-	--local basexx = require 'basexx'
-	--print(os.date(), 'IN:', basexx.to_hex(data))
 	self:dump_raw('IN', data)
 	table.insert(self._buf, data)
 

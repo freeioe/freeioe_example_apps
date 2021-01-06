@@ -277,7 +277,6 @@ function index:list(group, key, version, duration, start_time, end_time)
 	local sql = string.format(select_sql, group, key, version, stime, etime)
 
 	local list = {}
-	--print(sql)
 	for row in db:rows(sql) do
 		--print("INDEX.LIST", row.id, row.key, row.grp, row.file, row.creation, row.duration)
 
@@ -289,7 +288,7 @@ function index:list(group, key, version, duration, start_time, end_time)
 			end)
 			if not obj:_open() then
 				obj = nil
-				print('Store open failed')
+				print('INDEX.LIST', 'Store open failed')
 			end
 		end
 		if obj then

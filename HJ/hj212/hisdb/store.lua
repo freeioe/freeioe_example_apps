@@ -255,19 +255,10 @@ function store:insert(cate, val, is_array)
 
 		local r, err = self._db:first_row(string.format(insert_query, cate, val.timestamp))
 		if r then
-			print(r, err)
-			print(cjson.encode(r), cjson.encode(val))
+			print('STORE.INSERT', r, err)
+			print('STORE.INSERT', cjson.encode(r), cjson.encode(val))
 			return nil, "Data already exists!!"
 		end
-
-		--[[
-		local r, err = stmt:bind(val):exec()
-		if not r then
-			local cjson = require 'cjson.safe'
-			print(cjson.encode(val))
-		end
-		return r, err
-		]]--
 		return stmt:bind(val):exec()
 	else
 		self._db:exec('BEGIN;')
