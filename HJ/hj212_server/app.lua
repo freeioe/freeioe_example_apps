@@ -23,6 +23,8 @@ function app:on_init()
 	self._stations = {}
 	self._clients = {}
 	self._childs = {}
+	self._devs = {}
+	self._dev = nil
 	local log = self:log_api()
 	hj212_logger.set_log(function(level, ...)
 		assert(level and log[level])
@@ -47,8 +49,19 @@ function app:create_station(client, system, dev_id, passwd)
 		return nil, types.REPLY.ERR_PW
 	end
 
-	client:set_sn(s.sn)
+	local dev_sn = assert(s.sn)
+
+	if not self._devs[dev_sn] then
+		local dev = self:create_device(dev_sn)
+		self._devs[dev_sn] = dev
+	end
+
+	client:set_sn(dev_sn)
+	client:set_dev(self._devs[dev_sn])
+
 	station:set_client(client)
+
+	self._clients[dev_sn] = client
 
 	return station
 end
@@ -60,6 +73,15 @@ end
 function app:on_client_disconnect(client)
 	local sn = client:sn()
 	client:set_sn(nil)
+	self._clients[sn] = nil
+
+	if self._devs[sn] then
+		--[[
+		local api = self:data_api()
+		api:del_device(self._devs[sn])
+		self._devs[sn] = nil
+		]]--
+	end
 
 	for k, v in pairs(self._stations) do
 		if v.sn == sn then
@@ -70,17 +92,15 @@ function app:on_client_disconnect(client)
 end
 
 function app:create_device(sn)
+	assert(sn)
 	local api = self:data_api()
 	local sys = self:sys_api()
 
 	local meta = api:default_meta()
-	meta.name = 'HJ212' 
-	meta.manufacturer = "FreeIOE.org"
-	meta.description = 'HJ212 Smart Device' 
+	meta.name = 'HJ212 Station'
+	meta.manufacturer = 'FreeIOE.org'
+	meta.description = 'HJ212 Smart Device'
 	meta.series = 'N/A'
-
-	local sys_id = sys:id()
-	local station_sn = sys_id..'.'..self:app_name()..'.'..sn
 
 	local commands = {
 		{ name = 'rdata_start', desc = "Start RData upload" },
@@ -88,12 +108,13 @@ function app:create_device(sn)
 		{ name = 'set_time', desc = "Set time sync" },
 	}
 
-	local dev = api:add_device(station_sn, meta, inputs, nil, commands)
-	return station_sn, dev
+	local dev = api:add_device(sn, meta, {}, nil, commands)
+	return dev
 end
 
 --- 应用启动函数
 function app:on_start()
+	local api = self:data_api()
 	local sys = self:sys_api()
 	local conf = self:app_conf()
 
@@ -101,7 +122,7 @@ function app:on_start()
 	conf.stations = conf.stations or {}
 	if #conf.stations == 0 then
 		table.insert(conf.stations, {
-			name = 'localhost',
+			name = 'station_1',
 			system = '31',
 			dev_id = '010000A8900016F000169DC0',
 			passwd = '123456',
@@ -114,24 +135,48 @@ function app:on_start()
 
 	self._stations = {}
 	self._devs = {}
+	local inputs = {
+		{name = 'host', desc = 'Listen Host', vt = 'string'},
+		{name = 'port', desc = 'Listen Port', vt = 'int'},
+		{name = 'connections', desc = 'Currrent Connection Count', vt = 'int'},
+	}
+	local sys_id = sys:id()
+
 	for _, v in ipairs(conf.stations) do
 		local st = station:new(v, function(ms)
 			sys:sleep(ms)
 		end)
 
-		local sn, dev = self:create_device(v.name)
+		local station_sn = sys_id..'.'..self:app_name()..'.'..v.name
 
 		self._stations[v.dev_id] = {
-			sn = sn,
-			dev = dev,
+			sn = station_sn,
 			station = st,
 		}
-		self._devs[sn] = dev
+		inputs[#inputs + 1] = {
+			name = 'station_'..v.name,
+			desc = 'Station '..v.name..' connection',
+			vt = 'string'
+		}
 	end
+
+	local meta = api:default_meta()
+	meta.name = 'HJ212 Server Status' 
+	meta.manufacturer = "FreeIOE.org"
+	meta.description = 'HJ212 Server Status' 
+	meta.series = 'N/A'
+	local commands = {
+		{ name = 'kick', desc = "Kick connection" },
+	}
+	local dev_sn = sys_id..'.'..self:app_name()
+	self._dev = api:add_device(dev_sn, meta, inputs, nil, commands)
 
 	local host = conf.host or '0.0.0.0'
 	local port = conf.port or 6000
 	self._server = tcp_server:new(self, host, port)
+
+	self._dev:set_input_prop('host', 'value', host)
+	self._dev:set_input_prop('host', 'value', port)
 
 	self._server:set_io_cb(function(sn, io, data)
 		local dev = self._devs[sn]
@@ -173,7 +218,7 @@ function app:on_command(app_src, sn, command, param, priv)
 end
 
 function app:for_earch_client(func, ...)
-	for _, v in ipairs(self._clients) do
+	for _, v in pairs(self._clients) do
 		v[func](v, ...)
 	end
 end

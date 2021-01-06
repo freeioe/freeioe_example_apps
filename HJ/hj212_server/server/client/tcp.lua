@@ -35,7 +35,7 @@ function client:watch_socket()
 		local data, err = socket.read(sock)	
 		if not data then
 			self:on_disconnect()
-			skynet.error("Client socket disclientected", err)
+			skynet.error("Client socket disconnect", err)
 			break
 		end
 		self:on_recv(data)

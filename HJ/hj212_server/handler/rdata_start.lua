@@ -1,28 +1,27 @@
-local base = require 'hj212.client.handler.base'
+local base = require 'hj212.server.handler.base'
 
-local handler = base:subclass('hj212.client.handler.rdata_start')
+local handler = base:subclass('hj212.server.handler.rdata_start')
 
 function handler:process(request)
 	local params = request:params()
 	if not params then
 		return nil, "Params missing"
 	end
-	if true then
-		return true
+	local data_time = params:get('DataTime')
+	if not data_time then
+		return nil, "DataTime missing"
 	end
 
-	local interval, err = params:get('RtdInterval')
-	if interval == nil then
-		return nil, err
-	end
-	interval = tonumber(interval)
+	if params:has_tags() then
+		local tags = params:tags()
 
-	self:log('debug', "Set RData interval to "..interval)
+		if tags[data_time] == nil then
+			return nil, "Tags not found"
+		end
 
-	if self._client.set_rdata_interval then
-		self._client:set_rdata_interval(interval)
-	else
-		return nil, "Client does not support changing rdata interval"
+		for _, tag in pairs(tags[data_time]) do
+			self._client:on_rdata(tag:tag_name(), tag:get('Rtd'), tag:get('SampleTime'), tag:get('Flag'))
+		end
 	end
 
 	return true

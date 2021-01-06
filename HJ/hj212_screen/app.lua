@@ -65,10 +65,8 @@ function app:on_start()
 	conf.app_inst = ioe.env.wait('HJ212.STATION', conf.station)
 	self._log:info("Got application instance name", conf.app_inst)
 
-	local tpl_file = 'example'
-	if conf.station_type then
-		tpl_file = string.format('%s/tpl/%s.csv', sys:app_dir(), conf.station_type)
-	else
+	local tpl_file = conf.station_type
+	if not tpl_file then
 		local tpl_id = conf.tpl
 		local tpl_ver = conf.ver
 
@@ -84,9 +82,10 @@ function app:on_start()
 				self._log:error("Failed loading template from cloud!!!", err)
 				return false
 			end
-			tpl_file = sys:app_dir()..'/tpl/'..tpl_id..'_'..tpl_ver..'.csv'
+			tpl_file = tpl_id..'_'..tpl_ver
 		end
 	end
+	tpl_file = string.format('%s/tpl/%s.csv', sys:app_dir(), tpl_file or 'VOCs')
 
 	self._log:info("Loading template", tpl_file)
 	local tpl, err = tpl_parser(tpl_file, function(...)

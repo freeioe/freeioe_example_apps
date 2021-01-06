@@ -63,13 +63,13 @@ function app:on_start()
 	conf.servers = conf.servers or {}
 	if #conf.servers == 0 then
 		table.insert(conf.servers, {
-			name = 'localhost',
+			name = 'city',
 			host = '127.0.0.1',
 			port = 6000,
 			passwd = '123456',
 		})
 		table.insert(conf.servers, {
-			name = 'localhost_16000',
+			name = 'ministry',
 			host = '127.0.0.1',
 			port = 16000,
 			passwd = '123456',
