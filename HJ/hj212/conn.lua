@@ -42,7 +42,7 @@ function conn:start()
 	local conf = self._conf
 
 	local meta = self._api:default_meta()
-	meta.name = 'Connection_'..conf.name
+	meta.name = 'HJ212 Connection - '..conf.name
 	meta.manufacturer = "FreeIOE.org"
 	meta.description = 'HJ212 Connetion Status' 
 	meta.series = 'N/A'

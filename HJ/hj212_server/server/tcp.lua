@@ -125,13 +125,14 @@ function server:stop()
 
 	self._closing = {}
 	skynet.wakeup(self)
+	skynet.wait(self._closing)
+	assert(self._socket == nil)
+	self._closing = nil
 
 	for fd, cli in pairs(self._clients) do
 		cli:close()
 	end
-	skynet.wait(self._closing)
-	assert(self._socket == nil)
-	self._closing = nil
+
 	self._clients = {}
 
 	return base.stop(self)

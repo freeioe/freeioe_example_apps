@@ -35,11 +35,13 @@ function client:watch_socket()
 		local data, err = socket.read(sock)	
 		if not data then
 			self:on_disconnect()
-			skynet.error("Client socket disconnect", err)
+			self:log('error', "Client socket disconnect", err)
 			break
 		end
 		self:on_recv(data)
 	end
+
+	self:log('debug', "Client socket closing")
 
 	-- Clean up
 	if self._buf_wait then
@@ -48,16 +50,19 @@ function client:watch_socket()
 	end
 
 	if not self._closing then
+		self:log('debug', "Client close socket")
 		socket.close(self._socket)
 		self._socket = nil
 	end
 
+	self:log('debug', "Client wakeup requests")
 	--- completed the session requests
 	for session, co in pairs(self._requests) do
 		skynet.wakeup(co)
 	end
 	skynet.sleep(10) -- Let the request been terminated
 
+	self:log('debug', "Client all requests aborted!")
 	--- Wake up closing coroutine
 	if self._closing then
 		skynet.wakeup(self._closing)
@@ -147,7 +152,6 @@ function client:close()
 		return nil, "Client is closing"
 	end
 
-	self:log('debug', "closing")
 	self._closing = {}
 
 	local to_close = self._socket
@@ -156,6 +160,8 @@ function client:close()
 
 	skynet.wait(self._closing)
 	self._closing = nil
+
+	self:log('debug', "Client close done!")
 
 	return true
 end

@@ -52,7 +52,7 @@ function app:create_station(client, system, dev_id, passwd)
 	local dev_sn = assert(s.sn)
 
 	if not self._devs[dev_sn] then
-		local dev = self:create_device(dev_sn)
+		local dev = self:create_device(dev_sn, s.info)
 		self._devs[dev_sn] = dev
 	end
 
@@ -72,6 +72,10 @@ end
 
 function app:on_client_disconnect(client)
 	local sn = client:sn()
+	if not sn then
+		return
+	end
+
 	client:set_sn(nil)
 	self._clients[sn] = nil
 
@@ -91,13 +95,13 @@ function app:on_client_disconnect(client)
 	end
 end
 
-function app:create_device(sn)
+function app:create_device(sn, info)
 	assert(sn)
 	local api = self:data_api()
 	local sys = self:sys_api()
 
 	local meta = api:default_meta()
-	meta.name = 'HJ212 Station'
+	meta.name = 'HJ212 Station - '..info.name
 	meta.manufacturer = 'FreeIOE.org'
 	meta.description = 'HJ212 Smart Device'
 	meta.series = 'N/A'
@@ -147,11 +151,12 @@ function app:on_start()
 			sys:sleep(ms)
 		end)
 
-		local station_sn = sys_id..'.'..self:app_name()..'.'..v.name
+		local station_sn = sys_id..'.'..self:app_name()..'.'..v.dev_id
 
 		self._stations[v.dev_id] = {
 			sn = station_sn,
 			station = st,
+			info = v,
 		}
 		inputs[#inputs + 1] = {
 			name = 'station_'..v.name,
@@ -203,6 +208,8 @@ function app:on_close(reason)
 	if self._server then
 		self._server:stop()
 	end
+	self._log:warning('Server closed')
+	print('Server closed')
 	return true
 end
 
