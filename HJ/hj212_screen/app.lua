@@ -28,7 +28,6 @@ function app:initialize(name, sys, conf)
 
 	-- defaults
 	conf.station = conf.station or 'HJ212'
-	conf.station_type = conf.station_type or 'VOCs'
 
 	-- for test
 	--[[
@@ -312,7 +311,7 @@ function app:publish_status()
 		if value_map[k] then
 			data['Gsys_'..k] = self._value_map[k].value
 		else
-			self._log:error('Status value not found', k)
+			--self._log:debug('Status value not found', k)
 		end
 	end
 	local now = math.floor(ioe.time())
