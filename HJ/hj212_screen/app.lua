@@ -84,7 +84,7 @@ function app:on_start()
 				self._log:error("Failed loading template from cloud!!!", err)
 				return false
 			end
-			tpl_file = tpl_id..'_'..tpl_ver
+			tpl_file = tpl_id..'_'..tpl_ver..'.csv'
 		end
 	end
 
