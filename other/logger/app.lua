@@ -7,8 +7,8 @@ local log = require 'log'
 
 --- 注册对象(请尽量使用唯一的标识字符串)
 local app = base:subclass("FREEIOE_HJ212_LOGGER_APP")
---- 设定应用最小运行接口版本, 7 has new api and lua5.4???
-app.static.API_VER = 7
+--- 设定应用最小运行接口版本 8, which has on_logger callback
+app.static.API_VER = 8
 
 function app:on_init()
 	self._clients = {}
