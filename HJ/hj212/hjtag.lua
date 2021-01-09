@@ -22,7 +22,6 @@ function tag:initialize(hisdb, station, prop) --name, min, max, calc, cou, has_c
 		self._calc = nil
 	end
 	self._value_callback = nil
-	self._sum_callback = nil
 end
 
 function tag:upload()
@@ -34,14 +33,14 @@ function tag:has_cou()
 end
 
 function tag:init_db()
-	local sum_calc = self:his_calc()
-	local meta, version = sum_calc:sample_meta()
+	local cou_calc = self:cou_calc()
+	local meta, version = cou_calc:sample_meta()
 	local db = hisdb_tag:new(self._hisdb, self:tag_name(), meta, version, self._no_hisdb)
 	local r, err = db:init()
 	if not r then
 		return nil, err
 	end
-	sum_calc:set_db(db)
+	cou_calc:set_db(db)
 	self._tagdb = db
 	return true
 end

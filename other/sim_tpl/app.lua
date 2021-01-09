@@ -15,7 +15,7 @@ function app:on_start()
 	local log = self:log_api()
 	local conf = self:app_conf()
 	conf.devs = conf.devs or {
-		{ sn = "sim", name = "sim", desc = "sim device", tpl = "example" }
+		{ sn = "sim", name = "sim", desc = "sim device", tpl = "test" }
 	}
 
 	csv_tpl.init(sys:app_dir())	

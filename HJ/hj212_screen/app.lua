@@ -61,9 +61,9 @@ function app:on_start()
 
 	self._wait_timeout = (tonumber(conf.wait_timeout) or 30) * 1000
 
-	self._log:info("Wait for station application instance", conf.station)
+	log:info("Wait for station application instance", conf.station)
 	conf.app_inst = ioe.env.wait('HJ212.STATION', conf.station)
-	self._log:info("Got application instance name", conf.app_inst)
+	log:info("Got application instance name", conf.app_inst)
 
 	local tpl_file = conf.station_type
 	if not tpl_file then
@@ -79,15 +79,15 @@ function app:on_start()
 			local capi = sys:conf_api(tpl_id)
 			local data, err = capi:data(tpl_ver)
 			if not data then
-				self._log:error("Failed loading template from cloud!!!", err)
+				log:error("Failed loading template from cloud!!!", err)
 				return false
 			end
 			tpl_file = tpl_id..'_'..tpl_ver
 		end
 	end
-	tpl_file = string.format('%s/tpl/%s.csv', sys:app_dir(), tpl_file or 'VOCs')
+	tpl_file = string.format('%s/tpl/%s.csv', sys:app_dir(), tpl_file or 'test')
 
-	self._log:info("Loading template", tpl_file)
+	log:info("Loading template", tpl_file)
 	local tpl, err = tpl_parser(tpl_file, function(...)
 		log:error(...)
 	end)
@@ -113,6 +113,7 @@ function app:on_start()
 	local devs = {}
 
 	local station_sn = sys_id..'.'..conf.station
+
 	local function map_dev_sn(sn)
 		local sn = sn or 'STATION'
 		sn = string.gsub(sn, '^STATION(.*)$', station_sn..'%1')

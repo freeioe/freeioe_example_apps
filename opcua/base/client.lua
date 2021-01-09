@@ -341,6 +341,14 @@ function client:on_disconnected()
 	self._log:debug("default on disconnected callback")
 end
 
+function client:MAP_CALLBACK(func)
+	local cb = func
+	local sys = self._sys
+	return function(...)
+		sys:fork(cb, ...)
+	end
+end
+
 ---
 -- 连接处理函数
 function client:connect_proc()
@@ -353,7 +361,7 @@ function client:connect_proc()
 
 	if opcua.VERSION and tonumber(opcua.VERSION) >= 1.2 then
 		local client_session = nil
-		client:setStateCallback(function(cli, channel_state, session_state, connect_status)
+		local state_callback = function(cli, channel_state, session_state, connect_status)
 			table.insert(self._co_tasks, function()
 				self._log:trace("Client state sss:", channel_state, ' ss:', session_state, ' cs:', connect_status, cli)
 				if self._client_obj ~= cli then
@@ -376,10 +384,11 @@ function client:connect_proc()
 					self._log:trace("Not handled state", state)
 				end
 			end)
-		end)
+		end
+		client:setStateCallback(self:MAP_CALLBACK(state_callback))
 	else
 		log:warning("OPCUA extension module needs to be upgraded!!!")
-		client:setStateCallback(function(cli, state)
+		local state_callback = function(cli, state)
 			table.insert(self._co_tasks, function()
 				self._log:trace("Client state changed to", state, cli)
 				if self._client_obj ~= cli then
@@ -396,7 +405,8 @@ function client:connect_proc()
 					return self:on_connected()
 				end
 			end)
-		end)
+		end
+		client:setStateCallback(self:MAP_CALLBACK(state_callback))
 	end
 
 	local ep = conf.endpoint or "opc.tcp://127.0.0.1:4840"
@@ -608,7 +618,7 @@ function client:create_subscription(inputs, callback)
 
 	self._log:debug("Create subscription start!!!!")
 
-	local sub_id, err = self._client:createSubscription(function(mon_id, data_value, sub_id)
+	local sub_callback = function(mon_id, data_value, sub_id)
 		local m = self._sub_map[sub_id]
 		if not m then
 			return
@@ -626,7 +636,8 @@ function client:create_subscription(inputs, callback)
 				end
 			end)
 		end
-	end)
+	end
+	local sub_id, err = self._client:createSubscription(self:MAP_CALLBACK(sub_callback))
 
 	if not sub_id then
 		return nil, err

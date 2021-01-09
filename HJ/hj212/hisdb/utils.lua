@@ -3,7 +3,7 @@ local date = require 'date'
 local _M = {}
 
 local function to_seconds(val)
-	return date.diff(val:toutc(), date(0)):spanseconds()
+	return math.floor(date.diff(val:toutc(), date(0)):spanseconds())
 end
 
 -- Duration Start Time

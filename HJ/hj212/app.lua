@@ -100,7 +100,7 @@ function app:on_start()
 
 	local tpl_id = conf.tpl
 	local tpl_ver = conf.ver
-	local tpl_file = 'example'
+	local tpl_file = 'test'
 
 	if conf.tpls and #conf.tpls >= 1 then
 		tpl_id = conf.tpls[1].id
