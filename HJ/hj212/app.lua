@@ -82,6 +82,7 @@ function app:on_start()
 	end
 
 	conf.servers = conf.servers or {}
+	--[[
 	if #conf.servers == 0 then
 		table.insert(conf.servers, {
 			name = 'city',
@@ -97,6 +98,7 @@ function app:on_start()
 			retry = 1,
 		})
 	end
+	]]--
 
 	local tpl_id = conf.tpl
 	local tpl_ver = conf.ver
