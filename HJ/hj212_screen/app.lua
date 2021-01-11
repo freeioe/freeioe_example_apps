@@ -432,14 +432,16 @@ function app:publish_prop_data(tag_name, prop, value, timestamp)
 				log:error("Uncompleted item", name)
 				for k, v in pairs(self._inputs_map) do
 					if not buf.list[k] then
-						log:error('Missing item', k, name)
+						log:warning('Missing item', k, name)
+						buf.list[k] = {value=0,avg=0,cou=0} -- Set to zero
 					else
 						log:debug('Has item', k, name)
 					end
 				end
+			else
+				log:debug("Completed item", name)
 			end
 
-			log:debug("Completed item", name)
 			local list = buf.list
 			self._prop_buf[prop][timestamp] = nil
 			buf = nil
