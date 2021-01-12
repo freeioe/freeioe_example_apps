@@ -173,7 +173,7 @@ return function(app)
 			local content = content:gsub('\n', '\\\\n')
 			return format_msg(app, procid, lvl, timestamp, content)
 		end,
-		comm = function(app, procid, sn, dir, timestamp, base64, ...)
+		comm = function(app, sn, dir, timestamp, base64, ...)
 			local lvl = Log.LVL.TRACE
 			local args = {
 				fmt = base64 and 'BASE64' or 'PLAIN',
@@ -189,7 +189,7 @@ return function(app)
 				end
 			end
 			local content = table.concat(data, '\t')
-			return format_msg(app, procid, lvl, timestamp, content, args)
+			return format_msg(app, nil, lvl, timestamp, content, args)
 		end,
 	}
 end

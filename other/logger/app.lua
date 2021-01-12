@@ -1,9 +1,10 @@
 --- 导入需求的模块
 local ioe = require 'ioe'
 local base = require 'app.base'
---- 
+local crypt = require 'skynet.crypt'
 local date = require 'date'
-local log = require 'log' 
+local lvl2number = require('log').lvl2number
+local cyclebuffer = require 'buffer.cycle'
 
 --- 注册对象(请尽量使用唯一的标识字符串)
 local app = base:subclass("FREEIOE_HJ212_LOGGER_APP")
@@ -14,6 +15,12 @@ function app:on_init()
 	self._clients = {}
 	self._log_map = {}
 	self._comm_map = {}
+	self._log_buffer = cyclebuffer:new(function(...)
+		return self:publish_log(...)
+	end, 256)
+	self._comm_buffer = cyclebuffer:new(function(...)
+		return self:publish_comm(...)
+	end, 512)
 end
 
 --- 应用启动函数
@@ -24,7 +31,8 @@ function app:on_start()
 
 	conf.servers = conf.servers or {
 		{ name='syslog_udp', url='udp://172.30.1.160:1514', format="syslog"},
-		{ name='syslog_tcp', url='tcp://127.0.0.1:16000', format="syslog"},
+		{ name='syslog_tcp', url='tcp://172.30.1.160:1514', format="syslog"},
+		--{ name='syslog_tcp', url='tcp://127.0.0.1:16000', format="syslog"},
 	}
 	conf.logs = conf.logs or {
 		{ app = "*", level = "trace" }
@@ -46,7 +54,7 @@ function app:on_start()
 
 	for _, v in ipairs(conf.logs) do
 		local app = v.app == '*' and '.+' or v.app
-		self._log_map[app] = log.lvl2number(v.level)
+		self._log_map[app] = lvl2number(v.level)
 	end
 
 	for _, v in ipairs(conf.comms) do
@@ -94,7 +102,9 @@ function app:on_start()
 end
 
 function app:on_run(tms)
-	return 1000
+	self._log_buffer:fire_all()
+	self._comm_buffer:fire_all()
+	return 50
 end
 
 --- 应用退出函数
@@ -114,24 +124,43 @@ function app:publish_log(app, procid, timestamp, lvl, content)
 	return true
 end
 
-function app:publish_comm(app, sn, dir, timestamp, content)
+function app:publish_comm(app, sn, dir, timestamp, base64, ...)
+	for _, cli in ipairs(self._clients) do
+		cli:publish_comm(app, sn, dir, timestamp, base64, ...)
+	end
+	return true
 end
 
-function app:on_comm(app_src, ...)
-	--print(...)
+function app:on_comm(app_src, sn, dir, timestamp, content, ...)
+	for app, sn_map in pairs(self._comm_map) do
+		if app_src == app or string.match(app_src, app) then
+			for k, dir_map in pairs(sn_map) do
+				if sn == k or string.match(sn, k) then
+					for k, base64 in pairs(dir_map) do
+						if dir == k or string.match(dir, k) then
+							self._comm_buffer:push(app_src, sn, dir, timestamp, base64, content, ...)
+							return true
+						end
+					end
+				end
+			end
+		end
+	end
 	return true
 end
 
 function app:on_logger(timestamp, level, msg)
 	--- example: [00000018]: ::screen:: Uncompleted item	RDATA[Fri Jan  8 12:45:00 2021]
 	local procid, app, content = string.match(msg, '^%[(%x+)]: ::(.+):: (.+)$')
-	local lvl = log.lvl2number(level)
+	local lvl = lvl2number(level)
 
 	--- TODO: Filter
 	for k, v in pairs(self._log_map) do
 		if app == k or string.match(app, k) then
 			if lvl <= v then
-				return self:publish_log(app, procid, lvl, timestamp, content)
+				self._log_buffer:push(app, procid, lvl, timestamp, content)
+				return true
+				--return self:publish_log(app, procid, lvl, timestamp, content)
 			end
 		end
 	end

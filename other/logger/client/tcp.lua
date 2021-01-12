@@ -23,6 +23,7 @@ function client:send(raw_data)
 	local t_left = timeout * 3
 	while not self._socket and t_left > 0 do
 		if self._closing then
+			self._logger:error("Connection closed")
 			return nil, "Connection closing!!!"
 		end
 		skynet.sleep(100)
@@ -34,6 +35,7 @@ function client:send(raw_data)
 	
 	local data = tostring(string.len(raw_data) + 1)..' '..raw_data..'\n'
 	return socket.write(self._socket, data)
+	--return socket.write(self._socket, raw_data..'\n')
 end
 
 function client:connect_proc()
@@ -78,6 +80,8 @@ function client:watch_client_socket()
 		end
 		self:on_recv(data)
 	end
+
+	self._logger:error("Connection closing")
 
 	if self._connection_cb then
 		self._connection_cb(false)
