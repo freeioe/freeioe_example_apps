@@ -7,7 +7,7 @@ local ioe = require 'ioe'
 --- 注册对象(请尽量使用唯一的标识字符串)
 local app = mqtt_app:subclass("THINGSROOT_MQTT_APP")
 --- 设定应用最小运行接口版本(目前版本为1,为了以后的接口兼容性)
-app.static.API_VER = 5
+app.static.API_VER = 8
 
 local mqtt_secret = "VEhJTkdTUk9PVAo="
 
@@ -23,8 +23,8 @@ function app:to_mqtt_app_conf(conf)
 		enable_tls = conf.mqtt.enable_tls,
 		tls_insecure = conf.mqtt.tls_insecure ~= nil and conf.mqtt.tls_insecure or false,
 		tls_cert = conf.tls_cert_path,
-		client_cert = conf.client_cert_path,
-		client_key = conf.client_key_path,
+		tls_client_cert = conf.tls_client_cert_path,
+		tls_client_key = conf.tls_client_key_path,
 	}
 	for k, v in pairs(conf.options or {}) do
 		new_conf[k] = v
@@ -101,8 +101,8 @@ Ufz6X3tVVErVVc7UUfzSnupHj1M2h4rzlQ3oqHoAEnXcJmV4f/Pf/6FW
 
 	-- TODO: tls_certs saving file
 	conf.tls_cert_path = self:text2file(conf.mqtt.tls_cert, 'ca.crt')
-	conf.client_cert_path = self:text2file(conf.mqtt.client_cert, 'client_cert.crt')
-	conf.client_key_path = self:text2file(conf.mqtt.client_key, 'client_key.crt')
+	conf.tls_client_cert_path = self:text2file(conf.mqtt.client_cert, 'client_cert.crt')
+	conf.tls_client_key_path = self:text2file(conf.mqtt.client_key, 'client_key.crt')
 
 	self._enable_devices = {}
 	for _, v in ipairs(conf.devs or {}) do
