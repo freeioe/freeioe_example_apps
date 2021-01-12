@@ -34,11 +34,14 @@ function app:on_start()
 		{ name='syslog_tcp', url='tcp://172.30.1.160:1514', format="syslog"},
 		--{ name='syslog_tcp', url='tcp://127.0.0.1:16000', format="syslog"},
 	}
+	--[[
 	conf.logs = conf.logs or {
 		{ app = "*", level = "trace" }
 	}
+	]]--
 	conf.comms = conf.comms or {
-		{ app = "*", sn = "HJ212.ministry", dir = "*", base64=0 }
+		{ app = "*", sn = "HJ212.ministry", dir = "*", base64=0 },
+		{ app = "*", sn = "HJ212.city", dir = "*", base64=0 },
 	}
 
 	local meta = self._api:default_meta()
@@ -52,12 +55,12 @@ function app:on_start()
 	self._dev_sn = sys_id..'.'..self:app_name()
 	self._dev = self._api:add_device(self._dev_sn, meta, inputs)
 
-	for _, v in ipairs(conf.logs) do
+	for _, v in ipairs(conf.logs or {}) do
 		local app = v.app == '*' and '.+' or v.app
 		self._log_map[app] = lvl2number(v.level)
 	end
 
-	for _, v in ipairs(conf.comms) do
+	for _, v in ipairs(conf.comms or {}) do
 		local app = v.app == '*' and '.+' or v.app
 		local sn = v.sn == '*' and '.+' or v.sn
 		local dir = v.dir == '*' and '.+' or v.dir
@@ -72,7 +75,7 @@ function app:on_start()
 	end
 
 	--- initialize connections
-	for _, v in ipairs(conf.servers) do
+	for _, v in ipairs(conf.servers or {}) do
 		local url = string.lower(v.url)
 		local format = string.lower(v.format)
 		local proto, host, port = string.match(url, '^(%w+)://([^:]+):(%d+)')
@@ -111,7 +114,7 @@ end
 function app:on_close(reason)
 	self._log:warning('Application closing', reason)
 	for _, cli in ipairs(self._clients) do
-		cli:close()
+		cli:stop()
 	end
 	self._clients = {}
 	return true

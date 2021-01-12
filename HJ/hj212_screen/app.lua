@@ -25,6 +25,7 @@ function app:initialize(name, sys, conf)
 	conf.port = conf.port or '1883'
 	conf.period = 0 -- disable Period Buffer
 	conf.disable_cov = true -- disable COV
+	--conf.qos = true
 
 	-- defaults
 	conf.station = conf.station or 'HJ212'

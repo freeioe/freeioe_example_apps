@@ -30,7 +30,11 @@ function client:start()
 	return self._socket
 end
 
-function client:close()
+function client:stop()
+	if not self._socket then
+		return
+	end
+
 	skynet.close(self._socket)
 	self._socket = nil
 end

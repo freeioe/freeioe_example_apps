@@ -169,7 +169,7 @@ function client:process_socket_data()
 	end
 end
 
-function client:close()
+function client:stop()
 	if self._closing then
 		return nil, "Closing"
 	end
