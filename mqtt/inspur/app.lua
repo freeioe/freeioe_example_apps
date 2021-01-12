@@ -8,6 +8,10 @@ local app = mqtt_app:subclass("THINGSROOT_MQTT_APP")
 app.static.API_VER = 8
 
 function app:to_mqtt_app_conf(conf, cloud_id)
+	assert(string.len(conf.project_code) > 0, "Project code missing")
+	assert(string.len(conf.product_code) > 0, "Product code missing")
+	assert(string.len(cloud_id) > 0, "Cloud id missing")
+
 	local client_id = conf.project_code..'@'..conf.product_code..'@'..cloud_id
 	local new_conf = {
 		--- mqtt
