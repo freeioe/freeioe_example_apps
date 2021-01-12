@@ -1,4 +1,3 @@
-local skynet = require 'skynet'
 local socket = require 'skynet.socket'
 local base = require 'client.base'
 
@@ -35,7 +34,7 @@ function client:stop()
 		return
 	end
 
-	skynet.close(self._socket)
+	socket.close(self._socket)
 	self._socket = nil
 end
 
