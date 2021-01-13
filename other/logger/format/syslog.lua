@@ -1,5 +1,4 @@
 local date = require 'date'
-local log = require 'log'
 local Log = require "log"
 local basexx = require 'basexx'
 
@@ -158,16 +157,16 @@ return function(app)
 	end
 
 	local function format_msg(app, procid, lvl, timestamp, content, tags)
-			local now = date(floor(timestamp)):tolocal()
-			local key = key_index(procid, app)
-			local lfmt = fmt_map[key] 
-			if not lfmt then
-				lfmt = create_format('USER', host_name, 'FREEIOE.'..app)
-				fmt_map[key] = lfmt
-			end
-
-			return lfmt(procid, nil, content, lvl, now, tags)
+		local now = date(floor(timestamp)):tolocal()
+		local key = key_index(procid, app)
+		local lfmt = fmt_map[key] 
+		if not lfmt then
+			lfmt = create_format('USER', host_name, 'FREEIOE.'..app)
+			fmt_map[key] = lfmt
 		end
+
+		return lfmt(procid, nil, content, lvl, now, tags)
+	end
 	return {
 		log = function(app, procid, lvl, timestamp, content)
 			local content = content:gsub('\n', '\\\\n')

@@ -1,0 +1,81 @@
+[
+	{
+		"name": "servers",
+		"desc": "Server 列表(Server List)",
+		"type": "table",
+		"cols": [
+			{
+				"name": "name",
+				"desc": "Server Name",
+				"type": "string",
+				"default": "server_1"
+			},
+			{
+				"name": "url",
+				"desc": "Server Connection URL",
+				"type": "string",
+				"default": "tcp://syslog.thingsroot.com:1514"
+			},
+			{
+				"name": "format",
+				"desc": "Content format",
+				"type": "dropdown",
+				"default": "syslog",
+				"values": [
+					"syslog",
+					"json"
+				]
+			}
+		]
+	},
+	{
+		"name": "logs",
+		"desc": "Log Filters",
+		"type": "table",
+		"cols": [
+			{
+				"name": "app",
+				"desc": "App Instance Name",
+				"type": "string",
+				"default": "*"
+			},
+			{
+				"name": "level",
+				"desc": "Minimal log level",
+				"type": "string",
+				"default": "info"
+			}
+		]
+	},
+	{
+		"name": "comms",
+		"desc": "Packet Filter",
+		"type": "table",
+		"cols": [
+			{
+				"name": "app",
+				"desc": "App Instance Name",
+				"type": "string",
+				"default": "*"
+			},
+			{
+				"name": "sn",
+				"desc": "Device SN",
+				"type": "string",
+				"default": "*"
+			},
+			{
+				"name": "dir",
+				"desc": "Direction",
+				"type": "string",
+				"default": "*"
+			},
+			{
+				"name": "base64",
+				"desc": "Base64 packet content",
+				"type": "number",
+				"default": 1
+			}
+		]
+	}
+]
