@@ -57,6 +57,10 @@ function app:on_start()
 	local sys = self:sys_api()
 	local conf = self:app_conf()
 
+	if string.len(conf.dev_id) ~= 24 then
+		return false, "Device ID (MN) length incorrect"
+	end
+
 	self:check_timezone(conf)
 
 	conf.station = conf.station or 'HJ212'
@@ -82,7 +86,6 @@ function app:on_start()
 	end
 
 	conf.servers = conf.servers or {}
-	--[[
 	if #conf.servers == 0 then
 		table.insert(conf.servers, {
 			name = 'city',
@@ -98,6 +101,7 @@ function app:on_start()
 			retry = 1,
 		})
 	end
+	--[[
 	]]--
 
 	local tpl_id = conf.tpl
