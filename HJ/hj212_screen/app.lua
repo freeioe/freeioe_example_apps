@@ -25,7 +25,7 @@ function app:initialize(name, sys, conf)
 	conf.port = conf.port or '1883'
 	conf.period = 0 -- disable Period Buffer
 	conf.disable_cov = true -- disable COV
-	--conf.qos = true
+	conf.qos = true
 
 	-- defaults
 	conf.station = conf.station or 'HJ212'
@@ -181,16 +181,18 @@ function app:on_start()
 	self._settings_map = settings_map
 	self._value_map = value_map
 
-	local meta = self._api:default_meta()
-	meta.name = 'HJ212 Settings' 
-	meta.manufacturer = "FreeIOE.org"
-	meta.description = 'HJ212 Smart Device Settings' 
-	meta.series = 'N/A'
+	if not conf.no_settings then
+		local meta = self._api:default_meta()
+		meta.name = 'HJ212 Settings'
+		meta.manufacturer = "FreeIOE.org"
+		meta.description = 'HJ212 Smart Device Settings'
+		meta.series = 'N/A'
 
-	local dev_sn = sys_id..'.'..conf.station..'.SETTINGS'
-	self._dev_sn = dev_sn
-	self._dev = self._api:add_device(dev_sn, meta, inputs, outputs)
-	self._dev_inputs = inputs
+		local dev_sn = sys_id..'.'..conf.station..'.SETTINGS'
+		self._dev_sn = dev_sn
+		self._dev = self._api:add_device(dev_sn, meta, inputs, outputs)
+		self._dev_inputs = inputs
+	end
 
 	sys:timeout(10, function()
 		self:read_tags()
@@ -225,6 +227,10 @@ function app:read_tags()
 		else
 			self._log:error("Failed to find device", sn)
 		end
+	end
+
+	if not self._dev then
+		return
 	end
 
 	for k, v in pairs(value_map) do

@@ -45,5 +45,10 @@
 		"desc": "Timewait timeout in seconds",
 		"type": "number",
 		"default": 30
+	},
+	{
+		"name": "not_settings",
+		"desc": "Not export settings",
+		"type": "boolean"
 	}
 ]
