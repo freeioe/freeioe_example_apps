@@ -111,7 +111,7 @@ local function create_handler(app)
 			}
 			local vars = node.vars
 			--- 将设备的输入项映射成为OPCUA对象的变量
-			for i, input in ipairs(props.inputs) do
+			for i, input in ipairs(props.inputs or {}) do
 				local var = vars[input.name]
 				if not var then
 					vars[input.name] = create_var(idx, devobj, input, device)
@@ -292,10 +292,8 @@ end
 --- 应用运行入口
 function app:run(tms)
 	--- OPCUA模块运行入口
-	while self._server.running do
-		local ms = self._server:run_once(false)
-		--- 暂停OPCUA模块运行，处理FREEIOE系统消息
-		self._sys:sleep(ms)
+	if self._server.running then
+		return self._server:run_once(false)
 	end
 	--print('XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX')
 
