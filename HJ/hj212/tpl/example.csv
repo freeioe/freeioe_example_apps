@@ -24,7 +24,7 @@ a01014,烟气湿度,%,float,sim,a01014,,,,,,simple,,N/A,,
 a01015,制冷温度,摄氏度,float,sim,a01015,,,,,,simple,,N/A,,
 a01016,烟道截面积,平方米,float,STATION.SETTINGS,a01016,,,,,,simple,,N/A,,
 a01017,烟气动压,千帕,float,sim,a01017,,,,,,simple,,N/A,,
-3c0113,总径,毫克/立方米,float,sim,3c0113,,0,100,N6.2,air.Cq:24>air.Csn,air,,,,3c3
+3c0113,总径,毫克/立方米,float,sim,3c0113,,0,100,N6.2,air.Cq:24>air.Csn>T,air,,,,3c3
 a05002,甲烷,纳克/立方米,float,sim,a05002,,,,,,,,,,
 a25002,苯,毫克/立方米,float,sim,a25002,,,,,,,,,,
 a25003,甲苯,毫克/立方米,float,sim,a25003,,,,,,,,,air.DryC>air.Cz:0.1,
