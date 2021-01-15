@@ -12,7 +12,7 @@ local station = require 'hj212.server.station'
 
 local tcp_server = require 'server.tcp'
 
---- lua_HJ212_version: 2021-1-4
+--- lua_HJ212_version: 2021-01-15
 
 --- 注册对象(请尽量使用唯一的标识字符串)
 local app = app_base:subclass("FREEIOE_HJ212_SERVER_APP")
