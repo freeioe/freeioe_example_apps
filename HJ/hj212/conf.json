@@ -75,6 +75,16 @@
 				"desc": "Retry count",
 				"type": "number",
 				"default": 3
+			},
+			{
+				"name": "version",
+				"desc": "Protocol Version",
+				"type": "dropdown",
+				"default": "2017",
+				"values": [
+					"2017",
+					"2005"
+				]
 			}
 		]
 	},

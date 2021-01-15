@@ -45,6 +45,7 @@ function tag:initialize(hisdb, station, prop)
 	base.initialize(self, station, prop.name, prop2options(prop))
 	self._upload = prop.upload
 	self._no_hisdb = prop.no_hisdb
+	self._hj2005 = prop.hj2005
 
 	--- Member objects
 	self._hisdb = hisdb
@@ -60,6 +61,17 @@ end
 
 function tag:upload()
 	return self._upload
+end
+
+function tag:hj2005_name()
+	if not self._hj2005 then
+		local finder = require 'hj212.tags.finder'
+		local tag = finder(self:tag_name())
+		if tag then
+			self._hj2005 = tag.org_name
+		end
+	end
+	return self._hj2005
 end
 
 function tag:init_db()

@@ -90,12 +90,15 @@ function app:create_device(dev_sn, info, tpl)
 		inputs = tpl_inputs,
 		outputs = tpl_outputs,
 	}
+	self._stat = dev:stat('port')
 end
 
 function app:on_run(tms)
 	for sn, dev in pairs(self._devs) do
 		self:gen_device_data(dev)
 	end
+	
+	self._stat:set('status', math.random(0, 1))
 
 	return self._cycle
 end

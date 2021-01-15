@@ -142,26 +142,48 @@ function conn:data_request(req, key)
 	return r, err
 end
 
+function conn:convert_version(data)
+	local conf = self._conf
+	if not conf.version or tonumber(conf.version) == 2017 then
+		return data
+	end
+	assert(tonumber(conf.version) == 2005)
+
+	local new_data = {}
+	for _, v in ipairs(data) do
+		local tag_name = v:tag_name()
+		local tag = self._station:find_tag(tag_name)
+		assert(tag)
+		tag_name = tag:hj2005_name() or tag_name
+		new_data[#new_data + 1] = v:clone(tag_name)
+	end
+	return new_data
+end
+
 function conn:upload_rdata(data)
 	local request = require 'hj212.request.rdata_start'
+	data = self:convert_version(data)
 	local req = request:new(data, true)
 	return self:data_request(req, 'RData')
 end
 
 function conn:upload_min_data(data)
 	local request = require 'hj212.request.min_data'
+	data = self:convert_version(data)
 	local req = request:new(data, true)
 	return self:data_request(req, 'MIN')
 end
 
 function conn:upload_hour_data(data)
 	local request = require 'hj212.request.hour_data'
+	data = self:convert_version(data)
 	local req = request:new(data, true)
 	return self:data_request(req, 'HOUR')
 end
 
 function conn:upload_day_data(data)
 	local request = require 'hj212.request.day_data'
+	data = self:convert_version(data)
 	local req = request:new(data, true)
 	return self:data_request(req, 'DAY')
 end

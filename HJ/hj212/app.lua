@@ -99,6 +99,7 @@ function app:on_start()
 			port = 16000,
 			passwd = '123456',
 			retry = 1,
+			version = '2005'
 		})
 	end
 	--[[
