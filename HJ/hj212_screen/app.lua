@@ -112,6 +112,7 @@ function app:on_start()
 	local status_map = {}
 	local settings_map = {}
 	local devs = {}
+	local stats = {}
 
 	local station_sn = sys_id..'.'..conf.station
 
@@ -123,6 +124,13 @@ function app:on_start()
 	end
 	local function map_dev(prop)
 		prop.sn = map_dev_sn(prop.sn)
+		if prop.stat then
+			stats[prop.sn] = stats[prop.sn] or {}
+			stats[prop.sn][prop.stat.port] = stats[prop.sn][prop.stat.port] or {}
+			stats[prop.sn][prop.stat.port][prop.input] = stats[prop.sn][prop.stat.port][prop.input] or {}
+			table.insert(stats[prop.sn][prop.stat.port][prop.input], prop)
+			return
+		end
 		devs[prop.sn] = devs[prop.sn] or {}
 		devs[prop.sn][prop.input] = devs[prop.sn][prop.input] or {}
 		table.insert(devs[prop.sn][prop.input], prop)
@@ -174,6 +182,7 @@ function app:on_start()
 	end
 
 	self._devs = devs
+	self._stats = stats
 	self._inputs = inputs
 	self._outputs = outputs
 	self._inputs_map = inputs_map
@@ -222,6 +231,34 @@ function app:read_tags()
 				end
 				for _, prop in ipairs(props) do
 					value_map[prop.name] = { value = value, timestamp = timestamp }
+				end
+			end
+		else
+			self._log:error("Failed to find device", sn)
+		end
+	end
+	for sn, dev in pairs(self._stats) do
+		local dev_api = api:get_device(sn)
+		if dev_api then
+			for stat, props in pairs(dev) do
+				local stat = dev_api:stat(stat)
+				if stat then
+					for prop, sts_list in pairs(props) do
+						local value, timestmap = stat:get(prop)
+						if value ~= nil then
+							self._log:debug("Stat input value got", sn, stat, prop, value, timestamp)
+						else
+							value = prop == 'status' and -1 or 0
+						end
+						if prop == 'status' then
+							value = value == 0 and 1 or 0
+						end
+						for _, sts in ipairs(sts_list) do
+							value_map[sts.name] = { value = value, timestamp = timestamp }
+						end
+					end
+				else
+					self._log:error("Failed to find device stat", sn, stat)
 				end
 			end
 		else
@@ -543,19 +580,27 @@ function app:on_event(app, sn, level, type_, info, data, timestamp)
 end
 
 function app:on_stat(app, sn, stat, prop, value, timestamp)
-	if self._disable_stat then
+	if not self._stats[sn] then
+		return true
+	end
+	if not self._stats[sn][stat] then
 		return true
 	end
 
-	local msg = {
-		app = app,
-		sn = sn,
-		stat = stat,
-		prop = prop,
-		value = value,
-		timestamp = timestamp,
-	}
-	return self:publish(self._mqtt_id.."/stat", cjson.encode(msg), 1, true)
+	local tpl_props = self._stats[sn][stat][prop]
+	if not tpl_props then
+		return true
+	end
+
+	if prop == 'status' then
+		value = value == 0 and 1 or 0
+	end
+
+	for _, tpl_prop in ipairs(tpl_props) do
+		local tag = self._status_map[tpl_prop.name]
+		assert(tag, string.format("missing status map:%s", tpl_prop.name))
+		self._value_map[tag.name] = {value = value, timestamp = timestamp}
+	end
 end
 
 function app:on_mqtt_connect_ok()

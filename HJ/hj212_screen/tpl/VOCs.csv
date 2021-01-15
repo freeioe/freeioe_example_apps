@@ -18,6 +18,7 @@ STATUS,countryStatus,县级平台状态,STATION.country,status
 STATUS,lteSignal,4G网络信号强度,GW,csq
 STATUS,lteStatus,4G网络拨号状态,GW,let_status
 STATUS,lteCCID,4G网络CCID,GW,ccid
+STATUS,deviceStatus,MeterStatus,GW.VOCS,[stat.port]status
 ,,,,
 TYPE,NAME,DESCRIPTION,HJ212 Name,VT
 SETTING,section_area,烟道截面积,a01016,float

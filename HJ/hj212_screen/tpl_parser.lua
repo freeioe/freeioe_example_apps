@@ -85,6 +85,14 @@ local function load_tpl(path, err_cb)
 				sn = string.len(v[4]) > 0 and v[4] or nil,
 				input = v[5]
 			}
+			local option, input = string.match(prop.input, '^%[(.+)%](.+)$')
+			if option and input then
+				local t, port = string.match(option, '^(.+)%.(.+)$')
+				if t and port then
+					prop.input = input
+					prop.stat = {port = port}
+				end
+			end
 			if valid_prop(prop, err_cb) then
 				table.insert(status, prop)
 			end
