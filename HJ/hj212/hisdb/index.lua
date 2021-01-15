@@ -8,14 +8,13 @@ local meta = require 'hisdb.meta'
 local index = class('hisdb.index')
 
 index.static.DEFAULT_DURATION = '6m'
-index.static.VERSION = 5
+index.static.VERSION = 6
 
 local db_create_sql = [[
 CREATE TABLE "index" (
 	"id"		INTEGER PRIMARY KEY AUTOINCREMENT UNIQUE,
 	"grp"		TEXT NOT NULL,		-- Saving group
 	"key"		TEXT NOT NULL,		-- Saving key
-	"version"	INTEGER NOT NULL,	-- Version information
 	"duration"	TEXT NOT NULL,		-- Duration time string
 	"creation"	INTEGER NOT NULL,	-- Db file creation time (seconds since EPOCH)
 	"file"		TEXT NOT NULL		-- File path
@@ -45,8 +44,8 @@ local function clean_index_db(folder)
 	return true
 end
 
-local function index_key(group, key, creation, version)
-	return string.format('%s/%s/%d/%d', group or 'GRP', key or 'KEY', creation or 0, version or 0)
+local function index_key(group, key, creation)
+	return string.format('%s/%s/%d', group or 'GRP', key or 'KEY', creation or 0)
 end
 
 ---
@@ -168,7 +167,7 @@ end
 --- Internal
 function index:delete_db_row(row)
 	-- Remove db_map
-	local key = index_key(row.grp, row.key, row.creation, row.version)
+	local key = index_key(row.grp, row.key, row.creation)
 	local store = self._store_map[key]
 	if store then
 		self._store_map[key] = nil
@@ -185,14 +184,14 @@ function index:delete_db_row(row)
 end
 
 local insert_sql = [[
-INSERT INTO 'index' (grp, key, version, duration, creation, file) VALUES('%s', '%s', '%d', '%s', %d, '%s')
+INSERT INTO 'index' (grp, key, duration, creation, file) VALUES('%s', '%s', '%s', %d, '%s')
 ]]
-function index:create(group, key, version, duration, timestamp)
+function index:create(group, key, duration, timestamp)
 	assert(self._db)
 	local duration = duration or self._default_duration
 	local creation = utils.duration_base(duration, timestamp)
 
-	local obj, err = self:find(group, key, version, duration, timestamp)
+	local obj, err = self:find(group, key, duration, timestamp)
 	if obj then
 		return obj
 	end
@@ -205,9 +204,9 @@ function index:create(group, key, version, duration, timestamp)
 	end
 
 	--- Insert new now
-	local ikey = index_key(group, key, creation, version)
+	local ikey = index_key(group, key, creation)
 	local file = self:db_file(group, key, duration, creation)
-	local sql = string.format(insert_sql, group, key, version, duration, creation, file)
+	local sql = string.format(insert_sql, group, key, duration, creation, file)
 
 	local r, err = self._db:exec(sql)
 	if not r then
@@ -230,14 +229,13 @@ function index:create(group, key, version, duration, timestamp)
 end
 
 --
-local find_sql = "SELECT * FROM 'index' WHERE grp='%s' AND key='%s' AND version=%d AND creation=%d"
-function index:find(group, key, version, duration, timestamp)
+local find_sql = "SELECT * FROM 'index' WHERE grp='%s' AND key='%s' AND creation=%d"
+function index:find(group, key, duration, timestamp)
 	assert(group, "Group missing")
 	assert(key, "Key missing")
-	assert(version, "Version missing")
 	local duration = duration or self._default_duration
 	local creation = utils.duration_base(duration, timestamp)
-	local ikey = index_key(group, key, creation, version)
+	local ikey = index_key(group, key, creation)
 
 	local db = self._db
 	assert(db)
@@ -249,7 +247,7 @@ function index:find(group, key, version, duration, timestamp)
 		assert(tostring(k) ~= tostring(ikey))
 	end
 
-	local sql = string.format(find_sql, group, key, version, creation)
+	local sql = string.format(find_sql, group, key, creation)
 
 	local row, err = db:first_row(sql)
 	if not row then
@@ -266,21 +264,21 @@ function index:find(group, key, version, duration, timestamp)
 	return store
 end
 
-local select_sql = "SELECT * FROM 'index' WHERE grp='%s' AND key='%s' AND version=%d AND creation>=%d AND creation<=%d"
-function index:list(group, key, version, duration, start_time, end_time)
+local select_sql = "SELECT * FROM 'index' WHERE grp='%s' AND key='%s' AND creation>=%d AND creation<=%d"
+function index:list(group, key, duration, start_time, end_time)
 	local duration = duration or self._default_duration
 	local stime = utils.duration_base(duration, start_time)
 	local etime = utils.duration_base(duration, end_time)
 
 	local db = self._db
 	assert(db)
-	local sql = string.format(select_sql, group, key, version, stime, etime)
+	local sql = string.format(select_sql, group, key, stime, etime)
 
 	local list = {}
 	for row in db:rows(sql) do
 		--print("INDEX.LIST", row.id, row.key, row.grp, row.file, row.creation, row.duration)
 
-		local ikey = index_key(row.grp, row.key, row.creation, row.version)
+		local ikey = index_key(row.grp, row.key, row.creation)
 		local obj = self._store_map[ikey]
 		if not obj then
 			obj = store:new(row.duration, row.creation, self._folder..'/'..row.file, function()

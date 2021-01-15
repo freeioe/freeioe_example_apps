@@ -152,6 +152,10 @@ local table_drop_sql = [[
 DROP TABLE 'DATA_%s'
 ]]
 
+local table_rename_sql = [[
+ALTER TABLE 'DATA_%s' RENAME TO 'DATA_%s'
+]]
+
 local table_query = [[
 SELECT name FROM sqlite_master WHERE type='table' AND name='DATA_%s'
 ]]
@@ -168,17 +172,19 @@ local data_query_sql = [[
 SELECT * FROM 'DATA_%s' WHERE timestamp >= %f AND timestamp <= %f %s
 ]]
 
-function store:init(cate, meta)
+function store:init(cate, meta, version)
 	assert(cate, "Cate missing")
 	assert(meta, "Meta missing")
+	assert(version, "Meta version missing")
+
+	local tkey = 'table_meta_'..cate
 
 	if not self._meta_map[cate] then
-		local old_meta = self._meta:get('table_meta_'..cate)
-		if old_meta then
-			local old = cjson.decode(old_meta)
-			if not check_db_meta(meta, old) then
-				self:drop(cate)
-			end
+		local old_meta = self._meta:get(tkey)
+		local old_version = self._meta:get(tkey..'.ver') or 0
+		if old_meta and tonumber(old_version) ~= version then
+			self:rename(cate, cate..'_'..old_version)
+			self._meta:set(tkey..'.ver_'..old_version, old_meta)
 		end
 	else
 		if not check_db_meta(meta, self._meta_map[cate]) then
@@ -236,7 +242,9 @@ function store:init(cate, meta)
 
 	self._stmts[cate] = stmt
 	self._meta_map[cate] = meta
-	self._meta:set('table_meta_'..cate, cjson.encode(meta))
+
+	self._meta:set(tkey, cjson.encode(meta))
+	self._meta:set(tkey..'.ver', tostring(version))
 
 	return true
 end
@@ -291,6 +299,12 @@ function store:drop(cate)
 	assert(cate)
 	assert(self._db)
 	assert(self._db:exec(string.format(table_drop_sql, cate)))
+end
+
+function store:rename(cate, cate_re)
+	assert(cate)
+	assert(self._db)
+	assert(self._db:exec(string.format(table_rename_sql, cate, cate_re)))
 end
 
 return store

@@ -6,15 +6,49 @@ local hisdb_tag = require 'hisdb.tag'
 
 local tag = base:subclass('HJ212_HJTAG')
 
-function tag:initialize(hisdb, station, prop) --name, min, max, calc, cou, has_cou, upload)
+local function prop2options(prop)
+	if not prop.cou_calc then
+		return {
+			min = prop.min,
+			max = prop.max,
+			fmt = prop.fmt,
+			cou = {
+				cou = prop.cou,
+			},
+			zs_calc = prop.zs_calc
+		}
+	end
+
+	local cou_calc, params = string.match(prop.cou_calc, '^(.+)({.+})')
+	if cou_calc and params then
+		params = cjson.decode(params)
+	else
+		cou_calc = prop.cou_calc
+	end
+
+	return {
+		min = prop.min,
+		max = prop.max,
+		fmt = prop.fmt,
+		cou = {
+			calc = cou_calc,
+			cou = prop.cou,
+			params = params,
+		},
+		zs_calc = prop.zs_calc
+	}
+end
+
+function tag:initialize(hisdb, station, prop)
 	--- Base initialize
-	base.initialize(self, station, prop.name, prop.min, prop.max, prop.cou, prop.has_cou, prop.fmt)
+	prop.zs_calc = prop.zs and calc_parser(station, prop.zs)
+	base.initialize(self, station, prop.name, prop2options(prop))
 	self._upload = prop.upload
-	self._has_cou = prop.has_cou
 	self._no_hisdb = prop.no_hisdb
 
 	--- Member objects
 	self._hisdb = hisdb
+	local calc = prop.calc
 	if calc then
 		--- Value calc
 		self._calc = calc_parser(station, calc)
@@ -26,10 +60,6 @@ end
 
 function tag:upload()
 	return self._upload
-end
-
-function tag:has_cou()
-	return self._has_cou
 end
 
 function tag:init_db()

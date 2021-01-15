@@ -3,13 +3,13 @@ local utils = require 'hisdb.utils'
 
 local object = class('hisdb.object')
 
-function object:initialize(hisdb, group, key, cate, version, meta, duration)
+function object:initialize(hisdb, group, key, cate, meta, version, duration)
 	self._hisdb = hisdb
 	self._group = group
 	self._key = key
 	self._cate = cate
-	self._version = version
 	self._meta = meta
+	self._version = version
 	self._duration = duration
 	self._store = nil
 end
@@ -67,7 +67,7 @@ function object:set_store(store)
 	if self._store then
 		self._store:remove_watch(self)
 	end
-	assert(store:init(self._cate, self._meta))
+	assert(store:init(self._cate, self._meta, self._version))
 	store:add_watch(self, function(store)
 		if store == self._store then
 			self._store = nil

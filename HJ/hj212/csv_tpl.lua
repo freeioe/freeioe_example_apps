@@ -76,13 +76,17 @@ local function load_tpl(name, err_cb)
 			prop.max = string.len(v[9]) > 0 and tonumber(v[9]) or nil
 			prop.fmt = string.len(v[10]) > 0 and v[10] or nil
 			prop.calc = string.len(v[11]) > 0 and v[11] or nil
-			prop.cou = string.len(v[12]) > 0 and v[12] or nil
-			if prop.cou and (string.upper(prop.cou) == 'N/A' or string.upper(prop.cou) == 'N') then
-				prop.has_cou = false
-			else
-				prop.has_cou = true
-			end
+			prop.cou_calc = string.len(v[12]) > 0 and v[12] or nil
 			prop.upload = (string.upper((v[13] or '')) ~= 'N')
+			prop.cou = v[14] -- false will not upload cou, number will set the COU to this number
+			if string.upper(prop.cou) == 'N/A' or string.upper(prop.cou) == 'N' then
+				prop.cou = false
+			elseif string.len(prop.cou) > 0 then
+				prop.cou = tonumber(prop.cou) or 0
+			else
+				prop.cou = true
+			end
+			prop.zs = string.len(v[15]) > 0 and v[15] or nil
 
 			if valid_prop(prop, err_cb) then
 				if not devs[prop.sn] then

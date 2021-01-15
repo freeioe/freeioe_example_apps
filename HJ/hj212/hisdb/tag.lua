@@ -10,14 +10,22 @@ local sum_attrs = {
 	{ name = 'stime', type = 'INTEGER', not_null = true },
 	{ name = 'etime', type = 'INTEGER', not_null = true },
 	{ name = 'flag', type = 'INTEGER', not_null = true },
+	--- Zs
+	{ name = 'avg_z', type = 'DOUBLE', not_null = false },
+	{ name = 'min_z', type = 'DOUBLE', not_null = false },
+	{ name = 'max_z', type = 'DOUBLE', not_null = false },
 }
+
+local sum_attrs_ver = 2
 
 local rdata_attrs = {
 	{ name = 'value', type = 'DOUBLE', not_null = true },
 	{ name = 'flag', type = 'INTEGER', not_null = true },
+	-- Zs
+	{ name = 'value_z', type = 'DOUBLE', not_null = false },
 }
 
-local db_version = 1
+local rdata_attrs_ver = 2
 
 function tag:initialize(hisdb, tag_name, sample_attrs, sample_version, no_db)
 	self._hisdb = hisdb
@@ -36,11 +44,11 @@ function tag:init()
 
 	local hisdb = self._hisdb
 	local db_map = {
-		SAMPLE = hisdb:create_object('SAMPLE', 'SAMPLE', self._tag_name, self._version, self._attrs),
-		RDATA = hisdb:create_object('HISDB', self._tag_name, 'RDATA', db_version, rdata_attrs),
-		MIN = hisdb:create_object('HISDB', self._tag_name, 'MIN', db_version, sum_attrs),
-		HOUR = hisdb:create_object('HISDB', self._tag_name, 'HOUR', db_version, sum_attrs),
-		DAY = hisdb:create_object('HISDB', self._tag_name, 'DAY', db_version, sum_attrs),
+		SAMPLE = hisdb:create_object('SAMPLE', 'SAMPLE', self._tag_name, self._attrs, self._version),
+		RDATA = hisdb:create_object('HISDB', self._tag_name, 'RDATA', rdata_attrs, rdata_attrs_ver),
+		MIN = hisdb:create_object('HISDB', self._tag_name, 'MIN', sum_attrs, sum_attrs_ver),
+		HOUR = hisdb:create_object('HISDB', self._tag_name, 'HOUR', sum_attrs, sum_attrs_ver),
+		DAY = hisdb:create_object('HISDB', self._tag_name, 'DAY', sum_attrs, sum_attrs_ver),
 	}
 	for k,v in pairs(db_map) do
 		local r, err = v:init()

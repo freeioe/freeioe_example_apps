@@ -6,7 +6,9 @@ local calc = base:subclass('HJ212_CALC_AIR_DRYC')
 function calc:calc(value)
 	local cems = self:station():cems()
 	assert(cems)
-	return air_helper.DryC(value, cems:Xsw())
+	local Co2s = tonumber(self:param())
+	assert(Co2s)
+	return air_helper.Cz2(value, cems:Cvo2(), Co2s) 
 end
 
 return calc

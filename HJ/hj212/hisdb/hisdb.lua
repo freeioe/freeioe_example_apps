@@ -8,7 +8,7 @@ function hisdb:initialize(folder, durations)
 	self._durations = durations
 	self._index_db = index:new(folder)
 	self._objects = {}
-	self._group_version = {}
+	self._version_check = {}
 end
 
 function hisdb:open()
@@ -23,24 +23,24 @@ function hisdb:index_db()
 	return self._index_db
 end
 
-local function index_key(group, key)
-	return string.format('%s/%s/%s', group, key)
+local function index_key(group, key, cate)
+	return string.format('%s/%s/%s', group, key, cate)
 end
 
-function hisdb:create_object(group, key, cate, version, meta)
+function hisdb:create_object(group, key, cate, meta, version)
 	assert(key ~= nil, "Key missing")
 	assert(cate ~= nil, "Cate missing")
 	assert(meta ~= nil, "Meta missing")
 	local duration = self._durations[group]
 
-	self._group_version[group] = self._group_version[group] or {}
-	if not self._group_version[group][key] then
-		self._group_version[group][key] = version
+	local ikey = index_key(group, key, cate)
+	if not self._version_check[ikey] then
+		self._version_check[ikey] = version
 	else
-		assert(self._group_version[group][key] == version)
+		assert(self._version_check[ikey] == version)
 	end
 
-	local obj, err = object:new(self, group, key, cate, version, meta, duration)
+	local obj, err = object:new(self, group, key, cate, meta, version, duration)
 	table.insert(self._objects, obj)
 	return obj
 end
@@ -50,19 +50,19 @@ function hisdb:create_store(obj, start_time)
 	assert(start_time, 'Start time missing')
 	local start_time = start_time or os.time()
 	local db = self._index_db
-	return db:create(obj:group(), obj:key(), obj:version(), obj:duration(), start_time)
+	return db:create(obj:group(), obj:key(), obj:duration(), start_time)
 end
 
 function hisdb:find_store(obj, timestamp)
 	assert(obj and timestamp)
 	local db = self._index_db
-	return db:find(obj:group(), obj:key(), obj:version(), obj:duration(), timestamp)
+	return db:find(obj:group(), obj:key(), obj:duration(), timestamp)
 end
 
 function hisdb:list_store(obj, start_time, end_time)
 	assert(obj and start_time and end_time)
 	local db = self._index_db
-	return db:list(obj:group(), obj:key(), obj:version(), obj:duration(), start_time, end_time)
+	return db:list(obj:group(), obj:key(), obj:duration(), start_time, end_time)
 end
 
 function hisdb:retain_check()
