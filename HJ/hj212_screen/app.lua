@@ -646,6 +646,7 @@ function app:on_output(app_src, sn, output, prop, value, timestamp)
 	conf.settings = conf.settings or {}
 
 	self._value_map[output] = { value = value, timestamp = ioe.time() }
+	self._value_map[setting.hj212] = { value = value, timestamp = ioe.time() }
 	self._dev:set_input_prop(output, 'value', value)
 	self._dev:set_input_prop(setting.hj212, 'value', value)
 	for _, v in ipairs(conf.settings) do
