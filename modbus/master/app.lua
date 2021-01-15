@@ -355,12 +355,14 @@ function app:read_packet(dev, stat, unit, pack)
 	local pdu, err = self._modbus:request(unit, req, timeout)
 	if not pdu then
 		self._log:warning("read failed: " .. (err or "Timeout"))
+		stat:set('status', -1)
 		return self:invalid_dev(dev, pack)
 	end
 	--self._log:trace("read input registers done!", unit)
 
 	--- 统计数据
 	stat:inc('packets_in', 1)
+	stat:set('status', 0)
 
 	--- 解析数据
 	local d = self._data_unpack
