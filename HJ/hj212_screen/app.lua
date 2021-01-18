@@ -52,6 +52,12 @@ function app:initialize(name, sys, conf)
 		HOUR = {},
 		DAY = {},
 	}
+	self._defaults = {
+		RDATA = {value = 0},
+		MIN = {cou = 0, min = 0, max = 0},
+		HOUR = {cou = 0, min = 0, max = 0},
+		DAY = {cou = 0, min = 0, max = 0},
+	}
 end
 
 function app:on_start()
@@ -480,7 +486,7 @@ function app:publish_prop_data(tag_name, prop, value, timestamp)
 				for k, v in pairs(self._inputs_map) do
 					if not buf.list[k] then
 						log:warning('Missing item', k, name)
-						buf.list[k] = {value=0,avg=0,cou=0} -- Set to zero
+						buf.list[k] = self._defaults[prop]
 					else
 						log:debug('Has item', k, name)
 					end
@@ -549,6 +555,7 @@ function app:publish_prop_list(prop, list, timestamp)
 			datas[name..'MIN_'..k] = v.min
 			datas[name..'MAX_'..k] = v.max
 		end
+		datas[name..'FLAG_'..k] = v.flag
 	end
 	local topic = 'inputs/'..topic_map[prop]
 
