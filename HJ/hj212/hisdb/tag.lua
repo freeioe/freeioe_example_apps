@@ -2,37 +2,10 @@ local base = require 'hj212.calc.db'
 
 local tag = base:subclass("HJ212_APP_TAG_DB_DB")
 
-local sum_attrs = {
-	{ name = 'cou', type = 'DOUBLE', not_null = true },
-	{ name = 'avg', type = 'DOUBLE', not_null = true },
-	{ name = 'min', type = 'DOUBLE', not_null = true },
-	{ name = 'max', type = 'DOUBLE', not_null = true },
-	{ name = 'stime', type = 'INTEGER', not_null = true },
-	{ name = 'etime', type = 'INTEGER', not_null = true },
-	{ name = 'flag', type = 'INTEGER', not_null = true },
-	--- Zs
-	{ name = 'avg_z', type = 'DOUBLE', not_null = false },
-	{ name = 'min_z', type = 'DOUBLE', not_null = false },
-	{ name = 'max_z', type = 'DOUBLE', not_null = false },
-}
-
-local sum_attrs_ver = 2
-
-local rdata_attrs = {
-	{ name = 'value', type = 'DOUBLE', not_null = true },
-	{ name = 'flag', type = 'INTEGER', not_null = true },
-	-- Zs
-	{ name = 'value_z', type = 'DOUBLE', not_null = false },
-}
-
-local rdata_attrs_ver = 2
-
-function tag:initialize(hisdb, tag_name, sample_attrs, sample_version, no_db)
+function tag:initialize(hisdb, tag_name, no_db)
 	self._hisdb = hisdb
 	self._tag_name = tag_name
 	self._samples = {}
-	self._attrs = sample_attrs
-	self._version = sample_version or db_version
 	self._no_db = no_db
 	self._db_map = {}
 end
@@ -42,13 +15,17 @@ function tag:init()
 		return true
 	end
 
+	local sample_meta, sample_ver = self:sample_meta()
+	local rdata_meta, rdata_ver = self:rdata_meta()
+	local cou_meta, cou_ver = self:cou_meta()
+
 	local hisdb = self._hisdb
 	local db_map = {
-		SAMPLE = hisdb:create_object('SAMPLE', 'SAMPLE', self._tag_name, self._attrs, self._version),
-		RDATA = hisdb:create_object('HISDB', self._tag_name, 'RDATA', rdata_attrs, rdata_attrs_ver),
-		MIN = hisdb:create_object('HISDB', self._tag_name, 'MIN', sum_attrs, sum_attrs_ver),
-		HOUR = hisdb:create_object('HISDB', self._tag_name, 'HOUR', sum_attrs, sum_attrs_ver),
-		DAY = hisdb:create_object('HISDB', self._tag_name, 'DAY', sum_attrs, sum_attrs_ver),
+		SAMPLE = hisdb:create_object('SAMPLE', 'SAMPLE', self._tag_name, sample_meta, sample_ver),
+		RDATA = hisdb:create_object('HISDB', self._tag_name, 'RDATA', rdata_meta, rdata_ver),
+		MIN = hisdb:create_object('HISDB', self._tag_name, 'MIN', cou_meta, cou_ver),
+		HOUR = hisdb:create_object('HISDB', self._tag_name, 'HOUR', cou_meta, cou_ver),
+		DAY = hisdb:create_object('HISDB', self._tag_name, 'DAY', cou_meta, cou_ver),
 	}
 	for k,v in pairs(db_map) do
 		local r, err = v:init()

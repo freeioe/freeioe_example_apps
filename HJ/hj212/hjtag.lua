@@ -1,6 +1,7 @@
 local cjson = require 'cjson.safe'
 local calc_parser = require 'calc.parser'
 
+local logger = require 'hj212.logger'
 local base = require 'hj212.client.tag'
 local hisdb_tag = require 'hisdb.tag'
 
@@ -76,8 +77,7 @@ end
 
 function tag:init_db()
 	local cou_calc = self:cou_calc()
-	local meta, version = cou_calc:sample_meta()
-	local db = hisdb_tag:new(self._hisdb, self:tag_name(), meta, version, self._no_hisdb)
+	local db = hisdb_tag:new(self._hisdb, self:tag_name(), self._no_hisdb)
 	local r, err = db:init()
 	if not r then
 		return nil, err
@@ -111,45 +111,18 @@ function tag:set_value(value, timestamp)
 		value = self._calc(value, timestamp)
 		value = math.floor(value * 100000) / 100000
 	end
-	local r, err = base.set_value(self, value, timestamp)
-	if not r then
-		return nil, err
-	end
-
-	if self._value_callback then
-		self._value_callback('value', self._value, timestamp)
-	end
-	return true
+	return base.set_value(self, value, timestamp)
 end
 
 --- Forward to MQTT application
 function tag:on_calc_value(type_name, val, timestamp)
 	assert(type_name ~= 'value')
 	assert(val and type(val) == 'table')
-	local val_str, err = cjson.encode(val)
-	if not val_str then
-		print('JSON ENCODE ERROR', self:tag_name())
-		print(val)
-		print(type(val))
-		for k,v in pairs(val) do
-			print(k,v, type(v))
-			if tostring(v) == '-nan' then
-				val[k] = 0
-			end
-			if tostring(v) == 'inf' then
-				if k == 'avg' then
-					val[k] = 0xFFFFFFFF
-				else
-					val[k] = 0
-				end
-			end
-		end
-		return
-	end
 	--print('on_calc_value', self._name, type_name, timestamp, cjson.encode(val))
 	if self._value_callback then
-		self._value_callback(type_name, val_str, timestamp)
+		self._value_callback(type_name, val, timestamp)
 	end
+	return val
 end
 
 return tag

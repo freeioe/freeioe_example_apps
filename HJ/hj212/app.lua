@@ -1,6 +1,7 @@
 --- 导入需求的模块
 local date = require 'date'
 local ioe = require 'ioe'
+local cjson = require 'cjson.safe'
 local app_base = require 'app.base'
 local conf = require 'app.conf'
 local sysinfo = require 'utils.sysinfo'
@@ -29,7 +30,7 @@ function app:on_init()
 	self._childs = {}
 	local log = self:log_api()
 	hj212_logger.set_log(function(level, ...)
-		assert(level and log[level])
+		assert(level and log[level], 'Level is incorrect: '..level)
 		log[level](log, ...)
 	end)
 end
@@ -56,6 +57,7 @@ end
 function app:on_start()
 	local sys = self:sys_api()
 	local conf = self:app_conf()
+	local log = self:log_api()
 
 	if string.len(conf.dev_id) ~= 24 then
 		return false, "Device ID (MN) length incorrect"
@@ -73,7 +75,7 @@ function app:on_start()
 	self._rdata_interval = tonumber(conf.rdata_interval) or 30
 	self._min_interval = tonumber(conf.min_interval) or 10
 	if (60 % self._min_interval) ~= 0 then
-		self._log:error("Minutes Interval Error, reset to 10")
+		log:error("Minutes Interval Error, reset to 10")
 		self._min_interval = 10
 	end
 
@@ -81,7 +83,7 @@ function app:on_start()
 	self._hisdb = hisdb:new(db_folder, {SAMPLE='1d'})
 	local r, err = self._hisdb:open()
 	if not r then
-		self._log:error("Failed to open history database", err)
+		log:error("Failed to open history database", err)
 		return nil, err
 	end
 
@@ -118,16 +120,16 @@ function app:on_start()
 		local capi = sys:conf_api(tpl_id)
 		local data, err = capi:data(tpl_ver)
 		if not data then
-			self._log:error("Failed loading template from cloud!!!", err)
+			log:error("Failed loading template from cloud!!!", err)
 			return false
 		end
 		tpl_file = tpl_id..'_'..tpl_ver
 	end
-	self._log:info("Loading template", tpl_file)
+	log:info("Loading template", tpl_file)
 
 	-- 加载模板
 	csv_tpl.init(self._sys:app_dir())
-	local tpl = csv_tpl.load_tpl(tpl_file, function(...) self._log:error(...) end)
+	local tpl = csv_tpl.load_tpl(tpl_file, function(...) log:error(...) end)
 
 	self._tpl = tpl
 	self._devs = {}
@@ -166,13 +168,40 @@ function app:on_start()
 
 			local tag = tag:new(self._hisdb, self._station, prop)
 			local p_name = prop.name
-			tag:set_value_callback(function(prop, value, timestamp)
+			tag:set_value_callback(function(type_name, val, timestamp)
 				local dev = app_inst._dev
 				if not dev then
-					-- self._log:warning('Device object not found', p_name, prop, value, timestamp)
+					-- log:warning('Device object not found', p_name, prop, value, timestamp)
 					return
 				end
-				dev:set_input_prop(p_name, prop, value, timestamp)
+				if type_name == 'SAMPLE' then
+					dev:set_input_prop(p_name, 'value', val.cou or val.value, timestamp)
+				else
+					local val_str, err = cjson.encode(val)
+					if not val_str then
+						log:error('JSON ENCODE ERROR', p_name)
+						for k,v in pairs(val) do
+							if tostring(v) == '-nan' then
+								log:warning('Value corrected:',k,v)
+								val[k] = 0
+							end
+							if tostring(v) == 'inf' then
+								log:warning('Value corrected:',k,v)
+								if k == 'avg' then
+									val[k] = 0xFFFFFFFF
+								else
+									val[k] = 0
+								end
+							end
+						end
+						val_str, err = cjson.encode(val)
+					end
+					if val_str then
+						dev:set_input_prop(p_name, type_name, val_str, timestamp)
+					else
+						log:error('Value cannot serialized by cjson')
+					end
+				end
 			end)
 			tag_list[prop.name] = tag
 		end
@@ -203,7 +232,7 @@ function app:on_start()
 		local client = conn:new(self, v, self._station, self._dev_sn)
 		local r, err = client:start()
 		if not r then
-			self._log:error("Start connection failed", err)
+			log:error("Start connection failed", err)
 		end
 		table.insert(self._clients, client)
 	end
@@ -212,13 +241,13 @@ function app:on_start()
 		--- Start timers
 		self:start_timers()
 		self._station:init(self._calc_mgr, function(...)
-			self._log:error("Init tag failed", ...)
+			log:error("Init tag failed", ...)
 		end)
 		self:read_tags()
 		self._inited = true
 	end)
 
-	self._log:info("Register station", conf.station, self:app_name())
+	log:info("Register station", conf.station, self:app_name())
 	ioe.env.set('HJ212.STATION', conf.station or 'HJ212', self:app_name())
 
 	return true
@@ -404,8 +433,8 @@ function app:for_earch_client(func, ...)
 	end
 end
 
-function app:upload_rdata(now, save)
-	local data = self._station:rdata(now, save)
+function app:upload_rdata(now)
+	local data = self._station:rdata(now, false)
 	self:for_earch_client('upload_rdata', data)
 end
 
@@ -439,7 +468,7 @@ function app:set_rdata_interval(interval)
 
 	if self._rdata_interval > 0 then
 		self._rdata_timer = timer:new(function(now)
-			self:upload_rdata(now, true)
+			self:upload_rdata(now)
 		end, self._rdata_interval)
 		self._rdata_timer:start()
 	end
@@ -469,7 +498,7 @@ end
 function app:start_timers()
 	if self._rdata_interval > 0 then
 		self._rdata_timer = timer:new(function(now)
-			self:upload_rdata(now, true)
+			self:upload_rdata(now)
 		end, self._rdata_interval, true)
 		self._rdata_timer:start()
 	end
