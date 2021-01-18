@@ -183,7 +183,7 @@ function store:init(cate, meta, version)
 		local old_meta = self._meta:get(tkey)
 		local old_version = self._meta:get(tkey..'.ver') or 0
 		if old_meta and tonumber(old_version) ~= version then
-			self:rename(cate, 'B_'..cate..'_'..old_version)
+			self:rename(cate, '_backup_'..cate..'_'..old_version)
 			self._meta:set(tkey..'.ver_'..old_version, old_meta)
 		end
 	else
