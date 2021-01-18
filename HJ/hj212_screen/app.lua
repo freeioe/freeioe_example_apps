@@ -434,6 +434,9 @@ function app:on_publish_data(key, value, timestamp, quality)
 	if not tpl_props then
 		return true
 	end
+	if prop ~= 'value' and prop ~= 'RDATA' and prop ~= 'MIN' and prop ~= 'HOUR' and prop ~= 'DAY' then
+		return true
+	end
 
 	if prop ~= 'value' then
 		value = assert(cjson.decode(value))
@@ -539,9 +542,12 @@ function app:publish_prop_list(prop, list, timestamp)
 	for k, v in pairs(list) do
 		if prop == 'RDATA' then
 			datas[name..'_'..k] = v.value
+			datas[name..'COU_'..k] = v.cou
 		else
 			datas[name..'COU_'..k] = v.cou
 			datas[name..'AVG_'..k] = v.avg
+			datas[name..'MIN_'..k] = v.min
+			datas[name..'MAX_'..k] = v.max
 		end
 	end
 	local topic = 'inputs/'..topic_map[prop]
