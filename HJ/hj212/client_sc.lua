@@ -2,6 +2,7 @@ local skynet = require 'skynet'
 local socket = require 'skynet.socket'
 local socketdriver = require 'skynet.socketdriver'
 local base = require 'hj212.client.base'
+local types = require 'hj212.types'
 
 local client = base:subclass("HJ212_CLIENT_SC")
 
@@ -22,7 +23,11 @@ end
 --- 
 function client:initialize(station, opt)
 	assert(station and opt)
-	base.initialize(self, station, opt.passwd, opt.timeout, opt.retry)
+	local ver = types.PROTOCOL.V2017
+	if opt.version then
+		ver = assert(types.PROTOCOL['V'..opt.version])
+	end
+	base.initialize(self, station, opt.passwd, opt.timeout, opt.retry, {ver=ver})
 	self._name = opt.name
 	self._closing = false
 	self._opt = opt
