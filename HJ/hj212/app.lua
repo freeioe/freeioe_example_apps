@@ -433,24 +433,32 @@ function app:for_earch_client(func, ...)
 	end
 end
 
+function app:for_earch_client_async(func, ...)
+	for _, v in ipairs(self._clients) do
+		self._sys:fork(function(...)
+			v[func](v, ...)
+		end, ...)
+	end
+end
+
 function app:upload_rdata(now)
 	local data = self._station:rdata(now, false)
-	self:for_earch_client('upload_rdata', data)
+	self:for_earch_client_async('upload_rdata', data)
 end
 
 function app:upload_min_data(now)
 	local data = self._station:min_data(now, now)
-	self:for_earch_client('upload_min_data', data)
+	self:for_earch_client_async('upload_min_data', data)
 end
 
 function app:upload_hour_data(now)
 	local data = self._station:hour_data(now, now)
-	self:for_earch_client('upload_hour_data', data)
+	self:for_earch_client_async('upload_hour_data', data)
 end
 
 function app:upload_day_data(now)
 	local data = self._station:day_data(now, now)
-	self:for_earch_client('upload_day_data', data)
+	self:for_earch_client_async('upload_day_data', data)
 end
 
 function app:set_rdata_interval(interval)
