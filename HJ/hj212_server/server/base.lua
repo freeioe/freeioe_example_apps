@@ -10,7 +10,7 @@ function server:initialize(app)
 	self._stations = {}
 end
 
-function server:create_station(client, system, dev_id, passwd)
+function server:create_station(client, system, dev_id, passwd, ver)
 	local sys = self:sys_api()
 	local log = self:log_api()
 	if self._stations[dev_id] then

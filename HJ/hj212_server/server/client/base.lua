@@ -65,8 +65,8 @@ function client:server()
 	return self._server
 end
 
-function client:on_station_create(system, dev_id, passwd)
-	return self._server:create_station(self, system, dev_id, passwd)
+function client:on_station_create(system, dev_id, passwd, ver)
+	return self._server:create_station(self, system, dev_id, passwd, ver)
 end
 
 function client:on_disconnect()
