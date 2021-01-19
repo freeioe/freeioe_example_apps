@@ -1,9 +1,31 @@
 [
 	{
-		"name": "port",
-		"desc": "HJ232 Center Port",
-		"type": "number",
-		"default": 6000
+		"name": "channel_type",
+		"desc": "通讯类型(Stream Type)",
+		"type": "dropdown",
+		"default": "socket",
+		"values": [
+			{
+				"name": "TCP连接(TCP Server)",
+				"value": "socket"
+			},
+			{
+				"name": "串口(Serial)",
+				"value": "serial"
+			}
+		],
+		"depends": {
+			"socket": "socket_opt",
+			"serial": "serial_opt"
+		}
+	},
+	{
+		"name": "socket_opt",
+		"type": "tcp_client"
+	},
+	{
+		"name": "serial_opt",
+		"type": "serial"
 	},
 	{
 		"name": "stations",

@@ -11,6 +11,7 @@ local hj212_logger = require 'hj212.logger'
 local station = require 'hj212.server.station'
 
 local tcp_server = require 'server.tcp'
+local serial_server = require 'server.serial'
 
 --- lua_HJ212_version: 2021-01-15
 
@@ -124,6 +125,7 @@ function app:on_start()
 
 	conf.port = tonumber(conf.port or '') or 6000
 	conf.stations = conf.stations or {}
+	--[[
 	if #conf.stations == 0 then
 		table.insert(conf.stations, {
 			name = 'station_1',
@@ -145,7 +147,18 @@ function app:on_start()
 			rdata_interval = 30, -- 30 seconds
 			min_interval = 10, -- 10 mins
 		})
+		table.insert(conf.stations, {
+			name = 'station_mp',
+			system = '31',
+			dev_id = 'MP1',
+			passwd = '123456',
+			timeout = 5,
+			retry = 3,
+			rdata_interval = 30, -- 30 seconds
+			min_interval = 10, -- 10 mins
+		})
 	end
+	]]--
 
 	self._stations = {}
 	self._devs = {}
@@ -186,14 +199,28 @@ function app:on_start()
 	local dev_sn = sys_id..'.'..self:app_name()
 	self._dev = api:add_device(dev_sn, meta, inputs, nil, commands)
 
-	local host = conf.host or '0.0.0.0'
-	local port = conf.port or 6000
-	self._server = tcp_server:new(self, host, port)
+	conf.channel_type = 'serial'
+	if conf.channel_type == 'serial' then
+		local opt = conf.serial_opt or {
+			port = "/tmp/ttyS1",
+			baudrate = 9600
+		}
+		self._server = serial_server:new(self, opt)
 
-	self._dev:set_input_prop('host', 'value', host)
-	self._dev:set_input_prop('host', 'value', port)
+		self._dev:set_input_prop('host', 'value', opt.port)
+		self._dev:set_input_prop('port', 'value', 0)
+	else
+		local opt = conf.socket_opt or {}
+		local host = opt.host or '0.0.0.0'
+		local port = opt.port or 6000
+		self._server = tcp_server:new(self, host, port)
+
+		self._dev:set_input_prop('host', 'value', host)
+		self._dev:set_input_prop('port', 'value', port)
+	end
 
 	self._server:set_io_cb(function(sn, io, data)
+		self._log:trace(io, data)
 		local dev = self._devs[sn]
 		if not dev then
 			sys:dump_comm(nil, io, data)
@@ -219,7 +246,6 @@ function app:on_close(reason)
 		self._server:stop()
 	end
 	self._log:warning('Server closed')
-	print('Server closed')
 	return true
 end
 

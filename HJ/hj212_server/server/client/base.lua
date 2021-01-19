@@ -25,8 +25,8 @@ end
 
 local client = base:subclass('hj212_server.server.client.base')
 
-function client:initialize(server)
-	base.initialize(self)
+function client:initialize(server, pfuncs)
+	base.initialize(self, pfuncs)
 	self._server = server
 	self._sn = nil
 	self._log = server:log_api()
