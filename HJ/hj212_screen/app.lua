@@ -203,7 +203,7 @@ function app:on_start()
 	meta.series = 'N/A'
 
 	local dev_sn = sys_id..'.'..conf.station..'.SETTINGS'
-	if not conf.cloud_test then
+	if conf.cloud_test then
 		dev_sn = dev_sn ..'.'..conf.server
 	end
 
