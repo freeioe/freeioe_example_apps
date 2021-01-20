@@ -226,7 +226,7 @@ function app:on_start()
 	end
 
 	self._server:set_io_cb(function(sn, io, data)
-		self._log:trace(io, data)
+		--self._log:trace(io, data)
 		local dev = self._devs[sn]
 		if not dev then
 			sys:dump_comm(nil, io, data)
