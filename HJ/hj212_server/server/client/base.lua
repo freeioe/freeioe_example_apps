@@ -88,7 +88,7 @@ function client:on_rdata(name, rdata)
 		value = rdata.Rtd,
 		value_z = rdata.ZsRtd,
 		timestamp = rdata.SampleTime,
-		quality = (rdata.Flag == 'N') and 0 or string.byte(rdata.Flag),
+		flag = rdata.Flag
 	}
 end
 
@@ -103,8 +103,8 @@ function client:on_run()
 
 	for _, name in ipairs(self._inputs_cov) do
 		local rdata = self._rdata_map[name]
-		self._dev:set_input_prop(name, 'value', rdata.value, nil, rdata.quality)
-		self._dev:set_input_prop(name, 'RDATA', cjson.encode(rdata), rdata.timestamp, rdata.quality)
+		self._dev:set_input_prop(name, 'value', rdata.value)
+		self._dev:set_input_prop(name, 'RDATA', cjson.encode(rdata), rdata.timestamp)
 	end
 
 	self._inputs_cov = {}
