@@ -6,6 +6,8 @@ local server = base:subclass('hj212_server.server.base')
 function server:initialize(app)
 	base.initialize(self)
 	self._app = app
+	self._sys = app:sys_api()
+	self._log = app:log_api()
 	self._io_cb = nil
 	self._stations = {}
 end
@@ -35,15 +37,19 @@ function server:valid_connection(client)
 end
 
 function server:on_disconnect(client)
+	local station = client:station()
+	if station then
+		self._stations[station:id()] = nil
+	end
 	return self._app:on_client_disconnect(client)
 end
 
 function server:sys_api()
-	return self._app:sys_api()
+	return self._sys
 end
 
 function server:log_api()
-	return self._app:log_api()
+	return self._log
 end
 
 function server:app()

@@ -33,20 +33,25 @@ function app:on_init()
 	end)
 end
 
-function app:create_station(client, system, dev_id, passwd)
+function app:create_station(client, system, dev_id, passwd, ver)
+	self._log:info('Auth client', system, dev_id, passwd, ver)
 	local s = self._stations[dev_id]
 	if not s then
+		self._log:error('Client MN invalid')
 		return nil, types.REPLY.ERR_MN
 	end
 	local station = s.station
 	if station:client() then
+		self._log:error('Client MN already connected')
 		return nil, types.REPLY.REJECT
 	end
 
 	if tonumber(station:system()) ~= tonumber(system) then
+		self._log:error('Client ST invalid')
 		return nil, types.REPLY.ERR_ST
 	end
 	if station:passwd() ~= passwd then
+		self._log:error('Client PW invalid')
 		return nil, types.REPLY.ERR_PW
 	end
 

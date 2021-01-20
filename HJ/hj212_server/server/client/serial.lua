@@ -8,6 +8,8 @@ local client = base:subclass("hj212_server.server.client.tcp")
 -- stream_type: tcp/serial
 function client:initialize(server, serial, port)
 	base.initialize(self, server, {crc = crc16})
+	assert(serial, "serial missing")
+	assert(port, "port missing")
 	self._serial = serial
 	self._port = port
 	self._closing = nil
@@ -104,6 +106,8 @@ function client:close()
 		return nil, "Client is closing"
 	end
 
+	self:on_disconnect() -- serial is open always
+
 	self._closing = {}
 
 	skynet.wait(self._closing)
@@ -112,10 +116,12 @@ function client:close()
 
 	self:log('debug', "Client close done!")
 
+
 	return true
 end
 
 function client:work_proc()
+	self:log('info', "Client workproc starting...")
 	while not self._closing and self._serial do
 		local r, err = xpcall(self.process_serial_data, debug.traceback, self)
 		if not r then
