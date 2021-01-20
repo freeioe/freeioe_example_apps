@@ -130,41 +130,42 @@ function app:on_start()
 
 	conf.port = tonumber(conf.port or '') or 6000
 	conf.stations = conf.stations or {}
-	--[[
-	conf.channel_type = 'serial'
-	if #conf.stations == 0 then
-		table.insert(conf.stations, {
-			name = 'station_1',
-			system = '31',
-			dev_id = '010000A8900016F000169DC0',
-			passwd = '123456',
-			timeout = 5,
-			retry = 3,
-			rdata_interval = 30, -- 30 seconds
-			min_interval = 10, -- 10 mins
-		})
-		table.insert(conf.stations, {
-			name = 'station_1',
-			system = '31',
-			dev_id = 'DQ0000A8900016F000169DC0',
-			passwd = '123456',
-			timeout = 5,
-			retry = 3,
-			rdata_interval = 30, -- 30 seconds
-			min_interval = 10, -- 10 mins
-		})
-		table.insert(conf.stations, {
-			name = 'station_mp',
-			system = '31',
-			dev_id = 'MP1',
-			passwd = '123456',
-			timeout = 5,
-			retry = 3,
-			rdata_interval = 30, -- 30 seconds
-			min_interval = 10, -- 10 mins
-		})
+
+	if os.getenv('IOE_DEVELOPER_MODE') then
+		conf.channel_type = 'serial'
+		if #conf.stations == 0 then
+			table.insert(conf.stations, {
+				name = 'station_1',
+				system = '31',
+				dev_id = '010000A8900016F000169DC0',
+				passwd = '123456',
+				timeout = 5,
+				retry = 3,
+				rdata_interval = 30, -- 30 seconds
+				min_interval = 10, -- 10 mins
+			})
+			table.insert(conf.stations, {
+				name = 'station_1',
+				system = '31',
+				dev_id = 'DQ0000A8900016F000169DC0',
+				passwd = '123456',
+				timeout = 5,
+				retry = 3,
+				rdata_interval = 30, -- 30 seconds
+				min_interval = 10, -- 10 mins
+			})
+			table.insert(conf.stations, {
+				name = 'station_mp',
+				system = '31',
+				dev_id = 'MP1',
+				passwd = '123456',
+				timeout = 5,
+				retry = 3,
+				rdata_interval = 30, -- 30 seconds
+				min_interval = 10, -- 10 mins
+			})
+		end
 	end
-	]]--
 
 	self._stations = {}
 	self._devs = {}

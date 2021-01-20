@@ -29,20 +29,25 @@ function app:on_start()
 	local conf = self:app_conf()
 	local logger = self:log_api()
 
-	conf.servers = conf.servers or {
-		{ name='syslog_udp', url='udp://172.30.1.160:1514', format="syslog"},
-		{ name='syslog_tcp', url='tcp://172.30.1.160:1514', format="syslog"},
-		--{ name='syslog_tcp', url='tcp://127.0.0.1:16000', format="syslog"},
-	}
-	--[[
-	conf.logs = conf.logs or {
+	conf.servers = conf.servers or {}
+	conf.comms = {}
+	if os.getenv("IOE_DEVELOPER_MODE") then
+		conf.servers = {
+			--{ name='syslog_udp', url='udp://172.30.1.160:1514', format="syslog"},
+			{ name='syslog_tcp', url='tcp://172.30.1.160:1514', format="syslog"},
+			--{ name='syslog_tcp', url='tcp://127.0.0.1:16000', format="syslog"},
+		}
+		--[[
+		conf.logs = conf.logs or {
 		{ app = "*", level = "trace" }
-	}
-	]]--
-	conf.comms = conf.comms or {
-		{ app = "*", sn = "HJ212.ministry", dir = "*", base64=0 },
-		{ app = "*", sn = "HJ212.city", dir = "*", base64=0 },
-	}
+		}
+		]]--
+		conf.comms = conf.comms or {
+			--{ app = "*", sn = "HJ212.ministry", dir = "*", base64=0 },
+			--{ app = "*", sn = "HJ212.city", dir = "*", base64=0 },
+			{ app = "test", sn = "*", dir = "*", base64=0 },
+		}
+	end
 
 	local meta = self._api:default_meta()
 	meta.name = 'HJ212 Logger' 
