@@ -88,6 +88,7 @@ local function load_tpl(name, err_cb)
 			end
 			prop.zs = string.len(v[15] or '') > 0 and v[15] or nil
 			prop.hj2005 = string.len(v[16] or '') > 0 and v[16] or nil
+			prop.src_prop = string.len(v[17] or '') > 0 and v[17] or nil
 
 			if valid_prop(prop, err_cb) then
 				if not devs[prop.sn] then

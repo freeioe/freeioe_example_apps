@@ -59,6 +59,10 @@ function app:on_start()
 	local conf = self:app_conf()
 	local log = self:log_api()
 
+	if os.getenv("IOE_DEVELOPER_MODE") then
+		conf.local_timestamp = true
+	end
+
 	if string.len(conf.dev_id) ~= 24 then
 		return false, "Device ID (MN) length incorrect"
 	end
@@ -383,7 +387,7 @@ function app:on_input(app_src, sn, input, prop, value, timestamp, quality)
 		return
 	end
 
-	if quality ~= 0 or prop ~= 'value' then
+	if quality ~= 0 then
 		return
 	end
 
@@ -405,12 +409,33 @@ function app:on_input(app_src, sn, input, prop, value, timestamp, quality)
 		return
 	end
 
+	--- Decode the prop RDATA
+	if prop ~= 'value' and prop ~= 'RDATA' then
+		return
+	end
+	if prop == 'RDATA' then
+		value = cjson.decode(value)
+	end
+
 	timestamp = self._local_timestamp and self._sys:time() or timestamp
 
-	for _, v in ipairs(inputs) do
-		local r, err = self._station:set_tag_value(v.name, value, timestamp)
-		if not r then
-			self._log:warning("Failed set tag value", v.name, value, err)
+	if prop == 'value' then
+		for _, v in ipairs(inputs) do
+			if not v.src_prop or string.lower(v.src_prop) == 'value' then
+				local r, err = self._station:set_tag_value(v.name, value, timestamp)
+				if not r then
+					self._log:warning("Failed set tag value", v.name, value, err)
+				end
+			end
+		end
+	else
+		for _, v in ipairs(inputs) do
+			if v.src_prop == prop then
+				local r, err = self._station:set_tag_value(v.name, value.value, timestamp, value.value_z)
+				if not r then
+					self._log:warning("Failed set tag rdata", v.name, cjson.encode(value), err)
+				end
+			end
 		end
 	end
 end

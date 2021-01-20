@@ -42,7 +42,11 @@ end
 
 function tag:initialize(hisdb, station, prop)
 	--- Base initialize
-	prop.zs_calc = prop.zs and calc_parser(station, prop.zs)
+	if prop.zs and string.upper(prop.zs) == 'SRC' then
+		prop.zs_calc = true
+	elseif prop.zs then
+		prop.zs_calc = calc_parser(station, prop.zs)
+	end
 	base.initialize(self, station, prop.name, prop2options(prop))
 	self._upload = prop.upload
 	self._no_hisdb = prop.no_hisdb
@@ -103,15 +107,19 @@ function tag:set_value_callback(cb)
 	self._value_callback = cb
 end
 
-function tag:set_value(value, timestamp)
+function tag:set_value(value, timestamp, value_z)
 	assert(value ~= nil)
 	assert(timestamp ~= nil)
 	local value = value 
 	if self._calc then
 		value = self._calc(value, timestamp)
 		value = math.floor(value * 100000) / 100000
+		if value_z ~= nil then
+			value_z = self._calc(value_z, timestamp)
+			value_z = math.floor(value_z * 100000) / 100000
+		end
 	end
-	return base.set_value(self, value, timestamp)
+	return base.set_value(self, value, timestamp, value_z)
 end
 
 --- Forward to MQTT application
