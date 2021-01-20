@@ -550,12 +550,14 @@ function app:publish_prop_list(prop, list, timestamp)
 	for k, v in pairs(list) do
 		if prop == 'RDATA' then
 			datas[name..'_'..k] = v.value
-			datas[name..'COU_'..k] = v.cou
+			datas[name..'_'..k..'_Z'] = v.value_z
+			datas[name..'_'..k..'_COU'] = v.cou
 		else
 			datas[name..'COU_'..k] = v.cou
-			datas[name..'AVG_'..k] = v.avg
-			datas[name..'MIN_'..k] = v.min
-			datas[name..'MAX_'..k] = v.max
+			datas[name..'COU_'..k..'_Z'] = v.cou_z
+			datas[name..'COU_'..k..'_AVG'] = v.avg
+			datas[name..'COU_'..k..'_MIN'] = v.min
+			datas[name..'COU_'..k..'_MAX'] = v.max
 		end
 		datas[name..'FLAG_'..k] = v.flag
 	end
