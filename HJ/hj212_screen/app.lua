@@ -617,13 +617,9 @@ function app:on_stat(app, sn, stat, prop, value, timestamp)
 end
 
 function app:on_mqtt_connect_ok()
-	local sub_topics = {}
-	if not self._disable_output then
-		table.insert(sub_topics, '/output/#')
-	end
-	if not self._disable_command then
-		table.insert(sub_topics, '/command/#')
-	end
+	local sub_topics = {
+		'outputs/#'
+	}
 	for _, v in ipairs(sub_topics) do
 		self:subscribe(self._mqtt_id..v, 1)
 	end
@@ -635,21 +631,18 @@ function app:mqtt_will()
 end
 
 function app:on_mqtt_message(mid, topic, payload, qos, retained)
-	local id, t, sub = topic:match('^([^/]+)/([^/]+)(.-)$')
-	if id ~= self._mqtt_id and id ~= "ALL" then
-		self._log:error("MQTT recevied incorrect topic message")
-		return
+	local sub = topic:match('^outputs/(.-)$')
+	if not sub then
+		self._log:error("MQTT topic incorrect")
 	end
+
 	local data, err = cjson.decode(payload)
 	if not data then
 		self._log:error("Decode JSON data failed", err)
 		return
 	end
-
-	if t == 'output' then
-		self:on_mqtt_output(string.sub(sub or '/', 2), data.id, data.data)
-	elseif t == 'command' then
-		self:on_mqtt_command(string.sub(sub or '/', 2), data.id, data.data)
+	if sub == 'calc_para' then
+		self:on_mqtt_params(data)
 	else
 		self._log:error("MQTT recevied incorrect topic", t, sub)
 	end
@@ -666,25 +659,39 @@ function app:on_mqtt_result(id, result, message)
 	self:publish(self._mqtt_id..'/result/output', cjson.encode(data), 1, true)
 end
 
-function app:on_mqtt_output(topic, id, data)
-	if self._disable_output then
-		return self:on_mqtt_result(id, false, 'Device output disabled!')
-	end
-	if not self._enable_devices[data.device] then
-		return self:on_mqtt_result(id, false, 'Device not allowed!')
+function app:on_mqtt_params(settings)
+	local sys = self:sys_api()
+	local conf = sys:get_conf()
+	conf.settings = conf.settings or {}
+	local id = os.time()
+
+	for name, value in pairs(settings) do
+		local output = string.match('^TS_.(+)$') or ''
+		if output == 'post_CalcId' then
+			id = value
+		end
+		local setting = self._settings_map[output]
+		if setting then
+			self._value_map[output] = { value = value, timestamp = ioe.time() }
+			self._value_map[setting.hj212] = { value = value, timestamp = ioe.time() }
+			self._dev:set_input_prop(output, 'value', value)
+			self._dev:set_input_prop(setting.hj212, 'value', value)
+			local updated = false
+			for _, v in ipairs(conf.settings) do
+				if v.name == output then
+					v.value = tostring(value)
+					updated = true
+				end
+			end
+			if not updated then
+				table.insert(conf.settings, {name=output, value=tostring(value)})
+			end
+		end
 	end
 
-	local device, err = self._api:get_device(data.device)
-	if not device then
-		return self:on_mqtt_result(id, false, err or 'Device missing!')
-	end
+	sys:set_conf(conf)
 
-	local priv = {id = id, data = data}
-	local r, err = device:set_output_prop(data.output, data.prop or 'value', data.value, ioe.time(), priv)
-	if not r then
-		self._log:error('Set output prop failed!', err)
-		return self:on_mqtt_result(id, false, err or 'Set output prop failed')
-	end
+	return self:on_mqtt_result(id, true, 'Set output prop done')
 end
 
 function app:on_output(app_src, sn, output, prop, value, timestamp)
@@ -707,55 +714,21 @@ function app:on_output(app_src, sn, output, prop, value, timestamp)
 	self._value_map[setting.hj212] = { value = value, timestamp = ioe.time() }
 	self._dev:set_input_prop(output, 'value', value)
 	self._dev:set_input_prop(setting.hj212, 'value', value)
+
+	local updated = false
 	for _, v in ipairs(conf.settings) do
 		if v.name == output then
 			v.value = tostring(value)
-			sys:set_conf(conf)
-			return true
+			updated = true
 		end
 	end
-	table.insert(conf.settings, {name=output, value=tostring(value)})
+
+	if not updated then
+		table.insert(conf.settings, {name=output, value=tostring(value)})
+	end
+
 	sys:set_conf(conf)
 	return true
-end
-
-function app:on_output_result(app_src, priv, result, err)
-	if not result then
-		self._log:error('Set output prop failed!', err)
-		return self:on_mqtt_result(priv.id, false, err or 'Set output prop failed')
-	else
-		return self:on_mqtt_result(priv.id, true, 'Set output prop done!!')
-	end
-end
-
-function app:on_mqtt_command(topic, id, data)
-	if self._disable_command then
-		return self:on_mqtt_result(id, false, 'Device command disabled!')
-	end
-	if not self._enable_devices[data.device] then
-		return self:on_mqtt_result(id, false, 'Device not allowed!')
-	end
-
-	local device, err = self._api:get_device(data.device)
-	if not device then
-		return self:on_mqtt_result(id, false, err or 'Device missing!')
-	end
-
-	local priv = {id = id, data = data}
-	local r, err = device:send_command(data.cmd, data.param or {}, priv)
-	if not r then
-		self._log:error('Device command execute failed!', err)
-		return self:on_mqtt_result(id, false, err or 'Device command execute failed!')
-	end
-end
-
-function app:on_command_result(app_src, priv, result, err)
-	if not result then
-		self._log:error('Device command execute failed!', err)
-		return self:on_mqtt_result(priv.id, false, err or 'Device command execute failed!')
-	else
-		return self:on_mqtt_result(priv.id, true, 'Device command execute done!!')
-	end
 end
 
 --- 返回应用对象
