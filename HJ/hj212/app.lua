@@ -78,6 +78,11 @@ function app:on_start()
 		log:error("Minutes Interval Error, reset to 10")
 		self._min_interval = 10
 	end
+	self._calc_delay = tonumber(conf.calc_delay) or 1000
+	self._local_timestamp = conf.local_timestamp or false
+	if self._local_timestamp then
+		log:warning("Using local timestamp instead of input value's source timestamp")
+	end
 
 	local db_folder = sysinfo.data_dir() .. "/db_" .. self._name
 	self._hisdb = hisdb:new(db_folder, {SAMPLE='1d'})
@@ -255,7 +260,8 @@ end
 
 function app:read_tags()
 	local api = self:data_api()
-	local sys_id = self:sys_api():id()
+	local sys = self:sys_api()
+	local sys_id = sys:id()
 
 	for sn, dev in pairs(self._devs) do
 		local dev_api = api:get_device(sn)
@@ -267,6 +273,7 @@ function app:read_tags()
 				local value, timestamp = dev_api:get_input_prop(input, 'value')
 				if value then
 					for _, v in ipairs(tags) do
+						timestamp = self._local_timestamp and sys:time() or timestamp
 						local r, err =self._station:set_tag_value(v.name, value, timestamp)
 						if not r then
 							self._log:error("Cannot set input value", v.name, value, err)
@@ -398,6 +405,8 @@ function app:on_input(app_src, sn, input, prop, value, timestamp, quality)
 		return
 	end
 
+	timestamp = self._local_timestamp and self._sys:time() or timestamp
+
 	for _, v in ipairs(inputs) do
 		local r, err = self._station:set_tag_value(v.name, value, timestamp)
 		if not r then
@@ -497,10 +506,28 @@ function app:set_min_interval(interval)
 	end
 
 	self._min_timer = timer:new(function(now)
-		self._calc_mgr:trigger(calc_mgr.TYPES.MIN, now, self._min_interval)
-		self:upload_min_data(now)
+		self:min_timer_func(now)
 	end, self._min_interval * 60, true)
 	self._min_timer:start()
+end
+
+function app:min_timer_func(now)
+	self._sys:sleep(self._calc_delay)
+	self._calc_mgr:trigger(calc_mgr.TYPES.MIN, now, self._min_interval * 60)
+	self:upload_min_data(now)
+	--- If HH:00:00
+	if now % 3600 == 0 then
+		self._calc_mgr:trigger(calc_mgr.TYPES.HOUR, now, 3600)
+		self:upload_hour_data(now)
+
+		local d = date(now):tolocal() --- To local time
+		-- 00:00:00
+		if d:gethours() == 0 then
+			assert(d:getminutes() == 0 and d:getseconds() == 0)
+			self._calc_mgr:trigger(calc_mgr.TYPES.DAY, now, 3600 * 24)
+			self:upload_day_data(now)
+		end
+	end
 end
 
 function app:start_timers()
@@ -513,21 +540,7 @@ function app:start_timers()
 
 	-- If HH:MM:00 and min_interval
 	self._min_timer = timer:new(function(now)
-		self._calc_mgr:trigger(calc_mgr.TYPES.MIN, now, self._min_interval * 60)
-		self:upload_min_data(now)
-		--- If HH:00:00
-		if now % 3600 == 0 then
-			self._calc_mgr:trigger(calc_mgr.TYPES.HOUR, now, 3600)
-			self:upload_hour_data(now)
-
-			local d = date(now):tolocal() --- To local time
-			-- 00:00:00
-			if d:gethours() == 0 then
-				assert(d:getminutes() == 0 and d:getseconds() == 0)
-				self._calc_mgr:trigger(calc_mgr.TYPES.DAY, now, 3600 * 24)
-				self:upload_day_data(now)
-			end
-		end
+		self:min_timer_func(now)
 	end, self._min_interval * 60, true)
 	self._min_timer:start()
 
@@ -539,23 +552,6 @@ function app:start_timers()
 		now = (now // 3600) * 3600
 		self._calc_mgr:trigger(calc_mgr.TYPES.HOUR, now, 3600)
 	end)
-
-	--[[
-	self._hour_timer = timer:new(function(now)
-		self._calc_mgr:trigger(calc_mgr.TYPES.MIN, now, self._min_interval)
-		self._calc_mgr:trigger(calc_mgr.TYPES.HOUR, now, 3600)
-		self:upload_hour_data(now)
-	end, 3600, true)
-	self._hour_timer:start()
-
-	self._day_timer = timer:new(function(now)
-		self._calc_mgr:trigger(calc_mgr.TYPES.MIN, now, self._min_interval)
-		self._calc_mgr:trigger(calc_mgr.TYPES.HOUR, now, 3600)
-		self._calc_mgr:trigger(calc_mgr.TYPES.ALL, now, 3600 * 24)
-		self:upload_day_data(now)
-	end, 3600 * 24, true)
-	self._day_timer:start()
-	]]--
 end
 
 --- 返回应用对象
