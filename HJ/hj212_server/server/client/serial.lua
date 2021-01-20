@@ -1,4 +1,3 @@
-local skynet = require 'skynet'
 local base = require 'server.client.base'
 local crc16 = require 'hj212.utils.crc_serial_le'
 
@@ -16,6 +15,7 @@ function client:initialize(server, serial, port)
 	self._requests = {}
 	self._results = {}
 	self._buf = {}
+	self._sys = server:sys_api()
 end
 
 function client:host()
@@ -31,7 +31,7 @@ function client:on_recv(data)
 	table.insert(self._buf, data)
 
 	if self._buf_wait then
-		skynet.wakeup(self._buf_wait)
+		self._sys:wakeup(self._buf_wait)
 	end
 end
 
@@ -65,7 +65,7 @@ function client:send(session, raw_data, timeout)
 		self:dump_raw('OUT', raw_data)
 
 		-- Wait for response
-		skynet.sleep(timeout / 10, t)
+		self._sys:sleep(timeout, t)
 		if self._results[session] then
 			break
 		end
@@ -91,7 +91,7 @@ function client:send_nowait(raw_data)
 end
 
 function client:start()
-	skynet.fork(function()
+	self._sys:fork(function()
 		self:work_proc()
 	end)
 
@@ -110,12 +110,11 @@ function client:close()
 
 	self._closing = {}
 
-	skynet.wait(self._closing)
+	self._sys:wait(self._closing)
 	self._closing = nil
 	self._serial = nil
 
 	self:log('debug', "Client close done!")
-
 
 	return true
 end
@@ -128,6 +127,13 @@ function client:work_proc()
 			self:log('error', err)
 		end
 	end
+	if self._closing then
+		for session, co in pairs(self._requests) do
+			self._results[session] = {false, "Serial closing"}
+			self._sys:wakeup(co)
+		end
+		self._sys:wakeup(self._closing)
+	end
 	self:log('info', "Client workproc quited")
 end
 
@@ -135,7 +141,7 @@ function client:process_serial_data()
 	while not self._closing and self._serial do
 		if #self._buf == 0 then
 			self._buf_wait = {}
-			skynet.sleep(1000, self._buf_wait)
+			self._sys:sleep(1000, self._buf_wait)
 			self._buf_wait = nil
 		else
 			local data = table.concat(self._buf)
@@ -148,7 +154,7 @@ function client:process_serial_data()
 					local req_co = self._requests[session]
 					if req_co then
 						self._results[session] = {p}
-						skynet.wakeup(req_co)
+						self._sys:wakeup(req_co)
 					else
 						self:log('error', "Missing request on session:"..session)
 					end

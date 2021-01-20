@@ -1,5 +1,6 @@
 local tag_finder = require 'hj212.tags.finder'
 local base = require 'hj212.server.client'
+local cjson = require 'cjson.safe'
 
 local TAG_INFO = {}
 
@@ -52,6 +53,10 @@ function client:log_api()
 	return self._server:log_api()
 end
 
+function client:sys_api()
+	return self._server:sys_api()
+end
+
 function client:dump_raw(io, data)
 	return self._server:dump_raw(self._sn, io, data)
 end
@@ -73,16 +78,17 @@ function client:on_disconnect()
 	return self._server:on_disconnect(self)
 end
 
-function client:on_rdata(name, value, timestamp, flag)
+function client:on_rdata(name, rdata)
 	if not self._rdata_map[name] then
 		self._inputs_changed = true
 		table.insert(self._inputs, create_tag_input(name))
 	end
 	table.insert(self._inputs_cov, name)
 	self._rdata_map[name] = {
-		value = value,
-		timestamp = timestamp,
-		quality = (flag == 'N') and 0 or string.byte(flag),
+		value = rdata.Rtd,
+		value_z = rdata.ZsRtd,
+		timestamp = rdata.SampleTime,
+		quality = (rdata.Flag == 'N') and 0 or string.byte(rdata.Flag),
 	}
 end
 
@@ -97,7 +103,8 @@ function client:on_run()
 
 	for _, name in ipairs(self._inputs_cov) do
 		local rdata = self._rdata_map[name]
-		self._dev:set_input_prop(name, 'value', rdata.value, rdata.timestamp, rdata.quality)
+		self._dev:set_input_prop(name, 'value', rdata.value, nil, rdata.quality)
+		self._dev:set_input_prop(name, 'RDATA', cjson.encode(rdata), rdata.timestamp, rdata.quality)
 	end
 
 	self._inputs_cov = {}

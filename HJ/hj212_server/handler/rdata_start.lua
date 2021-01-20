@@ -20,7 +20,13 @@ function handler:process(request)
 		end
 
 		for _, tag in pairs(tags[data_time]) do
-			self._client:on_rdata(tag:tag_name(), tag:get('Rtd'), tag:get('SampleTime'), tag:get('Flag') or 'N')
+			local rdata = {
+				SampleTime = tag:get('SampleTime') or data_time,
+				Rtd = tag:get('Rtd'),
+				Flag = tag:get('Flag') or 'N',
+				ZsRtd = tag:get('ZsRtd')
+			}
+			self._client:on_rdata(tag:tag_name(), rdata)
 		end
 	end
 

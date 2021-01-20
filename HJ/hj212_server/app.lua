@@ -131,6 +131,7 @@ function app:on_start()
 	conf.port = tonumber(conf.port or '') or 6000
 	conf.stations = conf.stations or {}
 	--[[
+	conf.channel_type = 'serial'
 	if #conf.stations == 0 then
 		table.insert(conf.stations, {
 			name = 'station_1',
@@ -204,7 +205,6 @@ function app:on_start()
 	local dev_sn = sys_id..'.'..self:app_name()
 	self._dev = api:add_device(dev_sn, meta, inputs, nil, commands)
 
-	conf.channel_type = 'serial'
 	if conf.channel_type == 'serial' then
 		local opt = conf.serial_opt or {
 			port = "/tmp/ttyS1",

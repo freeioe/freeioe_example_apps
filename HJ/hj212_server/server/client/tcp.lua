@@ -58,6 +58,7 @@ function client:watch_socket()
 	self:log('debug', "Client wakeup requests")
 	--- completed the session requests
 	for session, co in pairs(self._requests) do
+		self._results[session] = {false, 'Client closing'}
 		skynet.wakeup(co)
 	end
 	skynet.sleep(10) -- Let the request been terminated
