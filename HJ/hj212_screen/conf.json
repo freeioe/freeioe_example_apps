@@ -1,19 +1,19 @@
 [
 	{
 		"name": "server",
-		"desc": "MQTT Server Host",
+		"desc": "MQTT 服务器地址",
 		"type": "string",
 		"default": "127.0.0.1"
 	},
 	{
 		"name": "port",
-		"desc": "MQTT Server Port",
+		"desc": "MQTT 服务器端口",
 		"type": "number",
 		"default": 1883
 	},
 	{
 		"name": "station",
-		"desc": "HJ212 Station Name",
+		"desc": "HJ212 站名",
 		"type": "string",
 		"default": "HJ212"
 	},
@@ -42,13 +42,13 @@
 	},
 	{
 		"name": "wait_timeout",
-		"desc": "Timewait timeout in seconds",
+		"desc": "数据整理超时时间（秒）",
 		"type": "number",
 		"default": 30
 	},
 	{
-		"name": "not_settings",
-		"desc": "Not export settings",
+		"name": "cloud_test",
+		"desc": "远程调试实例",
 		"type": "boolean"
 	}
 ]

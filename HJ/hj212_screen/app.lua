@@ -196,18 +196,20 @@ function app:on_start()
 	self._settings_map = settings_map
 	self._value_map = value_map
 
-	if not conf.no_settings then
-		local meta = self._api:default_meta()
-		meta.name = 'HJ212 Settings'
-		meta.manufacturer = "FreeIOE.org"
-		meta.description = 'HJ212 Smart Device Settings'
-		meta.series = 'N/A'
+	local meta = self._api:default_meta()
+	meta.name = 'HJ212 Settings'
+	meta.manufacturer = "FreeIOE.org"
+	meta.description = 'HJ212 Smart Device Settings'
+	meta.series = 'N/A'
 
-		local dev_sn = sys_id..'.'..conf.station..'.SETTINGS'
-		self._dev_sn = dev_sn
-		self._dev = self._api:add_device(dev_sn, meta, inputs, outputs)
-		self._dev_inputs = inputs
+	local dev_sn = sys_id..'.'..conf.station..'.SETTINGS'
+	if not conf.cloud_test then
+		dev_sn = dev_sn ..'.'..conf.server
 	end
+
+	self._dev_sn = dev_sn
+	self._dev = self._api:add_device(dev_sn, meta, inputs, outputs)
+	self._dev_inputs = inputs
 
 	sys:timeout(10, function()
 		self:read_tags()
