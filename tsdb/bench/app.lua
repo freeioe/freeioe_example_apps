@@ -119,11 +119,12 @@ function app:on_run(tms)
 	
 	self._stat:set('status', math.random(0, 1))
 
-	if ioe.now() - self._last_print >= 60 then
+	if ioe.now() - self._last_print >= 60 * 100 then
 		local log = self:log_api()
 		for name, db in pairs(self._tsinfo) do
 			log:info(string.format('DB:%s COUNT:%d, COST:%f ms', name, db.count, db.cost))
 		end
+		self._last_print = ioe.now()
 	end
 	return self._cycle
 end
