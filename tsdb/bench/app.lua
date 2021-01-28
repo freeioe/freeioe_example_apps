@@ -51,9 +51,14 @@ function app:on_start()
 		siri = tsdb_siri:new('test'),
 		prom =  tsdb_prom:new('test')
 	}
+	self._tsinfo = {}
 
-	for _, v in pairs(self._tsdb) do
-		assert(v:init())
+	for name, db in pairs(self._tsdb) do
+		assert(db:init())
+		self._tsinfo[name] = {
+			count = 0,
+			cost = 0
+		}
 	end
 
 	return true
@@ -104,6 +109,7 @@ function app:create_device(dev_sn, info, tpl)
 		outputs = tpl_outputs,
 	}
 	self._stat = dev:stat('port')
+	self._last_print = ioe.now()
 end
 
 function app:on_run(tms)
@@ -113,6 +119,12 @@ function app:on_run(tms)
 	
 	self._stat:set('status', math.random(0, 1))
 
+	if ioe.now() - self._last_print >= 60 then
+		local log = self:log_api()
+		for name, db in pairs(self._tsinfo) do
+			log:info(string.format('DB:%s COUNT:%d, COST:%f ms', name, db.count, db.cost))
+		end
+	end
 	return self._cycle
 end
 
@@ -123,7 +135,10 @@ function app:save_input_prop(dev, input, vt, value)
 	for name, db in pairs(self._tsdb) do
 		local start = ioe.hpc()
 		db:insert(name, vt or 'float', value, ts)
-		log:debug(name..' insert time(ms):', (ioe.hpc() - start) / 1000000)
+		local ms = (ioe.hpc() - start) / 1000000
+		log:debug(name..' insert time:'..ms..' ms')
+		self._tsinfo[name].cost = self._tsinfo[name].cost + ms
+		self._tsinfo[name].count = self._tsinfo[name].count + 1
 	end
 end
 
