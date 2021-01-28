@@ -1,10 +1,12 @@
 local ioe = require 'ioe'
 local csv_tpl = require 'csv_tpl'
 local conf_helper = require 'app.conf.helper'
+local tsdb_siri = require 'tsdb.siridb'
+local tsdb_prom = require 'tsdb.prometheus'
 local base = require 'app.base'
 
 local app = base:subclass("FREEIOE.APP.OTHER.SIM_TPL")
-app.static.API_VER = 9
+app.static.API_VER = 8
 
 function app:on_init()
 	self._devs = {}
@@ -15,10 +17,9 @@ function app:on_start()
 	local log = self:log_api()
 	local conf = self:app_conf()
 	conf.devs = conf.devs or {}
+
 	if ioe.developer_mode() then
-		conf.devs = {
-			{ sn = "sim", name = "sim", desc = "sim device", tpl = "test" }
-		}
+		conf.devs = {{ sn = "tsdb_sim", name = "sim", desc = "sim device", tpl = "test" }}
 	end
 
 	csv_tpl.init(sys:app_dir())	
@@ -44,6 +45,15 @@ function app:on_start()
 	self._cycle = tonumber(conf.cycle) or 5000 -- ms
 	if self._cycle < 100 then
 		self._cycle = 5000
+	end
+
+	self._tsdb = {
+		siri = tsdb_siri:new('test'),
+		prom =  tsdb_prom:new('test')
+	}
+
+	for _, v in pairs(self._tsdb) do
+		assert(v:init())
 	end
 
 	return true
@@ -98,7 +108,7 @@ end
 
 function app:on_run(tms)
 	for sn, dev in pairs(self._devs) do
-		self:gen_device_data(dev)
+		self:gen_device_data(dev, sn)
 	end
 	
 	self._stat:set('status', math.random(0, 1))
@@ -106,7 +116,18 @@ function app:on_run(tms)
 	return self._cycle
 end
 
-function app:gen_device_data(dev)
+function app:save_input_prop(dev, input, vt, value)
+	local log = self:log_api()
+	local name = dev..'.'..input..'.'..vt
+	local ts = ioe.time()
+	for name, db in pairs(self._tsdb) do
+		local start = ioe.hpc()
+		db:insert(name, vt or 'float', value, ts)
+		log:debug(name..' insert time(ms):', (ioe.hpc() - start) / 1000000)
+	end
+end
+
+function app:gen_device_data(dev, sn)
 	local sys = self:sys_api()
 	local log = self:log_api()
 	local now = sys:now() // 1000
@@ -119,10 +140,12 @@ function app:gen_device_data(dev)
 			else
 				v.last_value = v.base + val
 				dev.dev:set_input_prop(v.name, 'value', v.last_value)
+				self:save_input_prop(sn, v.name, v.vt, v.last_value)
 			end
 			v.last = now
 		else
 			dev.dev:set_input_prop(v.name, 'value', v.last_value)
+			self:save_input_prop(sn, v.name, v.vt, v.last_value)
 		end
 	end
 end
