@@ -57,7 +57,8 @@ function app:on_start()
 		assert(db:init())
 		self._tsinfo[name] = {
 			count = 0,
-			cost = 0
+			cost = 0,
+			data = {}
 		}
 	end
 
@@ -116,6 +117,20 @@ function app:on_run(tms)
 	for sn, dev in pairs(self._devs) do
 		self:gen_device_data(dev, sn)
 	end
+
+	for k, info in pairs(self._tsinfo) do
+		local start = ioe.hpc()
+		local db = self._tsdb[k]
+		if #info.data > 0 then
+			local start = ioe.hpc()
+			db:insert_list(info.data)
+			local ms = (ioe.hpc() - start) / 1000000
+			--log:debug(k..' insert time:'..ms..' ms')
+			info.cost = info.cost + ms
+			info.count = info.count + #info.data
+			info.data = {}
+		end
+	end
 	
 	self._stat:set('status', math.random(0, 1))
 
@@ -134,6 +149,7 @@ function app:save_input_prop(dev, input, vt, value)
 	local log = self:log_api()
 	local name = dev..'.'..input..'.'..vt
 	local ts = ioe.time()
+	--[[
 	for k, db in pairs(self._tsdb) do
 		local start = ioe.hpc()
 		db:insert(name, vt or 'float', value, ts)
@@ -141,6 +157,10 @@ function app:save_input_prop(dev, input, vt, value)
 		--log:debug(k..' insert time:'..ms..' ms')
 		self._tsinfo[k].cost = self._tsinfo[k].cost + ms
 		self._tsinfo[k].count = self._tsinfo[k].count + 1
+	end
+	]]--
+	for k, v in pairs(self._tsinfo) do
+		table.insert(v.data, {name, vt or 'float', value, ts})
 	end
 end
 

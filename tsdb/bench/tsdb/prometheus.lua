@@ -28,4 +28,24 @@ function db:insert(name, vt, value, timestamp)
 	return self._db:insert_metric(metric)
 end
 
+function db:insert_list(data)
+	local db_data = prom_data:new()
+	local metric_map = {}
+
+	for _, v in ipairs(data) do
+		local name, vt, value, timestamp = table.unpack(v)
+		local metric = metric_map[name]
+		if not metric then
+			--print(name, vt)
+			metric = prom_metric:new(name)
+			metric_map[name] = metric
+			db_data:add_metric(metric)
+		end
+		metric:push_value(value, assert(timestamp))
+	end
+
+	return self._db:insert(db_data)
+end
+
+
 return db

@@ -34,4 +34,23 @@ function db:insert(name, vt, value, timestamp)
 	return self._db:insert_series(series)
 end
 
+function db:insert_list(data)
+	local db_data = siri_data:new()
+	local series_map = {}
+
+	for _, v in ipairs(data) do
+		local name, vt, value, timestamp = table.unpack(v)
+		local series = series_map[name]
+		if not series then
+			--print(name, vt)
+			series = siri_series:new(name, vt)
+			series_map[name] = series
+			db_data:add_series(name, series)
+		end
+		series:push_value(value, assert(timestamp))
+	end
+
+	return self._db:insert(db_data)
+end
+
 return db
