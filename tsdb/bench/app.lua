@@ -138,7 +138,7 @@ function app:save_input_prop(dev, input, vt, value)
 		local start = ioe.hpc()
 		db:insert(name, vt or 'float', value, ts)
 		local ms = (ioe.hpc() - start) / 1000000
-		log:debug(k..' insert time:'..ms..' ms')
+		--log:debug(k..' insert time:'..ms..' ms')
 		self._tsinfo[k].cost = self._tsinfo[k].cost + ms
 		self._tsinfo[k].count = self._tsinfo[k].count + 1
 	end
