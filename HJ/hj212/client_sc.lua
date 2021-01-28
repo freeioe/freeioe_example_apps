@@ -196,7 +196,7 @@ function client:start_connect()
 	local sock, err = socket.open(host, port)
 	if not sock then
 		local err = string.format("Cannot connect to %s:%d. err: %s",
-		host, port, err or "")
+									host, port, err or "")
 		self:log('error', err)
 		return nil, err
 	end

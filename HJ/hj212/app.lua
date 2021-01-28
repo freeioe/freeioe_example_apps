@@ -97,24 +97,26 @@ function app:on_start()
 	end
 
 	conf.servers = conf.servers or {}
-	if #conf.servers == 0 then
-		table.insert(conf.servers, {
+	if os.getenv("IOE_DEVELOPER_MODE") then
+		if #conf.servers == 0 then
+			--[[
+			table.insert(conf.servers, {
 			name = 'city',
 			host = '127.0.0.1',
 			port = 6000,
 			passwd = '123456',
-		})
-		table.insert(conf.servers, {
-			name = 'ministry',
-			host = '127.0.0.1',
-			port = 16000,
-			passwd = '123456',
-			retry = 1,
-			version = '2005'
-		})
+			})
+			]]--
+			table.insert(conf.servers, {
+				name = 'ministry',
+				host = '127.0.0.1',
+				port = 16000,
+				passwd = '123456',
+				retry = 1,
+				version = '2005'
+			})
+		end
 	end
-	--[[
-	]]--
 
 	local tpl_id = conf.tpl
 	local tpl_ver = conf.ver

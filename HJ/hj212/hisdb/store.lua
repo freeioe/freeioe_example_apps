@@ -263,9 +263,7 @@ function store:insert(cate, val, is_array)
 
 		local r, err = self._db:first_row(string.format(insert_query, cate, val.timestamp))
 		if r then
-			print('STORE.INSERT', r, err)
-			print('STORE.INSERT', cjson.encode(r), cjson.encode(val))
-			return nil, "Data already exists!!"
+			return nil, string.format("Duplicated data db:%s data:%s", cjson.encode(r), cjson.encode(val))
 		end
 		return stmt:bind(val):exec()
 	else
