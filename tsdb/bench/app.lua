@@ -119,7 +119,7 @@ function app:on_run(tms)
 	
 	self._stat:set('status', math.random(0, 1))
 
-	if ioe.now() - self._last_print >= 60 * 100 then
+	if ioe.now() - self._last_print >= 60 * 1000 then
 		local log = self:log_api()
 		for name, db in pairs(self._tsinfo) do
 			local avg = db.count > 0 and db.cost / db.count or 0
