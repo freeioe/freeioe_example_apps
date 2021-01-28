@@ -55,6 +55,9 @@ RELEASE_APP computing/showbox
 RELEASE_APP computing/oee 
 RELEASE_APP computing/oee_pp
 
+# TSDB
+RELEASE_APP tsdb/bench
+
 # Others
 RELEASE_APP dlt645
 RELEASE_APP other/sim_tank

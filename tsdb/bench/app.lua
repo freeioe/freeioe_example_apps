@@ -43,8 +43,8 @@ function app:on_start()
 	end
 
 	self._cycle = tonumber(conf.cycle) or 5000 -- ms
-	if self._cycle < 100 then
-		self._cycle = 5000
+	if self._cycle < 10 then
+		self._cycle = 10
 	end
 
 	self._tsdb = {
