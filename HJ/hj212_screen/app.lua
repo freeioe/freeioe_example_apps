@@ -342,6 +342,7 @@ function app:on_run(tms)
 		end
 	end
 
+	--[[
 	if self._dev then
 		for k, v in pairs(value_map) do
 			if not v.timestamp or v.timestamp < ioe.time() - 5 then
@@ -350,6 +351,7 @@ function app:on_run(tms)
 			end
 		end
 	end
+	]]--
 
 	local now = sys:now()
 	if not self._app_reg then
@@ -451,9 +453,6 @@ end
 
 function app:on_publish_data(key, value, timestamp, quality)
 	local sn, input, prop = string.match(key, '^([^/]+)/([^/]+)/(.+)$')
-	if quality ~= 0 then
-		return true
-	end
 
 	local tpl_props = self._devs[sn][input]
 	if not tpl_props then
@@ -472,9 +471,12 @@ function app:on_publish_data(key, value, timestamp, quality)
 		assert(tag, string.format("missing input map:%s", tpl_prop.name))
 
 		if prop ~= 'value' then
-			self:publish_prop_data(tpl_prop.name, prop, value, timestamp)
+			if quality == 0 then
+				self:publish_prop_data(tpl_prop.name, prop, value, timestamp)
+			end
 		else
 			self._value_map[tag.name] = {value = value, timestamp = timestamp}
+			self._dev:set_input_prop(tag.name, 'value', value, timestamp, quality)
 		end
 	end
 
