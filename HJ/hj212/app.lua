@@ -291,14 +291,16 @@ function app:read_tags()
 						end
 					end
 				else
-					--self._log:debug("Cannot read input value", sn, input)
+					--self._log:error("Cannot read input value", sn, input)
 				end
 				local value, timestamp, quality = dev_api:get_input_prop(input, 'RDATA')
 				if value and quality == 0 then
+					value = cjson.decode(value) or {}
 					for _, v in ipairs(tags) do
-						if v.src_prop == prop then
+						if v.src_prop == 'RDATA' then
 							local val = (v.rate and v.rate ~= 1) and value.value * v.rate or value.value
 							local val_z = (v.rate and v.rate ~= 1 and value.value_z ~= nil) and value.value_z * v.rate or value.value_z
+							timestamp = self._local_timestamp and sys:time() or timestamp
 							local r, err = self._station:set_tag_value(v.name, val, timestamp, val_z)
 							if not r then
 								self._log:warning("Failed set tag rdata", v.name, cjson.encode(value), err)
@@ -306,7 +308,7 @@ function app:read_tags()
 						end
 					end
 				else
-					--self._log:debug("Cannot read input value", sn, input)
+					--self._log:error("Cannot read input value", sn, input)
 				end
 			end
 		else
