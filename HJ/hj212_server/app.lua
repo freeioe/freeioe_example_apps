@@ -17,8 +17,8 @@ local serial_server = require 'server.serial'
 
 --- 注册对象(请尽量使用唯一的标识字符串)
 local app = app_base:subclass("FREEIOE_HJ212_SERVER_APP")
---- 设定应用最小运行接口版本, 7 has new api and lua5.4???
-app.static.API_VER = 7
+--- 设定应用最小运行接口版本, 9 has new api and lua5.4???
+app.static.API_VER = 9
 
 function app:on_init()
 	self._stations = {}
@@ -131,7 +131,7 @@ function app:on_start()
 	conf.port = tonumber(conf.port or '') or 6000
 	conf.stations = conf.stations or {}
 
-	if os.getenv('IOE_DEVELOPER_MODE') then
+	if ioe.developer_mode() then
 		conf.channel_type = 'serial'
 		if #conf.stations == 0 then
 			table.insert(conf.stations, {
