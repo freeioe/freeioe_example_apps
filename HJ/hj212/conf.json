@@ -15,7 +15,7 @@
 		"name": "dev_id",
 		"desc": "设备唯一标识 MN",
 		"type": "string",
-		"default": "010000A8900016F000169DC0"
+		"default": "XXXXXXXXXXXXXXX"
 	},
 	{
 		"name": "samples_interval",
@@ -33,7 +33,7 @@
 		"name": "min_interval",
 		"desc": "分钟数据上传周期（分钟）",
 		"type": "number",
-		"default": 1
+		"default": 10
 	},
 	{
 		"name": "servers",
