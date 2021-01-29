@@ -424,16 +424,19 @@ function app:on_input(app_src, sn, input, prop, value, timestamp, quality)
 	if prop == 'value' then
 		for _, v in ipairs(inputs) do
 			if not v.src_prop or string.lower(v.src_prop) == 'value' then
-				local r, err = self._station:set_tag_value(v.name, value, timestamp)
+				local val = (v.rate and v.rate ~= 1) and value * v.rate or value
+				local r, err = self._station:set_tag_value(v.name, val, timestamp)
 				if not r then
-					self._log:warning("Failed set tag value", v.name, value, err)
+					self._log:warning("Failed set tag value", v.name, val, err)
 				end
 			end
 		end
 	else
 		for _, v in ipairs(inputs) do
 			if v.src_prop == prop then
-				local r, err = self._station:set_tag_value(v.name, value.value, timestamp, value.value_z)
+				local val = (v.rate and v.rate ~= 1) and value.value * v.rate or value.value
+				local val_z = (v.rate and v.rate ~= 1 and value.value_z ~= nil) and value.value_z * v.rate or value.value_z
+				local r, err = self._station:set_tag_value(v.name, val, timestamp, val_z)
 				if not r then
 					self._log:warning("Failed set tag rdata", v.name, cjson.encode(value), err)
 				end
