@@ -98,6 +98,7 @@ function app:on_start()
 
 	conf.servers = conf.servers or {}
 	if os.getenv("IOE_DEVELOPER_MODE") then
+		self._min_interval = 1
 		if #conf.servers == 0 then
 			--[[
 			table.insert(conf.servers, {

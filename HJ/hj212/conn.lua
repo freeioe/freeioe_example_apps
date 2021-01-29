@@ -159,6 +159,7 @@ function conn:convert_version(data)
 	for _, v in ipairs(data) do
 		local tag_name = v:tag_name()
 		local tag = self._station:find_tag(tag_name)
+		--print(tag_name, tag:hj2005_name())
 		assert(tag)
 		tag_name = tag:hj2005_name() or tag_name
 		new_data[#new_data + 1] = v:clone(tag_name)

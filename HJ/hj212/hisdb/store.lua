@@ -3,6 +3,7 @@ local cjson = require 'cjson.safe'
 local class = require 'middleclass'
 local utils = require 'hisdb.utils'
 local meta = require 'hisdb.meta'
+local ioe = require 'ioe'
 
 local store = class('hisdb.store')
 
@@ -96,9 +97,11 @@ function store:_open()
 	end
 	self._db = db
 
-	db:exec('PRAGMA journal_mode=wal;')
-	--db:exec('PRAGMA temp_store=2;') --- MEMORY
-	db:exec('PRAGMA locking_mode=EXCLUSIVE;')
+	if not ioe.developer_mode() then
+		db:exec('PRAGMA journal_mode=wal;')
+		--db:exec('PRAGMA temp_store=2;') --- MEMORY
+		db:exec('PRAGMA locking_mode=EXCLUSIVE;')
+	end
 
 	self._meta = meta:new(db)
 
