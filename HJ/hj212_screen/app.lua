@@ -119,6 +119,7 @@ function app:on_start()
 	local settings_map = {}
 	local devs = {}
 	local stats = {}
+	local func_list = {}
 
 	local station_sn = sys_id..'.'..conf.station
 
@@ -129,6 +130,11 @@ function app:on_start()
 		return sn
 	end
 	local function map_dev(prop)
+		if prop.sn == 'FUNCTION' then
+			table.insert(func_list, prop)
+			--- Function will be ignored
+			return
+		end
 		prop.sn = map_dev_sn(prop.sn)
 		if prop.stat then
 			stats[prop.sn] = stats[prop.sn] or {}
@@ -195,6 +201,7 @@ function app:on_start()
 	self._status_map = status_map
 	self._settings_map = settings_map
 	self._value_map = value_map
+	self._func_list = func_list
 
 	local meta = self._api:default_meta()
 	meta.name = 'HJ212 Settings'
@@ -325,6 +332,16 @@ end
 function app:on_run(tms)
 	local sys = self:sys_api()
 	local value_map = self._value_map
+
+	for _, prop in ipairs(self._func_list or {}) do
+		if prop.input == 'cloud_status' then
+			local online, last, msg = ioe.cloud_status()
+			value_map[prop.name] = {value = online and 1 or 0, timestamp = ioe.time()}
+		else
+			self._log:error("Unsupport function", prop.func)
+		end
+	end
+
 	if self._dev then
 		for k, v in pairs(value_map) do
 			if not v.timestamp or v.timestamp < ioe.time() - 5 then
