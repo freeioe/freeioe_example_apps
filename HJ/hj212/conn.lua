@@ -2,6 +2,7 @@
 local class = require 'middleclass'
 local client = require 'client_sc'
 local types = require 'hj212.types'
+local value_tpl = require 'value_tpl.parser'
 
 local conn = class("FREEIOE_HJ212_APP_CONN")
 
@@ -74,6 +75,11 @@ function conn:start()
 
 	self._dev = self._api:add_device(dev_sn, meta, inputs, inputs)
 	self._dev_stat = self._dev:stat('port')
+
+	if conf.value_tpl and conf.value_tpl ~= 'NONE' then
+		value_tpl.init(self._sys:app_dir())
+		self._value_tpl = value_tpl.load_tpl(conf.value_tpl, function(...) log:error(...) end)
+	end
 
 	return self:start_connect()
 end
@@ -160,30 +166,49 @@ function conn:convert_version(data)
 	return new_data
 end
 
+function conn:convert_rate(data)
+	if not self._value_tpl then
+		return data
+	end
+
+	local new_data = {}
+	for _, v in ipairs(data) do
+		new_data[#new_data + 1] = v:transform(function(key, val)
+			return self._value_tpl(v:tag_name(), key, val)
+		end)
+	end
+	return new_data
+
+end
+
+function conn:convert_data(data)
+	return self:convert_version(self:convert_rate(data))
+end
+
 function conn:upload_rdata(data)
 	local request = require 'hj212.request.rdata_start'
-	data = self:convert_version(data)
+	data = self:convert_data(data)
 	local req = request:new(data, true)
 	return self:data_request(req, 'RData')
 end
 
 function conn:upload_min_data(data)
 	local request = require 'hj212.request.min_data'
-	data = self:convert_version(data)
+	data = self:convert_data(data)
 	local req = request:new(data, true)
 	return self:data_request(req, 'MIN')
 end
 
 function conn:upload_hour_data(data)
 	local request = require 'hj212.request.hour_data'
-	data = self:convert_version(data)
+	data = self:convert_data(data)
 	local req = request:new(data, true)
 	return self:data_request(req, 'HOUR')
 end
 
 function conn:upload_day_data(data)
 	local request = require 'hj212.request.day_data'
-	data = self:convert_version(data)
+	data = self:convert_data(data)
 	local req = request:new(data, true)
 	return self:data_request(req, 'DAY')
 end

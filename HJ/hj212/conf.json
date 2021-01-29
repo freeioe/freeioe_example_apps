@@ -85,6 +85,16 @@
 					"2017",
 					"2005"
 				]
+			},
+			{
+				"name": "value_tpl",
+				"desc": "数据上传转换模板",
+				"type": "dropdown",
+				"default": "NONE",
+				"values": [
+					"NONE",
+					"TaiAn"
+				]
 			}
 		]
 	},

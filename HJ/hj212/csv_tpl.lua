@@ -37,6 +37,35 @@ local function sort_props(props)
 	return props
 end
 
+local function NA_BOOL(val, default)
+	if val == nil or val == '' then
+		return default
+	end
+
+	if string.upper(val) == 'N/A' or string.upper(val) == 'N' or string.lower(val) == 'false' then
+		return false
+	end
+	if string.upper(val) == 'Y' or string.lower(val) == 'true' then
+		return true
+	end
+	return default
+end
+
+local function NA_BOOL_NUMBER(val, default, num_def)
+	if val == nil or val == '' then
+		return default
+	end
+
+	if string.upper(val) == 'N/A' or string.upper(val) == 'N' or string.lower(val) == 'false' then
+		return false
+	end
+	if string.upper(val) == 'Y' or string.lower(val) == 'true' then
+		return true
+	end
+
+	return tonumber(val) or (num_def or 0)
+end
+
 ---
 -- [1] hj212 tag name
 -- [2] hj212 tag desc
@@ -77,15 +106,8 @@ local function load_tpl(name, err_cb)
 			prop.fmt = string.len(v[10] or '') > 0 and v[10] or nil
 			prop.calc = string.len(v[11] or '') > 0 and v[11] or nil
 			prop.cou_calc = string.len(v[12] or '') > 0 and v[12] or nil
-			prop.upload = (string.upper((v[13] or '')) ~= 'N')
-			prop.cou = v[14] or '' -- false will not upload cou, number will set the COU to this number
-			if string.upper(prop.cou) == 'N/A' or string.upper(prop.cou) == 'N' then
-				prop.cou = false
-			elseif string.len(prop.cou) > 0 then
-				prop.cou = tonumber(prop.cou) or 0
-			else
-				prop.cou = true
-			end
+			prop.upload = NA_BOOL(v[13], true)
+			prop.cou = NA_BOOL_NUMBER(v[14], true) -- false will not upload cou, number will set the COU to this number
 			prop.zs = string.len(v[15] or '') > 0 and v[15] or nil
 			prop.hj2005 = string.len(v[16] or '') > 0 and v[16] or nil
 			prop.src_prop = string.len(v[17] or '') > 0 and v[17] or nil
