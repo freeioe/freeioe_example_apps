@@ -5,7 +5,7 @@ local client = base:subclass("hj212_server.server.client.tcp")
 
 --- 
 -- stream_type: tcp/serial
-function client:initialize(server, serial, port)
+function client:initialize(server, serial, port, connection_timeout)
 	base.initialize(self, server, {crc = crc16})
 	assert(serial, "serial missing")
 	assert(port, "port missing")
@@ -16,6 +16,8 @@ function client:initialize(server, serial, port)
 	self._results = {}
 	self._buf = {}
 	self._sys = server:sys_api()
+	self._last_in = self._sys:now()
+	self._connection_timeout = connection_timeout or 30 -- in seconds
 end
 
 function client:host()
@@ -29,6 +31,7 @@ end
 function client:on_recv(data)
 	self:dump_raw('IN', data)
 	table.insert(self._buf, data)
+	self._last_in = self._sys:now()
 
 	if self._buf_wait then
 		self._sys:wakeup(self._buf_wait)
@@ -95,6 +98,10 @@ function client:start()
 		self:work_proc()
 	end)
 
+	self._sys:fork(function()
+		self:check_last_in()
+	end)
+
 	return true
 end
 
@@ -117,6 +124,16 @@ function client:close()
 	self:log('debug', "Client close done!")
 
 	return true
+end
+
+function client:check_last_in()
+	while not self._closing and self._serial do
+		if self._sys:now () - self._last_in > self._connection_timeout * 1000 then
+			self:log('warning', "Client receive timeout close client!")
+			return self:close()
+		end
+		self._sys:sleep(1000)
+	end
 end
 
 function client:work_proc()

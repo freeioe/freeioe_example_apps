@@ -67,6 +67,10 @@ function app:create_station(client, system, dev_id, passwd, ver)
 
 	station:set_client(client)
 
+	self._dev:set_input_prop('status_'..dev_id, 'value', 1)
+	local info = string.format('%s:%s', client:host(), client:port())
+	self._dev:set_input_prop('client_'..dev_id, 'value', info)
+
 	self._clients[dev_sn] = client
 
 	return station
@@ -81,6 +85,7 @@ function app:on_client_disconnect(client)
 	if not sn then
 		return
 	end
+	self._log:error('Client disconnected', sn)
 
 	client:set_sn(nil)
 	self._clients[sn] = nil
@@ -96,6 +101,8 @@ function app:on_client_disconnect(client)
 	for k, v in pairs(self._stations) do
 		if v.sn == sn then
 			v.station:set_client(nil)
+			self._dev:set_input_prop('status_'..k, 'value', 0)
+			self._dev:set_input_prop('client_'..k, 'value', '')
 			return
 		end
 	end
@@ -145,7 +152,7 @@ function app:on_start()
 				min_interval = 10, -- 10 mins
 			})
 			table.insert(conf.stations, {
-				name = 'station_1',
+				name = 'station_2',
 				system = '31',
 				dev_id = 'DQ0000A8900016F000169DC0',
 				passwd = '123456',
@@ -172,7 +179,7 @@ function app:on_start()
 	local inputs = {
 		{name = 'host', desc = 'Listen Host', vt = 'string'},
 		{name = 'port', desc = 'Listen Port', vt = 'int'},
-		{name = 'connections', desc = 'Currrent Connection Count', vt = 'int'},
+		--{name = 'connections', desc = 'Currrent Connection Count', vt = 'int'},
 	}
 	local sys_id = sys:id()
 
@@ -189,8 +196,13 @@ function app:on_start()
 			info = v,
 		}
 		inputs[#inputs + 1] = {
-			name = 'station_'..i,
-			desc = 'Station '..v.name..' connection',
+			name = 'status_'..v.dev_id,
+			desc = 'Station '..v.name..' connection status',
+			vt = 'int'
+		}
+		inputs[#inputs + 1] = {
+			name = 'client_'..v.dev_id,
+			desc = 'Station '..v.name..' connection information',
 			vt = 'string'
 		}
 	end
@@ -240,6 +252,17 @@ end
 
 function app:on_run(tms)
 	self:for_earch_client('on_run')
+
+	--[[
+	for k, v in pairs(self._stations) do
+		local c = v.station:client()
+		if c then
+			self._dev:set_input_prop('status_'..k, 'value', 1)
+		else
+			self._dev:set_input_prop('status_'..k, 'value', 0)
+		end
+	end
+	]]--
 
 	return 1000
 end

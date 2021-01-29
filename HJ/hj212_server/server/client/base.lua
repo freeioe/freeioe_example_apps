@@ -1,3 +1,4 @@
+local ioe = require 'ioe'
 local tag_finder = require 'hj212.tags.finder'
 local base = require 'hj212.server.client'
 local cjson = require 'cjson.safe'
@@ -75,6 +76,10 @@ function client:on_station_create(system, dev_id, passwd, ver)
 end
 
 function client:on_disconnect()
+	for name, rdata in pairs(self._rdata_map) do
+		self._dev:set_input_prop(name, 'value', rdata.value, ioe.time(), -1)
+		self._dev:set_input_prop(name, 'RDATA', cjson.encode(rdata), rdata.timestamp, ioe.time(), -1)
+	end
 	return self._server:on_disconnect(self)
 end
 
