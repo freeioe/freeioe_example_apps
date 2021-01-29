@@ -63,7 +63,7 @@ function app:on_start()
 		conf.local_timestamp = true
 	end
 
-	if string.len(conf.dev_id) ~= 24 then
+	if string.len(conf.dev_id or '') <= 0 or string.len(conf.dev_id) > 24 then
 		return false, "Device ID (MN) length incorrect"
 	end
 

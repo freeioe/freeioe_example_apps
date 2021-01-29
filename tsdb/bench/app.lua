@@ -18,7 +18,7 @@ function app:on_start()
 	local conf = self:app_conf()
 	conf.devs = conf.devs or {}
 
-	if ioe.developer_mode() then
+	if ioe.developer_mode() and #conf.devs == 0 then
 		conf.devs = {{ sn = "tsdb_sim", name = "sim", desc = "sim device", tpl = "test" }}
 	end
 
