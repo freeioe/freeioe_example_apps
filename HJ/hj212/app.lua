@@ -391,10 +391,6 @@ function app:on_input(app_src, sn, input, prop, value, timestamp, quality)
 		return
 	end
 
-	if quality ~= 0 then
-		return
-	end
-
 	local sys_id = self._sys:id()..'.'
 	if string.find(sn, sys_id, 1, true) == 1 then
 		sn = string.sub(sn, string.len(sys_id) + 1)
@@ -418,7 +414,12 @@ function app:on_input(app_src, sn, input, prop, value, timestamp, quality)
 		return
 	end
 	if prop == 'RDATA' then
-		value = cjson.decode(value)
+		value, err = cjson.decode(value)
+		if not value then
+			self._log:warning("Failed to decode RDATA prop err: "..err)
+			self._log:warning("Failed to decode RDATA prop value: "..value)
+			value = {}
+		end
 	end
 
 	timestamp = self._local_timestamp and self._sys:time() or timestamp
@@ -426,21 +427,36 @@ function app:on_input(app_src, sn, input, prop, value, timestamp, quality)
 	if prop == 'value' then
 		for _, v in ipairs(inputs) do
 			if not v.src_prop or string.lower(v.src_prop) == 'value' then
+				if quality ~= 0 then
+					self._log:warning("Quality of "..v.name..".value is not good", quality, type(quality))
+					value = 0 -- For to zero
+				end
 				local val = (v.rate and v.rate ~= 1) and value * v.rate or value
 				local r, err = self._station:set_tag_value(v.name, val, timestamp)
 				if not r then
 					self._log:warning("Failed set tag value", v.name, val, err)
+				end
+				if quality ~= 0 then
+					self._dev:set_input_prop(v.name, 'value', 0, timestamp, quality)
 				end
 			end
 		end
 	else
 		for _, v in ipairs(inputs) do
 			if v.src_prop == prop then
+				if quality ~= 0 then
+					self._log:warning("Quality of "..v.name..".RDATA is not good", quality, type(quality))
+					value.value = 0  -- For to zero
+					value.value_z = value.value_z and 0 or nil
+				end
 				local val = (v.rate and v.rate ~= 1) and value.value * v.rate or value.value
 				local val_z = (v.rate and v.rate ~= 1 and value.value_z ~= nil) and value.value_z * v.rate or value.value_z
 				local r, err = self._station:set_tag_value(v.name, val, timestamp, val_z)
 				if not r then
 					self._log:warning("Failed set tag rdata", v.name, cjson.encode(value), err)
+				end
+				if quality ~= 0 then
+					self._dev:set_input_prop(v.name, 'value', 0, timestamp, quality)
 				end
 			end
 		end
