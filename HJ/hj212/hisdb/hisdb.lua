@@ -4,9 +4,9 @@ local object = require 'hisdb.object'
 
 local hisdb = class('hisdb.hisdb')
 
-function hisdb:initialize(folder, durations)
+function hisdb:initialize(folder, durations, default_duration)
 	self._durations = durations
-	self._index_db = index:new(folder)
+	self._index_db = index:new(folder, default_duration)
 	self._objects = {}
 	self._version_check = {}
 end

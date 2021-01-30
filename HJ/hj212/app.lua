@@ -89,8 +89,14 @@ function app:on_start()
 		log:warning("Using local timestamp instead of input value's source timestamp")
 	end
 
+	local def_duration = math.abs(conf.duration or 2)
+	if def_duration > 4 then
+		def_duration = 4
+		log:warning("History database duration cannot bigger than 4 months")
+	end
+
 	local db_folder = sysinfo.data_dir() .. "/db_" .. self._name
-	self._hisdb = hisdb:new(db_folder, {SAMPLE='1d'})
+	self._hisdb = hisdb:new(db_folder, {SAMPLE='1d'}, def_duration..'m')
 	local r, err = self._hisdb:open()
 	if not r then
 		log:error("Failed to open history database", err)

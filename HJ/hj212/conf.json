@@ -111,6 +111,12 @@
 		"default": false
 	},
 	{
+		"name": "duration",
+		"desc": "数据存储时限(月)",
+		"type": "number",
+		"default": 2
+	},
+	{
 		"name": "timezone",
 		"desc": "时区",
 		"type": "string",
