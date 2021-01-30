@@ -3,7 +3,8 @@ local calc_parser = require 'calc.parser'
 
 local logger = require 'hj212.logger'
 local base = require 'hj212.client.tag'
-local hisdb_tag = require 'hisdb.tag'
+--local hisdb_tag = require 'hisdb.tag'
+local hisdb_tag = require 'siridb.tag'
 
 local tag = base:subclass('HJ212_HJTAG')
 

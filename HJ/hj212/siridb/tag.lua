@@ -1,15 +1,16 @@
 local base = require 'hj212.calc.db'
 local siri_data = require 'db.siridb.data'
 local siri_series = require 'db.siridb.series'
+local data_merge = require 'siridb.data_merge'
 
 local tag = base:subclass('hisdb.tag')
 
 function tag:initialize(hisdb, tag_name)
 	self._hisdb = hisdb
-	self._db = hisdb:db()
 	self._tag_name = tag_name
 	self._samples = {}
 	self._value_type_map = {}
+	self._db_map = {}
 end
 
 local function map_value_type(v_type)
@@ -27,27 +28,38 @@ function tag:init()
 	for _, v in ipairs(meta) do
 		self._value_type_map['SAMPLE.'..v.name] = map_value_type(v.type)
 	end
+	self._db_map['SAMPLE'] = self._hisdb:db('SAMPLE')
+
 	meta = self:rdata_meta()
 	for _, v in ipairs(meta) do
 		self._value_type_map['RDATA.'..v.name] = map_value_type(v.type)
 	end
+	self._db_map['RDATA'] = self._hisdb:db('RDATA')
+
 	meta = self:cou_meta()
 	for _, v in ipairs(meta) do
 		self._value_type_map['MIN.'..v.name] = map_value_type(v.type)
 		self._value_type_map['HOUR.'..v.name] = map_value_type(v.type)
 		self._value_type_map['DAY.'..v.name] = map_value_type(v.type)
 	end
+	self._db_map['MIN'] = self._hisdb:db('MIN')
+	self._db_map['HOUR'] = self._hisdb:db('HOUR')
+	self._db_map['DAY'] = self._hisdb:db('DAY')
 
 	return true
 end
 
 function tag:get_value_type(cate, prop)
+	if prop == 'timestamp' then
+		return nil
+	end
 	local k = cate..'.'..prop
 	local vt = self._value_type_map[k]
 	if vt then
 		return vt
 	end
-	return 'string'
+	print(self._tag_name, cate, prop)
+	return nil -- skipped those data
 end
 
 function tag:push_sample(data)
@@ -71,18 +83,46 @@ function tag:read_samples(start_time, end_time)
 	return self:read('SAMPLE', start_time, end_time)
 end
 
+--[[
+select * from /RDATA.a00000.*/ after 1611980819000
+--]]
+local read_sql = 'select * from /%s.%s.*/ between %d and %d'
+local function build_read(cate, name, stime, etime)
+	return string.format(read_sql, cate, name, math.floor(stime * 1000), math.floor(etime * 1000) + 1)
+end
 function tag:read(cate, start_time, end_time)
 	assert(cate and start_time and end_time)
-	if self._no_db then
+	local tag_name = self._tag_name
+
+	local db = assert(self._db_map[cate])
+	local sql = build_read(cate, tag_name, start_time, end_time)
+	local data, err = db:query(sql)
+	if not data then
+		--TODO: Log error
 		return {}
 	end
 
-	local db = self._db_map[cate]
-	if not db then
-		return nil, "Not found db for "..cate
+	local dm = data_merge:new()
+	for name, values in pairs(data) do
+		local c, n, k, t = string.match(name, '^([^%.]+)%.([^%.]+)%.([^%.]+)%.(.+)$')
+		if not c or c ~= cate or n ~= tag_name then
+			goto CONTINUE
+		end
+
+		local vt = self:get_value_type(cate, k)
+		if vt and vt == t then
+			dm:push_kv(k, values, 0.001)
+		else
+			-- Skip vt not found values
+		end
+		::CONTINUE::
 	end
 
-	return db:query(start_time, end_time)
+	local cjson = require 'cjson.safe'
+	print(tag_name, cate, start_time, end_time)
+	print(cjson.encode(dm:data()))
+
+	return dm:data()
 end
 
 function tag:write(cate, data, is_array)
@@ -98,11 +138,13 @@ function tag:write(cate, data, is_array)
 			local series = series_map[k]
 			if not series and k ~= 'timestamp' then
 				local vt = self:get_value_type(cate, k)
-				local name = cate..'.'..self._tag_name..'.'..k..'.'..vt
-				--print(name, vt)
-				series = siri_series:new(name, vt)
-				series_map[k] = series
-				db_data:add_series(name, series)
+				if vt then
+					local name = cate..'.'..self._tag_name..'.'..k..'.'..vt
+					--print(name, vt)
+					series = siri_series:new(name, vt)
+					series_map[k] = series
+					db_data:add_series(name, series)
+				end
 			end
 			if series then
 				series:push_value(v, assert(d.timestamp))
@@ -110,7 +152,9 @@ function tag:write(cate, data, is_array)
 		end
 	end
 
-	return self._db:insert(db_data)
+	local db = assert(self._db_map[cate])
+
+	return db:insert(db_data)
 end
 
 return tag

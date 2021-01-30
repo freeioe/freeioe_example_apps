@@ -15,7 +15,8 @@ local hj212_logger = require 'hj212.logger'
 local csv_tpl = require 'csv_tpl'
 local conn = require 'conn'
 local tag = require 'hjtag'
-local hisdb = require 'hisdb.hisdb'
+--local hisdb = require 'hisdb.hisdb'
+local hisdb = require 'siridb.hisdb'
 
 --- lua_HJ212_version: 2021-01-30
 --  comment: Fixed simple avg
@@ -96,7 +97,8 @@ function app:on_start()
 	end
 
 	local db_folder = sysinfo.data_dir() .. "/db_" .. self._name
-	self._hisdb = hisdb:new(db_folder, {SAMPLE='1d'}, def_duration..'m')
+	--self._hisdb = hisdb:new(db_folder, {SAMPLE='1d'}, def_duration..'m')
+	self._hisdb = hisdb:new(self._name, {SAMPLE='1d'}, (def_duration * 4 + 1)..'w')
 	local r, err = self._hisdb:open()
 	if not r then
 		log:error("Failed to open history database", err)
