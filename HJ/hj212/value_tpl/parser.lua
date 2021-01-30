@@ -1,23 +1,5 @@
 local ftcsv = require 'ftcsv'
 
-local NAME_CHECKING = {}
-
-local function valid_prop(prop, err_cb)
-	local log_cb = function(...)
-		if err_cb then
-			err_cb(...)
-		end
-		return false
-	end
-
-	if NAME_CHECKING[prop.name] then
-		return log_cb("Duplicated prop name found", prop.name)
-	end
-	NAME_CHECKING[prop.name] = true
-
-	return true
-end
-
 ---
 -- [1] hj212 tag name
 -- [2] hj212 tag desc
@@ -31,10 +13,27 @@ end
 -- [10] rate.ZsMin
 -- [11] rate.Max
 -- [12] rate.ZsMax
-
 local function load_tpl(name, err_cb)
 	local path = tpl_dir..name..'.csv'
 	local t = ftcsv.parse(path, ",", {headers=false})
+
+	local NAME_CHECKING = {}
+
+	local function valid_prop(prop, err_cb)
+		local log_cb = function(...)
+			if err_cb then
+				err_cb(...)
+			end
+			return false
+		end
+
+		if NAME_CHECKING[prop.name] then
+			return log_cb("Duplicated prop name found", prop.name)
+		end
+		NAME_CHECKING[prop.name] = true
+
+		return true
+	end
 
 	local props = {}
 
