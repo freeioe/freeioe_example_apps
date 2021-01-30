@@ -575,8 +575,11 @@ function app:publish_prop_list(prop, list, timestamp)
 			datas[name..'COU_'..k] = v.cou
 			datas[name..'COU_'..k..'_Z'] = v.cou_z
 			datas[name..'COU_'..k..'_AVG'] = v.avg
+			datas[name..'COU_'..k..'_AVG_Z'] = v.avg_z
 			datas[name..'COU_'..k..'_MIN'] = v.min
+			datas[name..'COU_'..k..'_MIN_Z'] = v.min_z
 			datas[name..'COU_'..k..'_MAX'] = v.max
+			datas[name..'COU_'..k..'_MAX_Z'] = v.max_z
 		end
 		datas[name..'FLAG_'..k] = v.flag
 	end
