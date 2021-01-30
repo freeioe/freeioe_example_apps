@@ -18,7 +18,7 @@ local tag = require 'hjtag'
 local hisdb = require 'hisdb.hisdb'
 
 --- lua_HJ212_version: 2021-01-30
---  comment: Hnadle the _z values in pullut tags
+--  comment: Hnadle the _z values in pollution tags
 
 --- 注册对象(请尽量使用唯一的标识字符串)
 local app = app_base:subclass("FREEIOE_HJ212_APP")
