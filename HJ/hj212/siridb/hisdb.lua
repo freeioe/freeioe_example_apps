@@ -20,7 +20,10 @@ function hisdb:initialize(dbname, durations, default_duration, db_options)
 end
 
 function hisdb:open()
-	local list = self._client:get_databases()
+	local list, err = self._client:get_databases()
+	if not list then
+		return nil, err
+	end
 	local list_map = {}
 	for _, v in ipairs(list) do
 		list_map[v] = v
