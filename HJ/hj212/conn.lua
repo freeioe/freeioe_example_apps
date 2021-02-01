@@ -187,6 +187,11 @@ function conn:convert_data(data)
 end
 
 function conn:upload_rdata(data)
+	if not self._client:rdata_enable() then
+		--- Client disabled the rdata
+		return
+	end
+
 	local request = require 'hj212.request.rdata_start'
 	data = self:convert_data(data)
 	local req = request:new(data, true)

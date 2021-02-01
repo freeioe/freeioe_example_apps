@@ -18,8 +18,8 @@ local tag = require 'hjtag'
 local hisdb = require 'hisdb.hisdb'
 local siridb = require 'siridb.hisdb'
 
---- lua_HJ212_version: 2021-01-30
---  comment: Fixed simple avg
+--- lua_HJ212_version: 2021-02-01
+--  comment: Fixed DataTime for MIN/HOUR/DAY should be the start time
 
 --- 注册对象(请尽量使用唯一的标识字符串)
 local app = app_base:subclass("FREEIOE_HJ212_APP")
@@ -170,6 +170,16 @@ function app:on_start()
 	self._station = station:new(conf.system, conf.dev_id, function(ms)
 		sys:sleep(ms)
 	end)
+	self._station:set_handlers({
+		rdata_interval = function(interval)
+			return self:set_rdata_interval(interval)
+		end,
+		min_interval = function(interval)
+			return self:set_min_interval(interval)
+		end
+	})
+	self._station:set_rdata_interval(self._rdata_interval)
+	self._station:set_min_interval(self._min_interval)
 
 	self._calc_mgr = calc_mgr:new()
 
@@ -566,6 +576,8 @@ function app:set_rdata_interval(interval)
 	end
 
 	self._rdata_interval = interval
+	self._station:set_rdata_interval(self._rdata_interval)
+
 	if self._rdata_timer then
 		self._rdata_timer:stop()
 		self._rdata_timer = nil
@@ -587,6 +599,7 @@ function app:set_min_interval(interval)
 	end
 
 	self._min_interval = interval
+	self._station:set_min_interval(self._min_interval)
 
 	if self._min_timer then
 		self._min_timer:stop()
