@@ -28,13 +28,13 @@ function tag:init()
 	for _, v in ipairs(meta) do
 		self._value_type_map['SAMPLE.'..v.name] = map_value_type(v.type)
 	end
-	self._db_map['SAMPLE'] = self._hisdb:db('SAMPLE')
+	self._db_map['SAMPLE'] = assert(self._hisdb:db('SAMPLE'))
 
 	meta = self:rdata_meta()
 	for _, v in ipairs(meta) do
 		self._value_type_map['RDATA.'..v.name] = map_value_type(v.type)
 	end
-	self._db_map['RDATA'] = self._hisdb:db('RDATA')
+	self._db_map['RDATA'] = assert(self._hisdb:db('RDATA'))
 
 	meta = self:cou_meta()
 	for _, v in ipairs(meta) do
@@ -42,9 +42,9 @@ function tag:init()
 		self._value_type_map['HOUR.'..v.name] = map_value_type(v.type)
 		self._value_type_map['DAY.'..v.name] = map_value_type(v.type)
 	end
-	self._db_map['MIN'] = self._hisdb:db('MIN')
-	self._db_map['HOUR'] = self._hisdb:db('HOUR')
-	self._db_map['DAY'] = self._hisdb:db('DAY')
+	self._db_map['MIN'] = assert(self._hisdb:db('MIN'))
+	self._db_map['HOUR'] = assert(self._hisdb:db('HOUR'))
+	self._db_map['DAY'] = assert(self._hisdb:db('DAY'))
 
 	return true
 end
@@ -58,7 +58,7 @@ function tag:get_value_type(cate, prop)
 	if vt then
 		return vt
 	end
-	print(self._tag_name, cate, prop)
+	--print(self._tag_name, cate, prop)
 	return nil -- skipped those data
 end
 
@@ -94,7 +94,7 @@ function tag:read(cate, start_time, end_time)
 	assert(cate and start_time and end_time)
 	local tag_name = self._tag_name
 
-	local db = assert(self._db_map[cate])
+	local db = assert(self._db_map[cate], 'CATE:'..cate..' not found')
 	local sql = build_read(cate, tag_name, start_time, end_time)
 	local data, err = db:query(sql)
 	if not data then
@@ -118,9 +118,11 @@ function tag:read(cate, start_time, end_time)
 		::CONTINUE::
 	end
 
+	--[[
 	local cjson = require 'cjson.safe'
 	print(tag_name, cate, start_time, end_time)
 	print(cjson.encode(dm:data()))
+	]]--
 
 	return dm:data()
 end

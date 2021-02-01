@@ -35,13 +35,30 @@ function hisdb:open()
 			if not r then
 				return nil, err
 			end
-			db.db = database:new(self._db_options, db.name)
+			db.db = assert(database:new(self._db_options, db.name))
 		else
-			db.db = database:new(self._db_options, db.name)
-			db.db:exec('alter database set expiration_num '..db.duration..' set ignore_threshold true')
+			local dbi = database:new(self._db_options, db.name)
+			local data, err = dbi:exec('show duration_num')
+			if not data then
+				return nil, err
+			end
+			--TODO: Check duration
+			--print(data.data[1].value)
+			local data, err = dbi:exec('show time_precision')
+			if not data then
+				return nil, err
+			end
+			if data.data[1].value ~= 'ms' then
+				return nil, "time_precision is not ms"
+			end
+			db.db = assert(dbi)
 		end
 	end
 
+	return true
+end
+
+function hisdb:close()
 	return true
 end
 
@@ -52,10 +69,14 @@ end
 function hisdb:db(cate)
 	assert(cate)
 	local db = assert(self._db_list[cate] or self._db_list.DEFAULT)
-	return db.db
+	return assert(db.db)
 end
 
 function hisdb:retain_check()
+end
+
+function hisdb:purge_all()
+	-- TODO:
 end
 
 return hisdb

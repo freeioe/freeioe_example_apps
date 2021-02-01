@@ -15,8 +15,8 @@ local hj212_logger = require 'hj212.logger'
 local csv_tpl = require 'csv_tpl'
 local conn = require 'conn'
 local tag = require 'hjtag'
---local hisdb = require 'hisdb.hisdb'
-local hisdb = require 'siridb.hisdb'
+local hisdb = require 'hisdb.hisdb'
+local siridb = require 'siridb.hisdb'
 
 --- lua_HJ212_version: 2021-01-30
 --  comment: Fixed simple avg
@@ -63,6 +63,7 @@ function app:on_start()
 
 	if os.getenv("IOE_DEVELOPER_MODE") then
 		conf.local_timestamp = true
+		conf.using_siridb = true
 	end
 
 	if string.len(conf.dev_id or '') <= 0 or string.len(conf.dev_id) > 24 then
@@ -97,17 +98,27 @@ function app:on_start()
 	end
 
 	local db_folder = sysinfo.data_dir() .. "/db_" .. self._name
-	--self._hisdb = hisdb:new(db_folder, {SAMPLE='1d'}, def_duration..'m')
-	self._hisdb = hisdb:new(self._name, {SAMPLE='1d'}, (def_duration * 4 + 1)..'w')
-	local r, err = self._hisdb:open()
-	if not r then
-		log:error("Failed to open history database", err)
-		return nil, err
+	if not conf.using_siridb then
+		self._hisdb = hisdb:new(db_folder, {SAMPLE='1d'}, def_duration..'m')
+	else
+		local i = 1
+		local max_retry = 10
+		self._hisdb = siridb:new(self._name, {SAMPLE='1d'}, (def_duration * 4 + 1)..'w')
+		while true do
+			local r, err = self._hisdb:open()
+			if r then
+				break
+			end
+			log:error("Failed to open history database", err)
+			if i > max_retry then
+				return nil, err
+			end
+			self._sys:sleep(1000)
+		end
 	end
 
 	conf.servers = conf.servers or {}
 	if os.getenv("IOE_DEVELOPER_MODE") then
-		self._min_interval = 1
 		if #conf.servers == 0 then
 			--[[
 			table.insert(conf.servers, {
