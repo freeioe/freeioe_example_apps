@@ -1,8 +1,9 @@
 local class = require 'middleclass'
 local client = require 'db.siridb.client'
 local database = require 'db.siridb.database'
+local tag = require 'siridb.tag'
 
-local hisdb = class('hisdb.hisdb')
+local hisdb = class('siridb.hisdb')
 
 hisdb.static.DEFAULT_DURATION = '10w' -- ten weeks
 
@@ -77,6 +78,10 @@ end
 
 function hisdb:purge_all()
 	-- TODO:
+end
+
+function hisdb:create_tag(...)
+	return tag:new(self, ...)
 end
 
 return hisdb

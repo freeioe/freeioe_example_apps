@@ -3,7 +3,7 @@ local siri_data = require 'db.siridb.data'
 local siri_series = require 'db.siridb.series'
 local data_merge = require 'siridb.data_merge'
 
-local tag = base:subclass('hisdb.tag')
+local tag = base:subclass('siridb.tag')
 
 function tag:initialize(hisdb, tag_name)
 	self._hisdb = hisdb

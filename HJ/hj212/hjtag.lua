@@ -3,8 +3,6 @@ local calc_parser = require 'calc.parser'
 
 local logger = require 'hj212.logger'
 local base = require 'hj212.client.tag'
---local hisdb_tag = require 'hisdb.tag'
-local hisdb_tag = require 'siridb.tag'
 
 local tag = base:subclass('HJ212_HJTAG')
 
@@ -82,7 +80,7 @@ end
 
 function tag:init_db()
 	local cou_calc = self:cou_calc()
-	local db = hisdb_tag:new(self._hisdb, self:tag_name(), self._no_hisdb)
+	local db = self._hisdb:create_tag(self:tag_name(), self._no_hisdb)
 	local r, err = db:init()
 	if not r then
 		return nil, err
