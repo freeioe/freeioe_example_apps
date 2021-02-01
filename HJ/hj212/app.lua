@@ -63,7 +63,7 @@ function app:on_start()
 
 	if os.getenv("IOE_DEVELOPER_MODE") then
 		conf.local_timestamp = true
-		conf.using_siridb = true
+		--conf.using_siridb = true
 	end
 
 	if string.len(conf.dev_id or '') <= 0 or string.len(conf.dev_id) > 24 then
@@ -100,6 +100,10 @@ function app:on_start()
 	local db_folder = sysinfo.data_dir() .. "/db_" .. self._name
 	if not conf.using_siridb then
 		self._hisdb = hisdb:new(db_folder, {SAMPLE='1d'}, def_duration..'m')
+		local r, err = self._hisdb:open()
+		if not r  then
+			return nil, err
+		end
 	else
 		local i = 1
 		local max_retry = 10
