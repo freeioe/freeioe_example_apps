@@ -647,7 +647,8 @@ function app:on_mqtt_connect_ok()
 		'outputs/#'
 	}
 	for _, v in ipairs(sub_topics) do
-		self:subscribe(self._mqtt_id..v, 1)
+		self:subscribe(self._mqtt_id..'/'..v, 1)
+		self:subscribe(v, 1)
 	end
 	return self:publish(self._mqtt_id.."/status", "ONLINE", 1, true)
 end
