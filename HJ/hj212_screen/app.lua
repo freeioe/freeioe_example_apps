@@ -484,7 +484,7 @@ function app:on_publish_data(key, value, timestamp, quality)
 end
 
 function app:publish_prop_data(tag_name, prop, value, timestamp)
-	local timestamp = math.floor(timestamp)
+	local timestamp = math.floor(value.stime or value.timestamp or timestamp)
 	local sys = self:sys_api()
 	local log = self:log_api()
 	local prop = prop
@@ -492,7 +492,7 @@ function app:publish_prop_data(tag_name, prop, value, timestamp)
 	local buf = self._prop_buf[prop][timestamp]
 	if not buf then
 		local name = prop..'['..os.date('%c', timestamp)..']'
-		--log:debug("Create publish prop data item", name)
+		-- log:debug("Create publish prop data item", name)
 		buf = {
 			id = {},
 			list = {},
