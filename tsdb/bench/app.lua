@@ -48,8 +48,8 @@ function app:on_start()
 	end
 
 	self._tsdb = {
-		siri = tsdb_siri:new('test'),
-		prom =  tsdb_prom:new('test')
+		siri = tsdb_siri:new(self:app_name()),
+		--prom =  tsdb_prom:new(self:app_name())
 	}
 	self._tsinfo = {}
 
