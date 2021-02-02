@@ -62,8 +62,9 @@ function app:on_start()
 	local log = self:log_api()
 
 	if os.getenv("IOE_DEVELOPER_MODE") then
+		-- conf.min_interval = 1
 		conf.local_timestamp = true
-		--conf.using_siridb = true
+		-- conf.using_siridb = true
 	end
 
 	if string.len(conf.dev_id or '') <= 0 or string.len(conf.dev_id) > 24 then
@@ -107,7 +108,7 @@ function app:on_start()
 	else
 		local i = 1
 		local max_retry = 10
-		self._hisdb = siridb:new(self._name, {SAMPLE='1d'}, (def_duration * 4 + 1)..'w')
+		self._hisdb = siridb:new(self._name, {SAMPLE='1d'}, def_duration..'m')
 		while true do
 			local r, err = self._hisdb:open()
 			if r then

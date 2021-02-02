@@ -2,18 +2,26 @@ local class = require 'middleclass'
 local client = require 'db.siridb.client'
 local database = require 'db.siridb.database'
 local tag = require 'siridb.tag'
+local utils = require 'siridb.utils'
 
 local hisdb = class('siridb.hisdb')
 
 hisdb.static.DEFAULT_DURATION = '10w' -- ten weeks
 
 function hisdb:initialize(dbname, durations, default_duration, db_options)
-	local def_duration = default_duration or hisdb.static.DEFAULT_DURATION
+	local def_duration = utils.duration(default_duration or hisdb.static.DEFAULT_DURATION)
 	local db_list = {
-		DEFAULT = { name = dbname, duration = def_duration}
+		DEFAULT = { name = dbname, expiration = def_duration * 1000}
 	}
+	--local default_expiration = utils.duration('1m')
 	for cate, duration in pairs(durations) do
-		db_list[cate] = { name = dbname..'_'..cate, duration = duration }
+		local duration = utils.duration(duration)
+		db_list[cate] = {
+			name = dbname..'_'..cate,
+			--duration = duration > default_expiration * 2 and default_expiration or math.ceil(duration / 2),
+			duration = 0, -- auto duration is enabled in siridb configuration
+			expiration = duration * 1000,
+		}
 	end
 	self._db_list = db_list
 	self._db_options = db_options or {}
@@ -31,6 +39,7 @@ function hisdb:open()
 	end
 
 	for cate, db in pairs(self._db_list) do
+		--print(db.name, db.expiration, db.duration)
 		if not list_map[db.name] then
 			local r, err = self._client:new_database(db.name, 'ms', 1024, db.duration)
 			if not r then
@@ -39,18 +48,25 @@ function hisdb:open()
 			db.db = assert(database:new(self._db_options, db.name))
 		else
 			local dbi = database:new(self._db_options, db.name)
-			local data, err = dbi:exec('show duration_num')
-			if not data then
-				return nil, err
-			end
-			--TODO: Check duration
-			--print(data.data[1].value)
+
 			local data, err = dbi:exec('show time_precision')
 			if not data then
 				return nil, err
 			end
 			if data.data[1].value ~= 'ms' then
 				return nil, "time_precision is not ms"
+			end
+
+			--Check expiration
+			local data, err = dbi:exec('show expiration_num')
+			if not data then
+				return nil, err
+			end
+
+			local num = tonumber(data.data and data.data[1] and data.data[1].value or 0) or 0
+			if num ~= db.expiration then
+				--print('Correct expriation:', num, db.expiration)
+				dbi:exec('alter database set expiration_num '..db.expiration..' set ignore_threshold true')
 			end
 			db.db = assert(dbi)
 		end
