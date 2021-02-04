@@ -64,7 +64,7 @@ function app:on_start()
 	if os.getenv("IOE_DEVELOPER_MODE") then
 		-- conf.min_interval = 1
 		conf.local_timestamp = true
-		-- conf.using_siridb = true
+		conf.using_siridb = true
 	end
 
 	if string.len(conf.dev_id or '') <= 0 or string.len(conf.dev_id) > 24 then

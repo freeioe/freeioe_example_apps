@@ -14,7 +14,7 @@ function conn:initialize(app, conf, station, dev_sn_base)
 	self._conf = conf
 	self._station = station
 	self._dev_sn_base = dev_sn_base
-	self._client = client:new(station, self._conf)
+	self._client = client:new(station, self._conf, self)
 end
 
 function conn:station()

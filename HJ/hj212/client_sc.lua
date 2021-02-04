@@ -21,13 +21,14 @@ local function protect_call(obj, func, ...)
 end
 
 --- 
-function client:initialize(station, opt)
+function client:initialize(station, opt, conn)
 	assert(station and opt)
 	local ver = types.PROTOCOL.V2017
 	if opt.version then
 		ver = assert(types.PROTOCOL['V'..opt.version])
 	end
 	base.initialize(self, station, opt.passwd, opt.timeout, opt.retry, {ver=ver})
+	self._conn = conn
 	self._name = opt.name
 	self._closing = false
 	self._opt = opt
@@ -294,6 +295,21 @@ function client:close()
 	skynet.wait(self._closing)
 	skynet.sleep(100)
 	self._closing = nil
+end
+
+function client:on_command_min_data(stime, etime)
+	local data = self._station:min_data(stime, etime)
+	return self._conn:upload_min_data(data)
+end
+
+function client:on_command_hour_data(stime, etime)
+	local data = self._station:hour_data(stime, etime)
+	return self._conn:upload_hour_data(data)
+end
+
+function client:on_command_day_data(stime, etime)
+	local data = self._station:hour_data(stime, etime)
+	return self._conn:upload_hour_data(data)
 end
 
 return client 
