@@ -1,5 +1,6 @@
 --- 导入需求的模块
 local class = require 'middleclass'
+local event = require 'app.event'
 local client = require 'client_sc'
 local types = require 'hj212.types'
 local value_tpl = require 'value_tpl.parser'
@@ -87,6 +88,20 @@ end
 function conn:start_connect()
 	self._client:set_connection_cb(function(status)
 		self._dev:set_input_prop('status', 'value', status)
+		if not status then
+			self._dev:fire_event(event.LEVEL_WARNING, event.EVENT_COMM, 'Server disconnected!', {})
+		else
+			self._dev:fire_event(event.LEVEL_INFO, event.EVENT_COMM, 'Connected to server!', {})
+		end
+	end)
+	self._client:set_retry_cb(function(name, retry, max, data)
+		local data = {
+			name = name,
+			retry = retry,
+			max = max,
+			data = data
+		}
+		self._dev:fire_event(event.LEVEL_WARNING, event.EVENT_COMM, 'Data send retry!', data)
 	end)
 
 	self._client:set_dump(function(io, msg)

@@ -56,6 +56,10 @@ function client:dump_raw(io, raw_data)
 	end
 end
 
+function client:set_retry_cb(cb)
+	self._retry_cb = cb
+end
+
 --- Timeout: ms
 function client:send(session, raw_data)
 	local timeout = self:timeout()
@@ -82,6 +86,9 @@ function client:send(session, raw_data)
 	while cur < self:retry() and self._socket do
 		if cur ~= 0 then
 			self:log('warning', 'Resend request', session, cur)
+			if self._retry_cb then
+				self._retry_cb(self._name, cur, self:retry(), raw_data)
+			end
 		end
 		local r, err = socket.write(self._socket, raw_data)
 		if not r then

@@ -139,5 +139,11 @@
 		"desc": "使用设备时间代替数据源的时间戳",
 		"type": "boolean",
 		"default": false
+	},
+	{
+		"name": "using_siridb",
+		"desc": "使用SIRIDB存储数据",
+		"type": "boolean",
+		"default": true
 	}
 ]
