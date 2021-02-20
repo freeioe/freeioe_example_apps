@@ -4,7 +4,7 @@ local ioe = require 'ioe'
 local tpl_parser = require 'tpl_parser'
 
 local app = mqtt_app:subclass("HJ212_APP_SCREEN")
-app.static.API_VER = 8
+app.static.API_VER = 9
 
 local function valid_device_sn(sn)
 	--return nil == string.find(sn, '%s')
@@ -31,14 +31,17 @@ function app:initialize(name, sys, conf)
 	conf.station = conf.station or 'HJ212'
 
 	-- for test
-	--[[
-	conf.port = 3883
-	conf.settings = {
+	if ioe.developer_mode() then
+		conf.server = 'vpn.symid.com'
+		conf.port = 1883
+		--[[
+		conf.settings = {
 		{name='section_area', value='11.2'},
 		{name='filed_coefficient', value='1'},
 		{name='local_Pressure', value='10.2'},
-	}
-	]]--
+		}
+		]]--
+	end
 
 	--- 基础类初始化
 	mqtt_app.initialize(self, name, sys, conf)
@@ -376,6 +379,12 @@ function app:on_run(tms)
 
 	return 1000
 end
+
+--[[
+function app:publish(topic, ...)
+	return mqtt_app.publish(self, 'aaa_'..topic, ...)
+end
+]]--
 
 function app:publish_status()
 	local data = {}
