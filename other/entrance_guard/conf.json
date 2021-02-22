@@ -1,0 +1,20 @@
+[
+	{
+		"name": "cycle",
+		"desc": "Data generation cycle time (ms)",
+		"type": "number",
+		"default": 5000
+	},
+	{
+		"name": "port",
+		"desc": "Local Http Port",
+		"type": "number",
+		"default": 9876
+	},
+	{
+		"name": "dev_sn_prefix",
+		"desc": "Use gateway sn as prefix for device sn",
+		"type": "boolean",
+		"default": true
+	}
+]
