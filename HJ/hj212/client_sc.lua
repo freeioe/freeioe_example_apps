@@ -104,9 +104,19 @@ function client:send(session, raw_data)
 	end
 
 	local result = self._results[session] or {false, "Timeout"}
+
 	-- Cleanup
-	self._results[session] = nil
 	self._requests[session] = nil
+	if not self._results[session] then
+		if self._socket and self:retry() > 1 then
+			self:log('error', 'Request failed after retried, close the current connection')
+			socket.close(self._socket)
+			self._socket = nil
+		end
+	else
+		self._results[session] = nil
+	end
+
 
 	--[[
 	if not result[1] then
