@@ -1,13 +1,25 @@
 [
 	{
-		"name": "cycle",
-		"desc": "Data generation cycle time (ms)",
+		"name": "device",
+		"desc": "Device IP address",
+		"type": "string",
+		"default": "192.168.2.10"
+	},
+	{
+		"name": "device_id",
+		"desc": "Device ID",
 		"type": "number",
-		"default": 5000
+		"default": 1435807
+	},
+	{
+		"name": "addr",
+		"desc": "Gateway local IP address",
+		"type": "string",
+		"default": "192.168.2.139"
 	},
 	{
 		"name": "port",
-		"desc": "Local Http Port",
+		"desc": "Gateway local HTTP port",
 		"type": "number",
 		"default": 9876
 	},

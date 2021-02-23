@@ -1,3 +1,6 @@
+local verify = require 'verify'
+local cjson = require 'cjson.safe'
+local ioe = require 'ioe'
 local base = require 'app.base'
 local socket = require 'skynet.socket'
 local sockethelper = require 'http.sockethelper'
@@ -29,7 +32,43 @@ function app:on_start()
 		self._cycle = 5000
 	end
 
-	return self:start_httpd(conf.port)
+	verify.init('/tmp/'..self:app_name())
+
+	self._api = restful:new(conf.device, 1000, nil, {'admin', 'admin'})
+
+	return self:start_httpd(conf.port, conf.addr)
+end
+
+function app:on_run(tms)
+	local log = self:log_api()
+
+	if not self._subscribed then
+		local conf = self:app_conf()
+		local r, err = self:subscribe(conf.addr, conf.port, conf.device_id)
+		if not r then
+			log:error('Subscribe error:', err)
+		else
+			log:info('Subscribed success to device')
+		end
+		return 5000 -- five seconds
+	end
+
+	if ioe.now() - self._last_hearbeat > (30 + 10) * 1000 then
+		log:error('Subscribe heartbeat lost:', err)
+		self._subscribed = false
+		return 100 -- subscribe lost
+	end
+
+	return self._cycle
+end
+
+function app:on_close(reason)
+	self:stop_httpd()
+	return true
+end
+
+function app:on_command(app, sn, command, params)
+
 end
 
 function app:create_device(dev_sn)
@@ -81,6 +120,12 @@ function app:start_httpd(port, ip)
 	return true
 end
 
+function app:stop_httpd()
+	if self._httpd_socket then
+		socket.close(self._httpd_socket)
+	end
+end
+
 local function response(id, write, ...)
 	local ok, err = httpd.write_response(write, ...)
 	if not ok then
@@ -123,41 +168,40 @@ local function gen_interface(protocol, fd)
 end
 
 function app:process_http(protocol, id, addr)
+	local log = self:log_api()
+
 	socket.start(id)
 	local interface = gen_interface(protocol, id)
 	if interface.init then
 		interface.init()
 	end
-	-- limit request body size to 8192 (you can pass nil to unlimit)
-	local code, url, method, header, body = httpd.read_request(interface.read, 8192)
+	-- limit request body size to 8192K (you can pass nil to unlimit)
+	local code, url, method, header, body = httpd.read_request(interface.read, 8192 * 1024)
 	if code then
 		if code ~= 200 then
 			response(id, interface.write, code)
 		else
-			local tmp = {}
-			if header.host then
-				table.insert(tmp, string.format("host: %s", header.host))
-			end
 			local path, query = urllib.parse(url)
-			table.insert(tmp, string.format("path: %s", path))
 			if query then
-				local q = urllib.parse_query(query)
-				for k, v in pairs(q) do
-					table.insert(tmp, string.format("query: %s= %s", k,v))
+				query = urllib.parse_query(query)
+			end
+			path = string.lower(path)
+
+			self:handle_http_req(method, path, header, query, body, function(code, body)
+				if type(body) == 'table' then
+					--content = table.concat(tmp,"\n")
+					local content, err = cjson.encode(body)
+					return response(id, interface.write, code, content or err)
+				else
+					return response(id, interface.write, code, body)
 				end
-			end
-			table.insert(tmp, "-----header----")
-			for k,v in pairs(header) do
-				table.insert(tmp, string.format("%s = %s",k,v))
-			end
-			table.insert(tmp, "-----body----\n" .. body)
-			response(id, interface.write, code, table.concat(tmp,"\n"))
+			end)
 		end
 	else
 		if url == sockethelper.socket_error then
-			skynet.error("socket closed")
+			log:error("socket closed")
 		else
-			skynet.error(url)
+			log:error(url)
 		end
 	end
 	socket.close(id)
@@ -166,16 +210,78 @@ function app:process_http(protocol, id, addr)
 	end
 end
 
-function app:on_run(tms)
-	if not self._subscribed then
-		self:subscribe()
-		return
+function app:handle_http_req(method, path, header, query, body, response)
+	local log = self:log_api()
+
+	if path == '/subscribe/heartbeat' then
+		self._last_hearbeat = ioe.now()
+		return response(200, {code=200, desc="OK"})
+	end
+	if path == '/subscribe/snap' then
+		return response(200, {code=200, desc="OK"})
+	end
+	if path == '/subscribe/verify' then
+		local data, err = cjson.decode(body)
+		if not data then
+			return response(403, {code=403, desc="Decode JSON failure"})
+		end
+		if data.operator ~= 'VerifyPush' then
+			return response(403, {code=403, desc="Incorrect Operator"})
+		end
+
+		--saving files
+		local r, err = verify.save(data)
+		if not r then
+			log:error(err)
+		end
+
+		return response(200, {code=200, desc="OK"})
 	end
 
-	return self._cycle
+	return response(403, "Not implemented such request handling")
 end
 
-function app:subscribe()
+function app:subscribe(local_addr, local_port, device_id)
+	self._subscribed = true
+	if true then
+		self._last_hearbeat = ioe.now()
+		return true
+	end
+	local addr = 'http://'..local_addr..':'..local_port
+	local status, body = self._api:post('/action/Subscribe', {}, {
+		operator = 'Subscribe',
+		info = {
+			DeviceID = device_id,
+			Num = 2,
+			Topics = {'Snap', 'Verify'},-- 'Card'}, --, 'PassWord'},
+			SubscribeAddr = addr,
+			SubscribeUrl = {
+				Snap = '/Subscribe/Snap',
+				Verify = '/Subscribe/Verify',
+				--Card = '/subscribe/card',
+				--PassWord = '/subscribe/password'
+				HeartBeat = '/Subscribe/heartbeat',
+			},
+			BeatInterval = 30,
+			ResumefromBreakpoint = 0,
+			Auth = 'none'
+		}
+	})
+	if not status or status ~= 200 then
+		return nil, body
+	end
+	local ret = cjson.decode(body)
+	if ret.operator ~= 'Subscribe' then
+		return nil, 'Error operator'
+	end
+	if tonumber(ret.code or '') ~= 200 then
+		local err = ret.info and ret.info.Detail or 'Error status code:'..ret.code
+		return nil, err
+	end
+
+	self._subscribed = true
+	self._last_hearbeat = ioe.now()
+	return true
 end
 
 return app
