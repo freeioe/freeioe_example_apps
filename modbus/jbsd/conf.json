@@ -1,13 +1,17 @@
 [
 	{
+		"name": "serial_opt",
+		"type": "serial"
+	},
+	{
 		"name": "dev_sn",
-		"desc": "Device sn",
+		"desc": "设备序列号",
 		"type": "string",
 		"default": "WL_1A1"
 	},
 	{
 		"name": "dev_sn_prefix",
-		"desc": "Use gateway sn as prefix for device sn",
+		"desc": "使用网关序号作为序列号前缀",
 		"type": "boolean",
 		"default": true
 	},
@@ -19,17 +23,13 @@
 	},
 	{
 		"name": "unit",
-		"desc": "Modbus Address",
+		"desc": "Modbus 地址",
 		"type": "number",
 		"default": 1
 	},
 	{
-		"name": "serial_opt",
-		"type": "serial"
-	},
-	{
 		"name": "dev_type",
-		"desc": "Device Type",
+		"desc": "设备型号",
 		"type": "dropdown",
 		"default": "WL_1A1",
 		"values": [
@@ -41,12 +41,12 @@
 	},	
 	{
 		"name": "wl_1a1_opt",
-		"desc": "WL_1A1 options",
+		"desc": "WL_1A1 选项",
 		"type": "section",
 		"child": [
 			{
 				"name": "fm_type",
-				"desc": "Software NO",
+				"desc": "设备软件序号",
 				"type": "dropdown",
 				"values": [
 					"OLDER_10_05",
@@ -55,37 +55,37 @@
 			},
 			{
 				"name": "mr_flow",
-				"desc": "Measuring Range of flow (m3/h)",
+				"desc": "流量量程Measuring Range of flow (m3/h)",
 				"type": "number",
 				"default": 100
 			},
 			{
 				"name": "mr_liquid_level",
-				"desc": "Measuring Range of Liquid Level (m)",
+				"desc": "液位量程Measuring Range of Liquid Level (m)",
 				"type": "number",
 				"default": 10
 			},
 			{
 				"name": "mr_I1",
-				"desc": "Measuring Range of I1 (mA)",
+				"desc": "I1量程Measuring Range of I1 (mA)",
 				"type": "number",
 				"default": 10
 			},
 			{
 				"name": "mr_I2",
-				"desc": "Measuring Range of I2 (mA)",
+				"desc": "I2量程Measuring Range of I2 (mA)",
 				"type": "number",
 				"default": 10
 			},
 			{
 				"name": "mr_I3",
-				"desc": "Measuring Range of I3 (mA)",
+				"desc": "I3量程Measuring Range of I3 (mA)",
 				"type": "number",
 				"default": 10
 			},
 			{
 				"name": "mr_I4",
-				"desc": "Measuring Range of I4 (mA)",
+				"desc": "I4量程Measuring Range of I4 (mA)",
 				"type": "number",
 				"default": 10
 			}
