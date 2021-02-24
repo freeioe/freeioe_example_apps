@@ -82,7 +82,7 @@
 		"type": "section",
 		"child": [
 			{
-				"name": "diable_data",
+				"name": "disable_data",
 				"desc": "禁止数据上送",
 				"type": "boolean",
 				"default": false
@@ -100,7 +100,7 @@
 				"default": false
 			},
 			{
-				"name": "diable_command",
+				"name": "disable_command",
 				"desc": "禁止设备指令",
 				"type": "boolean",
 				"default": false
