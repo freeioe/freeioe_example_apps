@@ -114,7 +114,7 @@
 		"name": "duration",
 		"desc": "数据存储时限(月)",
 		"type": "number",
-		"default": 2
+		"default": 6
 	},
 	{
 		"name": "timezone",

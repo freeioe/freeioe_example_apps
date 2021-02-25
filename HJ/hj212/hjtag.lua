@@ -106,10 +106,12 @@ function tag:set_value_callback(cb)
 	self._value_callback = cb
 end
 
-function tag:set_value(value, timestamp, value_z)
+function tag:set_value(value, timestamp, value_z, quality)
 	assert(value ~= nil)
 	assert(timestamp ~= nil)
-	local value = value 
+	local value = quality == 0 and value or 0
+	local value_z = value_z and (quality == 0 and value_z or 0) or nil
+
 	if self._calc then
 		value = self._calc(value, timestamp)
 		value = math.floor(value * 100000) / 100000
@@ -118,16 +120,16 @@ function tag:set_value(value, timestamp, value_z)
 			value_z = math.floor(value_z * 100000) / 100000
 		end
 	end
-	return base.set_value(self, value, timestamp, value_z)
+	return base.set_value(self, value, timestamp, value_z, quality)
 end
 
 --- Forward to MQTT application
-function tag:on_calc_value(type_name, val, timestamp)
+function tag:on_calc_value(type_name, val, timestamp, quality)
 	assert(type_name ~= 'value')
 	assert(val and type(val) == 'table')
 	--print('on_calc_value', self._name, type_name, timestamp, cjson.encode(val))
 	if self._value_callback then
-		self._value_callback(type_name, val, timestamp)
+		self._value_callback(type_name, val, timestamp, quality)
 	end
 	return val
 end

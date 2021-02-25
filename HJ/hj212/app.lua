@@ -15,6 +15,7 @@ local hj212_logger = require 'hj212.logger'
 local csv_tpl = require 'csv_tpl'
 local conn = require 'conn'
 local tag = require 'hjtag'
+local info = require 'hjinfo'
 local hisdb = require 'hisdb.hisdb'
 local siridb = require 'siridb.hisdb'
 
@@ -92,15 +93,16 @@ function app:on_start()
 		log:warning("Using local timestamp instead of input value's source timestamp")
 	end
 
-	local def_duration = math.abs(conf.duration or 2)
-	if def_duration > 4 then
-		def_duration = 4
-		log:warning("History database duration cannot bigger than 4 months")
+	local max_duration = conf.using_siridb and 6 or 4
+	local def_duration = math.abs(conf.duration or max_duration)
+	if def_duration > max_duration then
+		def_duration = max_duration
+		log:warning("History database duration cannot bigger than "..max_duration.." months")
 	end
 
 	local db_folder = sysinfo.data_dir() .. "/db_" .. self._name
 	if not conf.using_siridb then
-		self._hisdb = hisdb:new(db_folder, {SAMPLE='1d'}, def_duration..'m')
+		self._hisdb = hisdb:new(db_folder, {SAMPLE='1d',INFO='7d'}, def_duration..'m')
 		local r, err = self._hisdb:open()
 		if not r  then
 			return nil, err
@@ -108,7 +110,7 @@ function app:on_start()
 	else
 		local i = 1
 		local max_retry = 10
-		self._hisdb = siridb:new(self._name, {SAMPLE='1d'}, def_duration..'m')
+		self._hisdb = siridb:new(self._name, {SAMPLE='1d',INFO='7d'}, def_duration..'m')
 		while true do
 			local r, err = self._hisdb:open()
 			if r then
@@ -194,10 +196,11 @@ function app:on_start()
 		return string.gsub(sn, '^STATION(.*)$', conf.station..'%1')
 	end
 	local no_hisdb = conf.no_hisdb
-	for sn, tags in pairs(tpl.devs) do
+	for sn, d in pairs(tpl.devs) do
 		local dev = {}
 		local tag_list = {}
-		for _, prop in ipairs(tags) do
+		local info_list = {}
+		for _, prop in ipairs(d.tags) do
 			inputs[#inputs + 1] = {
 				name = prop.name,
 				desc = prop.desc,
@@ -216,14 +219,14 @@ function app:on_start()
 
 			local tag = tag:new(self._hisdb, self._station, prop)
 			local p_name = prop.name
-			tag:set_value_callback(function(type_name, val, timestamp)
+			tag:set_value_callback(function(type_name, val, timestamp, quality)
 				local dev = app_inst._dev
 				if not dev then
 					-- log:warning('Device object not found', p_name, prop, value, timestamp)
 					return
 				end
 				if type_name == 'SAMPLE' then
-					dev:set_input_prop(p_name, 'value', val.value, timestamp)
+					dev:set_input_prop(p_name, 'value', val.value, timestamp, quality)
 				else
 					local val_str, err = cjson.encode(val)
 					if not val_str then
@@ -245,17 +248,52 @@ function app:on_start()
 						val_str, err = cjson.encode(val)
 					end
 					if val_str then
-						dev:set_input_prop(p_name, type_name, val_str, timestamp)
+						dev:set_input_prop(p_name, type_name, val_str, timestamp, quality)
 					else
 						log:error('Value cannot serialized by cjson')
 					end
 				end
 			end)
-			tag_list[prop.name] = tag
+			tag_list[p_name] = tag
 		end
+		for _, prop in ipairs(d.infos) do
+			inputs[#inputs + 1] = {
+				name = prop.name,
+				desc = prop.desc,
+				unit = prop.unit,
+				vt = prop.vt,
+			}
+			if dev[prop.input] then
+				table.insert(dev[prop.input], prop)
+			else
+				dev[prop.input] = {prop}
+			end
+
+			if no_hisdb then
+				prop.no_hisdb = true
+			end
+
+			local info = info:new(self._hisdb, self._station, prop)
+			local p_name = prop.name
+			info:set_value_callback(function(val, timestamp, quality)
+				local dev = app_inst._dev
+				if not dev then
+					-- log:warning('Device object not found', p_name, prop, value, timestamp)
+					return
+				end
+				local value = val
+				if type(val) == 'table' then
+					value = cjson.encode(val)
+				end
+				dev:set_input_prop(p_name, 'value', value, timestamp, quality)
+			end)
+	
+			info_list[p_name] = info
+		end
+
 		local dev_sn = map_dev_sn(sn)
 		self._devs[dev_sn] = dev
-		self._station:add_meter(meter:new(sn, {}, tag_list))
+		self._station:add_meter(meter:new(sn, info_list, tag_list))
 	end
 
 	local meta = self._api:default_meta()
@@ -301,6 +339,60 @@ function app:on_start()
 	return true
 end
 
+function app:set_station_prop_value(props, value, timestamp, quality)
+	local sys = self:sys_api()
+	local quality = quality ~= nil and quality or 0
+	if quality ~= 0 then 
+		self._log:warning("Quality of "..v.name..".value is not good", quality, type(quality))
+	end
+
+	for _, v in ipairs(props) do
+		if not v.src_prop or string.lower(v.src_prop) == 'value' then
+			local val = (v.rate and v.rate ~= 1) and value * v.rate or value
+			timestamp = self._local_timestamp and sys:time() or timestamp
+
+			if not v.is_info then
+				local r, err = self._station:set_tag_value(v.name, val, timestamp, nil, quality)
+				if not r then
+					self._log:error("Cannot set tag value", v.name, val, err)
+				end
+			else
+				local r, err = self._station:set_info_value(v.name, val, timestamp, quality)
+				if not r then
+					self._log:error("Cannot set info value", v.name, val, err)
+				end
+			end
+		end
+	end
+end
+
+function app:set_station_prop_rdata(props, value, timestamp, quality)
+	local sys = self:sys_api()
+	local quality = quality ~= nil and quality or 0
+	if quality ~= 0 then
+		self._log:warning("Quality of "..v.name..".RDATA is not good", quality, type(quality))
+	end
+	for _, v in ipairs(props) do
+		if v.src_prop == 'RDATA' then
+			if not v.is_info then
+				local val = (v.rate and v.rate ~= 1) and value.value * v.rate or value.value
+				local val_z = (v.rate and v.rate ~= 1 and value.value_z ~= nil) and value.value_z * v.rate or value.value_z
+				timestamp = self._local_timestamp and sys:time() or timestamp
+
+				local r, err = self._station:set_tag_value(v.name, val, timestamp, val_z, quality)
+				if not r then
+					self._log:warning("Failed set tag value from rdata", v.name, cjson.encode(value), err)
+				end
+			else
+				local r, err = self._station:set_info_value(v.name, value, timestamp, quality)
+				if not r then
+					self._log:warning("Failed set info value from rdata", v.name, cjson.encode(value), err)
+				end
+			end
+		end
+	end
+end
+
 function app:read_tags()
 	local api = self:data_api()
 	local sys = self:sys_api()
@@ -314,34 +406,15 @@ function app:read_tags()
 		if dev_api then
 			for input, tags in pairs(dev) do
 				local value, timestamp, quality = dev_api:get_input_prop(input, 'value')
-				if value and quality == 0 then
-					for _, v in ipairs(tags) do
-						if not v.src_prop or string.lower(v.src_prop) == 'value' then
-							local val = (v.rate and v.rate ~= 1) and value * v.rate or value
-							timestamp = self._local_timestamp and sys:time() or timestamp
-							local r, err =self._station:set_tag_value(v.name, val, timestamp)
-							if not r then
-								self._log:error("Cannot set input value", v.name, val, err)
-							end
-						end
-					end
+				if value then
+					self:set_station_prop_value(tags, value, timestamp, quality)
 				else
 					--self._log:error("Cannot read input value", sn, input)
 				end
 				local value, timestamp, quality = dev_api:get_input_prop(input, 'RDATA')
-				if value and quality == 0 then
+				if value then
 					value = cjson.decode(value) or {}
-					for _, v in ipairs(tags) do
-						if v.src_prop == 'RDATA' then
-							local val = (v.rate and v.rate ~= 1) and value.value * v.rate or value.value
-							local val_z = (v.rate and v.rate ~= 1 and value.value_z ~= nil) and value.value_z * v.rate or value.value_z
-							timestamp = self._local_timestamp and sys:time() or timestamp
-							local r, err = self._station:set_tag_value(v.name, val, timestamp, val_z)
-							if not r then
-								self._log:warning("Failed set tag rdata", v.name, cjson.encode(value), err)
-							end
-						end
-					end
+					self:set_station_prop_rdata(tags, value, timestamp, quality)
 				else
 					--self._log:error("Cannot read input value", sn, input)
 				end
@@ -480,40 +553,10 @@ function app:on_input(app_src, sn, input, prop, value, timestamp, quality)
 	timestamp = self._local_timestamp and self._sys:time() or timestamp
 
 	if prop == 'value' then
-		for _, v in ipairs(inputs) do
-			if not v.src_prop or string.lower(v.src_prop) == 'value' then
-				if quality ~= 0 then
-					self._log:warning("Quality of "..v.name..".value is not good", quality, type(quality))
-					value = 0 -- For to zero
-				end
-				local val = (v.rate and v.rate ~= 1) and value * v.rate or value
-				local r, err = self._station:set_tag_value(v.name, val, timestamp)
-				if not r then
-					self._log:warning("Failed set tag value", v.name, val, err)
-				end
-				if quality ~= 0 then
-					self._dev:set_input_prop(v.name, 'value', 0, timestamp, quality)
-				end
-			end
-		end
+		self:set_station_prop_value(inputs, value, timestamp, quality)
 	else
-		for _, v in ipairs(inputs) do
-			if v.src_prop == prop then
-				if quality ~= 0 then
-					self._log:warning("Quality of "..v.name..".RDATA is not good", quality, type(quality))
-					value.value = 0  -- For to zero
-					value.value_z = value.value_z and 0 or nil
-				end
-				local val = (v.rate and v.rate ~= 1) and value.value * v.rate or value.value
-				local val_z = (v.rate and v.rate ~= 1 and value.value_z ~= nil) and value.value_z * v.rate or value.value_z
-				local r, err = self._station:set_tag_value(v.name, val, timestamp, val_z)
-				if not r then
-					self._log:warning("Failed set tag rdata", v.name, cjson.encode(value), err)
-				end
-				if quality ~= 0 then
-					self._dev:set_input_prop(v.name, 'value', 0, timestamp, quality)
-				end
-			end
+		if prop == 'RDATA' then
+			self:set_station_prop_rdata(inputs, value, timestamp, quality)
 		end
 	end
 end
@@ -530,6 +573,13 @@ function app:save_samples()
 			local r, err = tag:save_samples()
 			if not r then
 				self._log:error("Failed saving sample data for tag:"..tag_name, err)
+			end
+			self._sys:sleep(10)
+		end
+		for info_name, info in pairs(meter:info_list()) do
+			local r, err = info:save_samples()
+			if not r then
+				self._log:error("Failed saving sample data for info:"..info_name, err)
 			end
 			self._sys:sleep(10)
 		end
