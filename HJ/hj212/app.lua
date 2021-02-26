@@ -307,7 +307,10 @@ function app:on_start()
 	self._dev_sn = station_sn
 
 	local commands = {
-		{ name = 'purge_hisdb', desc = "Purge history db" }
+		{ name = 'purge_hisdb', desc = "Purge history db" },
+		{ name = 'upload_min', desc = "Force upload MIN data" },
+		{ name = 'upload_hour', desc = "Force upload HOUR data" },
+		{ name = 'upload_day', desc = "Force upload DAY data" },
 	}
 
 	self._dev = self._api:add_device(self._dev_sn, meta, inputs, nil, commands)
@@ -510,6 +513,22 @@ function app:on_command(app_src, sn, command, param, priv)
 		else
 			return false, "Password incorrect"
 		end
+	end
+	if command == 'upload_min' or command == 'upload_hour' or command == 'upload_day' then
+		if not param.time then
+			return false, "Time is mising"
+		end
+		local r, dt = pcall(date, param.time)
+		if not r then
+			return false, dt
+		end
+		local dts  = date.diff(dt:toutc(), date(0)):spanseconds()
+
+		self._log:warning('Time for '..command..' is '..param.time, date(dts):tolocal())
+
+		local func = assert(self[command..'_data'])
+		func(self, dts)
+		return true, string.format('Command %s triggered with time: %s', command, tostring(date(dts):tolocal()))
 	end
 	return false, "Unknown command"
 end

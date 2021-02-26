@@ -48,6 +48,7 @@ function app:initialize(name, sys, conf)
 
 	self._mqtt_id = conf.station
 	self._devs = {}
+	self._stats = {}
 
 	self._prop_buf = {
 		RDATA = {},
