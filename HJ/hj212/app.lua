@@ -346,7 +346,7 @@ function app:set_station_prop_value(props, value, timestamp, quality)
 	local sys = self:sys_api()
 	local quality = quality ~= nil and quality or 0
 	if quality ~= 0 then 
-		self._log:warning("Quality of "..v.name..".value is not good", quality, type(quality))
+		self._log:warning("Value quality is not good", quality, type(quality))
 	end
 
 	for _, v in ipairs(props) do
@@ -373,7 +373,7 @@ function app:set_station_prop_rdata(props, value, timestamp, quality)
 	local sys = self:sys_api()
 	local quality = quality ~= nil and quality or 0
 	if quality ~= 0 then
-		self._log:warning("Quality of "..v.name..".RDATA is not good", quality, type(quality))
+		self._log:warning("Value quality(RDATA) is not good", quality, type(quality))
 	end
 	for _, v in ipairs(props) do
 		if v.src_prop == 'RDATA' then
