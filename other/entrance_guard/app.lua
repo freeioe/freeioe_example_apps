@@ -242,13 +242,15 @@ function app:handle_http_req(method, path, header, query, body, response)
 end
 
 function app:subscribe(local_addr, local_port, device_id)
+	--[[
 	self._subscribed = true
 	if true then
 		self._last_hearbeat = ioe.now()
 		return true
 	end
+	]]--
 	local addr = 'http://'..local_addr..':'..local_port
-	local status, body = self._api:post('/action/Subscribe', {}, {
+	local p = {
 		operator = 'Subscribe',
 		info = {
 			DeviceID = device_id,
@@ -266,7 +268,11 @@ function app:subscribe(local_addr, local_port, device_id)
 			ResumefromBreakpoint = 0,
 			Auth = 'none'
 		}
-	})
+	}
+	--- Hacks about the \/ escape
+	local content = string.gsub(cjson.encode(p), '\\/', '/')
+
+	local status, body = self._api:post('/action/Subscribe', {}, content, 'application/json')
 	if not status or status ~= 200 then
 		return nil, body
 	end

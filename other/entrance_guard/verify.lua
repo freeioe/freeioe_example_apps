@@ -19,7 +19,8 @@ local function decode_image(pic)
 		data = crypt.base64decode(data)
 	end
 	if tp == 'image/jpeg' then
-		return 'jpeg', data
+		--return 'jpeg', data
+		return 'bmp', data -- The data alwasys BMP format, and the type is fixed.
 	end
 	return 'unknown', data
 end
