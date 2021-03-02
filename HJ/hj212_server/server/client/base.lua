@@ -35,7 +35,7 @@ function client:initialize(server, pfuncs)
 	self._log = server:log_api()
 	self._rdata_map = {}
 	self._inputs = {
-		{ name = 'RS', desc = 'Meter run time status', vt = 'int' },
+		{ name = 'RS', desc = 'Meter state', vt = 'int' },
 	}
 	self._inputs_cov = {}
 	self._meter_rs = types.RS.Normal
@@ -114,7 +114,8 @@ function client:on_run()
 
 	for _, name in ipairs(self._inputs_cov) do
 		local rdata = self._rdata_map[name]
-		self._dev:set_input_prop(name, 'value', rdata.value, nil, self._meter_rs)
+		local quality = (self._meter_rs and self._meter_rs ~= types.RS.Normal) and self._meter_rs or nil
+		self._dev:set_input_prop(name, 'value', rdata.value, nil, quality)
 		self._dev:set_input_prop(name, 'RDATA', cjson.encode(rdata), rdata.timestamp)
 	end
 
@@ -124,6 +125,10 @@ end
 function client:set_meter_rs(rs)
 	self._meter_rs = rs
 	self._dev:set_input_prop('RS', 'value', flag)
+
+	for name, rdata in pairs(self._rdata_map) do
+		table.insert(self._inputs_cov, name)
+	end
 end
 
 function client:rs_flag()

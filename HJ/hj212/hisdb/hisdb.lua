@@ -3,7 +3,6 @@ local index = require 'hisdb.index'
 local object = require 'hisdb.object'
 local tag = require 'hisdb.tag'
 local info = require 'hisdb.info'
---local treatment = require 'hisdb.treatment'
 
 local hisdb = class('hisdb.hisdb')
 
@@ -84,11 +83,5 @@ end
 function hisdb:create_info(...)
 	return info:new(self, ...)
 end
-
---[[
-function hisdb:create_treatment(...)
-	return treatment:new(self, ...)
-end
-]]--
 
 return hisdb
