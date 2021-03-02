@@ -278,7 +278,7 @@ function app:on_start()
 			info:set_value_callback(function(val, timestamp, quality)
 				local dev = app_inst._dev
 				if not dev then
-					-- log:warning('Device object not found', p_name, prop, value, timestamp)
+					--log:warning('Device object not found', p_name, prop, value, timestamp)
 					return
 				end
 				local value = val
