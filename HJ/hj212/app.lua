@@ -355,7 +355,9 @@ function app:set_station_prop_value(props, value, timestamp, quality)
 			timestamp = self._local_timestamp and sys:time() or timestamp
 
 			if not v.is_info then
-				local r, err = self._station:set_tag_value(v.name, val, timestamp, nil, quality)
+				local flag = quality ~= 0 and types.FLAG.Connection or nil
+				local val_z = nil
+				local r, err = self._station:set_tag_value(v.name, val, timestamp, val_z, flag, quality)
 				if not r then
 					self._log:error("Cannot set tag value", v.name, val, err)
 				end
@@ -382,7 +384,7 @@ function app:set_station_prop_rdata(props, value, timestamp, quality)
 				local val_z = (v.rate and v.rate ~= 1 and value.value_z ~= nil) and value.value_z * v.rate or value.value_z
 				timestamp = self._local_timestamp and sys:time() or timestamp
 
-				local r, err = self._station:set_tag_value(v.name, val, timestamp, val_z, quality)
+				local r, err = self._station:set_tag_value(v.name, val, timestamp, val_z, v.flag, quality)
 				if not r then
 					self._log:warning("Failed set tag value from rdata", v.name, cjson.encode(value), err)
 				end
