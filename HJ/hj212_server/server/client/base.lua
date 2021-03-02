@@ -1,4 +1,5 @@
 local ioe = require 'ioe'
+local types = require 'hj212.types'
 local tag_finder = require 'hj212.tags.finder'
 local base = require 'hj212.server.client'
 local cjson = require 'cjson.safe'
@@ -33,8 +34,11 @@ function client:initialize(server, pfuncs)
 	self._sn = nil
 	self._log = server:log_api()
 	self._rdata_map = {}
-	self._inputs = {}
+	self._inputs = {
+		{ name = 'RS', desc = 'Meter run time status', vt = 'int' },
+	}
 	self._inputs_cov = {}
+	self._meter_rs = types.RS.Normal
 	self:add_handler('handler')
 end
 
@@ -76,6 +80,7 @@ function client:on_station_create(system, dev_id, passwd, ver)
 end
 
 function client:on_disconnect()
+	self._meter_rs = nil
 	for name, rdata in pairs(self._rdata_map) do
 		self._dev:set_input_prop(name, 'value', rdata.value, ioe.time(), -1)
 		self._dev:set_input_prop(name, 'RDATA', cjson.encode(rdata), ioe.time(), -1)
@@ -89,11 +94,12 @@ function client:on_rdata(name, rdata)
 		table.insert(self._inputs, create_tag_input(name))
 	end
 	table.insert(self._inputs_cov, name)
+
 	self._rdata_map[name] = {
 		value = rdata.Rtd,
 		value_z = rdata.ZsRtd,
 		timestamp = rdata.SampleTime,
-		flag = rdata.Flag
+		flag = rdata.Flag or self:rs_flag()
 	}
 end
 
@@ -108,11 +114,41 @@ function client:on_run()
 
 	for _, name in ipairs(self._inputs_cov) do
 		local rdata = self._rdata_map[name]
-		self._dev:set_input_prop(name, 'value', rdata.value)
+		self._dev:set_input_prop(name, 'value', rdata.value, nil, self._meter_rs)
 		self._dev:set_input_prop(name, 'RDATA', cjson.encode(rdata), rdata.timestamp)
 	end
 
 	self._inputs_cov = {}
+end
+
+function client:set_meter_rs(rs)
+	self._meter_rs = rs
+	self._dev:set_input_prop('RS', 'value', flag)
+end
+
+function client:rs_flag()
+	if not self._meter_rs then
+		return nil
+	end
+	if self._meter_rs == types.RS.Normal then
+		return nil -- unset the flag
+	end
+	if self._meter_rs == types.RS.Stoped then
+		return types.FLAG.Stoped
+	end
+	if self._meter_rs == types.RS.Calibration then
+		return types.FLAG.Calibration
+	end
+	if self._meter_rs == types.RS.Maintain then
+		return types.FLAG.Maintain
+	end
+	if self._meter_rs == types.RS.Alarm then
+		return types.FLAG.Error
+	end
+	if self._meter_rs == types.RS.Clean then
+		return types.FLAG.Calibration
+	end
+	return types.FLAG.Error
 end
 
 return client
