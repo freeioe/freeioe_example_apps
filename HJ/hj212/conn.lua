@@ -248,12 +248,12 @@ end
 
 function conn:upload_hour_data(data)
 	data = self:convert_data(data)
-	return self:data_request('hour_data', data, 'MIN')
+	return self:data_request('hour_data', data, 'HOUR')
 end
 
 function conn:upload_day_data(data)
 	data = self:convert_data(data)
-	return self:data_request('day_data', data, 'MIN')
+	return self:data_request('day_data', data, 'DAY')
 end
 
 return conn

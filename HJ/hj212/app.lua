@@ -140,7 +140,7 @@ function app:on_start()
 				host = '127.0.0.1',
 				port = 16000,
 				passwd = '123456',
-				retry = 3,
+				retry = 1,
 				resend = 'Yes',
 				version = '2005',
 				value_tpl = 'TaiAn',
@@ -718,7 +718,9 @@ function app:upload_all(stime, etime, diff_hour)
 		if diff_hour then
 			data = self:diff_data(data, diff_hour)
 		end
-		self:for_earch_client('upload_min_data', data)
+		if #data > 0 then
+			self:for_earch_client('upload_min_data', data)
+		end
 		now = now + (self._min_interval * 60)
 	end
 	now = stime
@@ -729,7 +731,9 @@ function app:upload_all(stime, etime, diff_hour)
 			data = self:diff_data(data, diff_hour)
 		end
 
-		self:for_earch_client('upload_hour_data', data)
+		if #data > 0 then
+			self:for_earch_client('upload_hour_data', data)
+		end
 		now = now + 3600
 	end
 
@@ -738,7 +742,9 @@ function app:upload_all(stime, etime, diff_hour)
 		data = self:diff_data(data, diff_hour)
 	end
 
-	self:for_earch_client('upload_hour_data', data)
+	if #data > 0 then
+		self:for_earch_client('upload_day_data', data)
+	end
 end
 
 function app:set_rdata_interval(interval)
