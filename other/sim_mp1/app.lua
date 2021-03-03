@@ -36,6 +36,10 @@ function app:on_start()
 		stop_bits = 1,
 		flow_control = 'OFF'
 	}
+	if ioe.developer_mode() then
+		opt.port = '/tmp/ttyS2'
+	end
+
 	local port = serial:new(opt.port, opt.baudrate or 9600, opt.data_bits or 8, opt.parity or 'NONE', opt.stop_bits or 1, opt.flow_control or "OFF")
 
 	local r, err = port:open()
@@ -61,7 +65,7 @@ end
 function app:on_run(tms)
 
 	if self._port then
-		data = '##0236ST=31;CN=2011;PW=123456;MN=MP1;CP=&&DataTime=20210129152246;01-Rtd=8.764,01-ZsRtd=14.387;02-Rtd=9.933,02-ZsRtd=16.307;03-Rtd=86.131,03-ZsRtd=141.392;B02-Rtd=6015.213;S01-Rtd=13.893;S02-Rtd=2.491;S03-Rtd=44.586;S05-Rtd=0;S08-Rtd=53.796&&524F' + '\r\n'
+		data = '##0236ST=31;CN=2011;PW=123456;MN=MP1;CP=&&DataTime=20210129152246;01-Rtd=8.764,01-ZsRtd=14.387;02-Rtd=9.933,02-ZsRtd=16.307;03-Rtd=86.131,03-ZsRtd=141.392;B02-Rtd=6015.213;S01-Rtd=13.893;S02-Rtd=2.491;S03-Rtd=44.586;S05-Rtd=0;S08-Rtd=53.796&&524F\r\n'
 		self._serial_sent = self._serial_sent + string.len(data)
 		self._dev:dump_comm('SERIAL-OUT', data)
 		self._port:write(data)
