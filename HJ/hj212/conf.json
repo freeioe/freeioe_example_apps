@@ -78,7 +78,7 @@
 			},
 			{
 				"name": "resend",
-				"desc": "重试",
+				"desc": "失败重试",
 				"type": "dropdown",
 				"default": "No",
 				"values": [
