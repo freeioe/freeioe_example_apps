@@ -65,6 +65,7 @@ RELEASE_APP other/sim_tank
 RELEASE_APP other/dtu 
 RELEASE_APP other/sim
 RELEASE_APP other/sim_tpl
+RELEASE_APP other/sim_mp1
 RELEASE_APP other/event_sim
 RELEASE_APP other/oliver_355_monitor
 RELEASE_APP other/logger
