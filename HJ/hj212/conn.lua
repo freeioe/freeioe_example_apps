@@ -1,6 +1,8 @@
 --- 导入需求的模块
 local class = require 'middleclass'
 local event = require 'app.event'
+local sysinfo = require 'utils.sysinfo'
+local filebuffer = require 'buffer.file'
 local client = require 'client_sc'
 local types = require 'hj212.types'
 local value_tpl = require 'value_tpl.parser'
@@ -28,6 +30,10 @@ end
 
 function conn:log(...)
 	return self._client:log(...)
+end
+
+function conn:resend()
+	return string.lower(self._conf.resend or '') == 'yes'
 end
 
 function conn:on_run()
@@ -80,6 +86,15 @@ function conn:start()
 	if conf.value_tpl and conf.value_tpl ~= 'NONE' then
 		value_tpl.init(self._sys:app_dir())
 		self._value_tpl = value_tpl.load_tpl(conf.value_tpl, function(...) log:error(...) end)
+	end
+
+	if self:resend() then
+		local cache_folder = sysinfo.data_dir().."/"..self._app:app_name()..'_CACHE_'..conf.name
+		self:log('notice', 'Data cache folder:', cache_folder)
+		self._fb = filebuffer:new(cache_folder, 128, 1024 * 8, 128)
+		self._fb:start(function(pn, data)
+			return self:data_request(pn, data, 'CACHE', true)
+		end)
 	end
 
 	return self:start_connect()
@@ -145,7 +160,15 @@ function conn:on_output(app_src, sn, output, prop, value, timestamp)
 	return nil, "Output not found!"
 end
 
-function conn:data_request(req, key)
+function conn:data_request(pn, data, key, from_fb)
+	local r, request = pcall(require, 'hj212.request.'..pn)
+	if not r then
+		self:log('error', request)
+		return true
+	end
+
+	local req = request:new(data, true)
+
 	local r, err = self._client:request(req, function(resp, err)
 		if not resp then
 			return nil, "Upload "..key.." data failed. error:"..err
@@ -155,8 +178,15 @@ function conn:data_request(req, key)
 		end
 		return true
 	end)
+
 	if not r then
-		self:log("error", err)
+		if from_fb then
+			self:log('debug', 'Resend cache data failed', pn)
+		elseif self._fb then
+			self:log("info", 'Save unsend data to cache', pn)
+			self._fb:push(pn, data)
+		end
+		self:log("error", "Upload "..key.." error:", err)
 	else
 		self:log("debug", "Upload "..key.." success")
 	end
@@ -207,31 +237,23 @@ function conn:upload_rdata(data)
 		return
 	end
 
-	local request = require 'hj212.request.rdata_start'
 	data = self:convert_data(data)
-	local req = request:new(data, true)
-	return self:data_request(req, 'RData')
+	return self:data_request('rdata_start', data, 'RData')
 end
 
 function conn:upload_min_data(data)
-	local request = require 'hj212.request.min_data'
 	data = self:convert_data(data)
-	local req = request:new(data, true)
-	return self:data_request(req, 'MIN')
+	return self:data_request('min_data', data, 'MIN')
 end
 
 function conn:upload_hour_data(data)
-	local request = require 'hj212.request.hour_data'
 	data = self:convert_data(data)
-	local req = request:new(data, true)
-	return self:data_request(req, 'HOUR')
+	return self:data_request('hour_data', data, 'MIN')
 end
 
 function conn:upload_day_data(data)
-	local request = require 'hj212.request.day_data'
 	data = self:convert_data(data)
-	local req = request:new(data, true)
-	return self:data_request(req, 'DAY')
+	return self:data_request('day_data', data, 'MIN')
 end
 
 return conn

@@ -77,6 +77,16 @@
 				"default": 3
 			},
 			{
+				"name": "resend",
+				"desc": "重试",
+				"type": "dropdown",
+				"default": "No",
+				"values": [
+					"Yes",
+					"No"
+				]
+			},
+			{
 				"name": "version",
 				"desc": "协议版本",
 				"type": "dropdown",

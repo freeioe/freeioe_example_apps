@@ -140,7 +140,8 @@ function app:on_start()
 				host = '127.0.0.1',
 				port = 16000,
 				passwd = '123456',
-				retry = 1,
+				retry = 3,
+				resend = 'Yes',
 				version = '2005',
 				value_tpl = 'TaiAn',
 			})
@@ -308,9 +309,11 @@ function app:on_start()
 
 	local commands = {
 		{ name = 'purge_hisdb', desc = "Purge history db" },
+		{ name = 'upload_rdata', desc = "Force upload RDATA data" },
 		{ name = 'upload_min', desc = "Force upload MIN data" },
 		{ name = 'upload_hour', desc = "Force upload HOUR data" },
 		{ name = 'upload_day', desc = "Force upload DAY data" },
+		{ name = 'upload_all', desc = "Force upload ALL data by range" },
 	}
 
 	self._dev = self._api:add_device(self._dev_sn, meta, inputs, nil, commands)
@@ -516,7 +519,11 @@ function app:on_command(app_src, sn, command, param, priv)
 			return false, "Password incorrect"
 		end
 	end
-	if command == 'upload_min' or command == 'upload_hour' or command == 'upload_day' then
+	local func_name = command..'_data'
+	if command == 'upload_rdata' then
+		func_name = 'upload_rdata'
+	end
+	if command == 'upload_rdata' or command == 'upload_min' or command == 'upload_hour' or command == 'upload_day' then
 		if not param.time then
 			return false, "Time is mising"
 		end
@@ -528,9 +535,53 @@ function app:on_command(app_src, sn, command, param, priv)
 
 		self._log:warning('Time for '..command..' is '..param.time, date(dts):tolocal())
 
-		local func = assert(self[command..'_data'])
+		local func = assert(self[func_name])
 		func(self, dts)
 		return true, string.format('Command %s triggered with time: %s', command, tostring(date(dts):tolocal()))
+	end
+	if command == 'upload_all' then
+		if not param.stime then
+			return false, "Start time is mising"
+		end
+		if not param.etime then
+			return false, "End time is missing"
+		end
+		local r, dt = pcall(date, param.stime)
+		if not r then
+			return false, dt
+		end
+		local dts  = date.diff(dt:toutc(), date(0)):spanseconds()
+
+		local r, dt = pcall(date, param.etime)
+		if not r then
+			return false, dt
+		end
+		local dte  = date.diff(dt:toutc(), date(0)):spanseconds()
+
+		local diff_hour = nil
+		if param.diff then
+			diff_hour = tonumber(param.diff)
+			if not diff_hour then
+				return false, "Diff must be number in hours"
+			end
+		end
+		if self._upload_all_in then
+			return false, 'Upload all in progress!'
+		end
+
+		self._sys:fork(function()
+			self._upload_all_in = true
+			local r, err = xpcall(self.upload_all, debug.traceback, self, dts, dte, diff_hour)
+			if not r then
+				self._log:error("Upload_all failed", err)
+			end
+			self._upload_all_in = nil
+		end)
+
+		self._log:warning('Time for '..command..' from '..param.stime..' to '..param.etime, date(dts):tolocal(), date(dte):tolocal())
+
+		return true, string.format('Upload all data time:', tostring(date(dts):tolocal()), tostring(date(dte):tolocal()))
+
 	end
 	return false, "Unknown command"
 end
@@ -642,6 +693,52 @@ end
 function app:upload_day_data(now)
 	local data = self._station:day_data(now, now)
 	self:for_earch_client_async('upload_day_data', data)
+end
+
+function app:diff_data(data, diff_hour)
+	for _, v in ipairs(data) do
+		local dt = v:data_time()
+		dt = dt + (diff_hour * 3600)
+		print(v:data_time(), diff_hour, dt)
+		v:set_data_time(dt)
+	end
+	return data
+end
+
+function app:upload_all(stime, etime, diff_hour)
+	self._log:warning('Upload all data from '..stime..' to '..etime, 'Diff Hour', diff_hour)
+	if diff_hour then
+		stime = stime - (diff_hour * 3600)
+		etime = etime - (diff_hour * 3600)
+	end
+	local now = stime
+	while now <= etime do
+		local data = self._station:min_data(now, now)
+		self._log:warning('Upload min data '..now, #data)
+		if diff_hour then
+			data = self:diff_data(data, diff_hour)
+		end
+		self:for_earch_client('upload_min_data', data)
+		now = now + (self._min_interval * 60)
+	end
+	now = stime
+	while now <= etime do
+		self._log:warning('Upload hour data '..now)
+		local data = self._station:hour_data(now, now)
+		if diff_hour then
+			data = self:diff_data(data, diff_hour)
+		end
+
+		self:for_earch_client('upload_hour_data', data)
+		now = now + 3600
+	end
+
+	local data = self._station:day_data(stime, etime)
+	if diff_hour then
+		data = self:diff_data(data, diff_hour)
+	end
+
+	self:for_earch_client('upload_hour_data', data)
 end
 
 function app:set_rdata_interval(interval)
