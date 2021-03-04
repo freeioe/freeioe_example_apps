@@ -552,7 +552,7 @@ function app:run(tms)
 			self._dev:add({{name = "app_run_"..k, desc = 'Application status for '..k, vt="int"}})
 		end
 		local run = 0
-		if v.inst and (self._sys:time() - v.last < 180) then
+		if v.inst and (self._sys:now() // 10 - v.last < 180 * 100) then
 			run = 1
 		end
 		self._dev:set_input_prop('app_run_'..k, 'value', run)
