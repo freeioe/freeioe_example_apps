@@ -60,6 +60,10 @@ function client:set_retry_cb(cb)
 	self._retry_cb = cb
 end
 
+function client:is_connected()
+	return self._socket ~= nil
+end
+
 --- Timeout: ms
 function client:send(session, raw_data)
 	local timeout = self:timeout()

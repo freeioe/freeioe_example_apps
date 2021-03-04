@@ -138,7 +138,7 @@ function app:on_start()
 			table.insert(conf.servers, {
 				name = 'ministry',
 				host = '127.0.0.1',
-				port = 16000,
+				port = 16005,
 				passwd = '123456',
 				retry = 1,
 				resend = 'Yes',

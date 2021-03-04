@@ -6,6 +6,8 @@ local filebuffer = require 'buffer.file'
 local client = require 'client_sc'
 local types = require 'hj212.types'
 local value_tpl = require 'value_tpl.parser'
+local param_tag = require 'hj212.params.tag'
+local param_state = require 'hj212.params.state'
 
 local conn = class("FREEIOE_HJ212_APP_CONN")
 
@@ -89,11 +91,21 @@ function conn:start()
 	end
 
 	if self:resend() then
-		local cache_folder = sysinfo.data_dir().."/"..self._app:app_name()..'_CACHE_'..conf.name
+		local cache_folder = sysinfo.data_dir().."/CACHE_"..self._app:app_name()..'.'..conf.name
 		self:log('notice', 'Data cache folder:', cache_folder)
-		self._fb = filebuffer:new(cache_folder, 128, 1024 * 8, 128)
+		-- 128 message in one file, max 1024 files, 128 in batch which is not used, 5 for index saving
+		-- RDATA: 30 seconds, MIN: 1 or 10 minutes thus one hour for one file, thus about one months data
+		self._fb = filebuffer:new(cache_folder, 128, 1024, 128, 5)
 		self._fb:start(function(pn, data)
-			return self:data_request(pn, data, 'CACHE', true)
+			if not self._client:is_connected() then
+				return nil, "Not connected"
+			end
+
+			local tags = self:decode_tags(data)
+			if #tags == 0 then
+				return true
+			end
+			return self:data_request(pn, tags, 'CACHE', true)
 		end)
 	end
 
@@ -184,13 +196,41 @@ function conn:data_request(pn, data, key, from_fb)
 			self:log('debug', 'Resend cache data failed', pn)
 		elseif self._fb then
 			self:log("info", 'Save unsend data to cache', pn)
-			self._fb:push(pn, data)
+			local tags, err = self:encode_tags(data)
+			if tags then
+				if #tags >= 0 then
+					self._fb:push(pn, tags)
+				else
+					self:log("warning", "Encoded tags are empty!")
+				end
+			else
+				self:log("error", "Encode tags failed", err)
+			end
 		end
 		self:log("error", "Upload "..key.." error:", err)
 	else
 		self:log("debug", "Upload "..key.." success")
 	end
 	return r, err
+end
+
+function conn:encode_tags(tags)
+	local data = {}
+	for _, v in ipairs(tags) do
+		data[#data + 1] = { v:data_time(), v:encode()}
+	end
+	return data
+end
+
+function conn:decode_tags(data)
+	local tags = {}
+	for _, v in ipairs(data) do
+		local tag = param_tag:new()
+		tag:set_data_time(v[1])
+		tag:decode(v[2])
+		tags[#tags + 1] = tag
+	end
+	return tags
 end
 
 function conn:convert_version(data)
