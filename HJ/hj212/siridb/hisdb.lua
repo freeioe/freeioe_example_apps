@@ -4,6 +4,7 @@ local database = require 'db.siridb.database'
 local tag = require 'siridb.tag'
 local info = require 'siridb.info'
 local utils = require 'siridb.utils'
+local log = require 'utils.logger'.new()
 
 local hisdb = class('siridb.hisdb')
 
@@ -40,7 +41,7 @@ function hisdb:open()
 	end
 
 	for group, db in pairs(self._db_list) do
-		print(db.name, db.expiration, db.duration)
+		log.info('SIRIDB', db.name, db.expiration, db.duration)
 		local expr = db.expiration * 1000 -- in ms
 		local dura = db.duration and db.duration * 1000 or nil -- in ms
 		if not list_map[db.name] then
@@ -68,13 +69,14 @@ function hisdb:open()
 			end
 
 			local num = tonumber(data.data and data.data[1] and data.data[1].value or 0) or 0
-			print('Current expriation:', num)
+			log.info('SIRIDB Current expiration', db.name, num)
 			if num ~= expr then
-				print('Correct expriation:', num, expr)
+				log.warning('SIRIDB Correct expriation:', db.name, num, expr)
 				dbi:exec('alter database set expiration_num '..expr..' set ignore_threshold true')
 			end
 			db.db = assert(dbi)
 		end
+		log.warning('SIRIDB Opened database:', db.name)
 	end
 
 	return true
