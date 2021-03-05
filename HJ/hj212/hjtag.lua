@@ -64,7 +64,7 @@ function tag:initialize(hisdb, station, prop)
 end
 
 function tag:upload()
-	return self._upload
+	return self:inited() and self._upload
 end
 
 function tag:hj2005_name()
