@@ -70,12 +70,27 @@ function hisdb:open()
 			end
 
 			local num = tonumber(data.data and data.data[1] and data.data[1].value or 0) or 0
-			log.info('SIRIDB Current expiration', db.name, num)
+			log.info('SIRIDB Current expiration_num', db.name, num)
 			if num ~= expr then
-				log.warning('SIRIDB Correct expriation:', db.name, num, expr)
+				log.warning('SIRIDB Correct expriation_num:', db.name, num, expr)
 				local r = dbi:exec('alter database set expiration_num '..expr..' set ignore_threshold true')
-				log.info('SIRIDB Update result', cjson.encode(r))
+				log.info('SIRIDB Update expiration_num result', cjson.encode(r))
 			end
+
+			--Check string expiration
+			local data, err = dbi:exec('show expiration_log')
+			if not data then
+				return nil, 'Query expiration log error:'..err
+			end
+
+			local num = tonumber(data.data and data.data[1] and data.data[1].value or 0) or 0
+			log.info('SIRIDB Current expiration_log', db.name, num)
+			if num ~= expr then
+				log.warning('SIRIDB Correct expriation_log:', db.name, num, expr)
+				local r = dbi:exec('alter database set expiration_log '..expr..' set ignore_threshold true')
+				log.info('SIRIDB Update expiration_log result', cjson.encode(r))
+			end
+
 			db.db = assert(dbi)
 		end
 		log.warning('SIRIDB Opened database:', db.name)
