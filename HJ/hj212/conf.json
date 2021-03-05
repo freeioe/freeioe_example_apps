@@ -124,7 +124,7 @@
 		"name": "duration",
 		"desc": "数据存储时限(月)",
 		"type": "number",
-		"default": 6
+		"default": 121
 	},
 	{
 		"name": "timezone",

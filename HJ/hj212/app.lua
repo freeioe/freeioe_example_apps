@@ -93,7 +93,7 @@ function app:on_start()
 		log:warning("Using local timestamp instead of input value's source timestamp")
 	end
 
-	local max_duration = conf.using_siridb and 6 or 4
+	local max_duration = conf.using_siridb and 121 or 4
 	local def_duration = math.abs(conf.duration or max_duration)
 	if def_duration > max_duration then
 		def_duration = max_duration
