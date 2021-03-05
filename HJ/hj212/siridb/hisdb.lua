@@ -23,7 +23,8 @@ function hisdb:initialize(dbname, durations, default_duration, db_options)
 			name = dbname..'_'..group,
 			--duration = duration > default_expiration * 2 and default_expiration or math.ceil(duration / 2),
 			--duration = 0, -- auto duration is enabled in siridb configuration
-			expiration = duration,
+			--expiration = duration,
+			expiration = 0, --- FIXME:
 		}
 	end
 	self._db_list = db_list
