@@ -12,19 +12,20 @@ local hisdb = class('siridb.hisdb')
 hisdb.static.DEFAULT_DURATION = '6m' -- sixe months
 
 function hisdb:initialize(dbname, durations, default_duration, db_options)
-	local def_duration = utils.duration(default_duration or hisdb.static.DEFAULT_DURATION)
+	--local def_duration = utils.duration(default_duration or hisdb.static.DEFAULT_DURATION)
+	local def_duration = 0 -- FIXME: no duration for db
 	local db_list = {
 		DEFAULT = { name = dbname, expiration = def_duration}
 	}
 	--local default_expiration = utils.duration('1m')
 	for group, duration in pairs(durations) do
-		local duration = utils.duration(duration)
+		--local duration = utils.duration(duration)
+		local duration = 0 -- FIXME: no duration for db
 		db_list[group] = {
 			name = dbname..'_'..group,
 			--duration = duration > default_expiration * 2 and default_expiration or math.ceil(duration / 2),
 			--duration = 0, -- auto duration is enabled in siridb configuration
-			--expiration = duration,
-			expiration = 0, --- FIXME:
+			expiration = duration,
 		}
 	end
 	self._db_list = db_list
