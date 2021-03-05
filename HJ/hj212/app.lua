@@ -99,10 +99,16 @@ function app:on_start()
 		def_duration = max_duration
 		log:warning("History database duration cannot bigger than "..max_duration.." months")
 	end
+	def_duration = 0
+	def_duration = def_duration..'m'
+	local durations = {
+		SAMPLE='14d',
+		INFO='1m',
+	}
 
 	local db_folder = sysinfo.data_dir() .. "/db_" .. self._name
 	if not conf.using_siridb then
-		self._hisdb = hisdb:new(db_folder, {SAMPLE='1d',INFO='7d'}, def_duration..'m')
+		self._hisdb = hisdb:new(db_folder, durations, def_duration)
 		local r, err = self._hisdb:open()
 		if not r  then
 			return nil, err
@@ -110,7 +116,7 @@ function app:on_start()
 	else
 		local i = 1
 		local max_retry = 10
-		self._hisdb = siridb:new(self._name, {SAMPLE='1d',INFO='7d'}, def_duration..'m')
+		self._hisdb = siridb:new(self._name, durations, def_duration)
 		while true do
 			local r, err = self._hisdb:open()
 			if r then
