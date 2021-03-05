@@ -41,13 +41,15 @@ function hisdb:open()
 
 	for group, db in pairs(self._db_list) do
 		print(db.name, db.expiration, db.duration)
+		local expr = db.expiration * 1000 -- in ms
+		local dura = db.duration and db.duration * 1000 or nil -- in ms
 		if not list_map[db.name] then
 			local r, err = self._client:new_database(db.name, 'ms', 1024, db.duration)
 			if not r then
 				return nil, 'Create database error:'..err
 			end
 			db.db = assert(database:new(self._db_options, db.name))
-			db.db:exec('alter database set expiration_num '..db.expiration..' set ignore_threshold true')
+			db.db:exec('alter database set expiration_num '..expr..' set ignore_threshold true')
 		else
 			local dbi = database:new(self._db_options, db.name)
 
@@ -66,9 +68,10 @@ function hisdb:open()
 			end
 
 			local num = tonumber(data.data and data.data[1] and data.data[1].value or 0) or 0
-			if num ~= db.expiration then
-				--print('Correct expriation:', num, db.expiration)
-				dbi:exec('alter database set expiration_num '..db.expiration..' set ignore_threshold true')
+			print('Current expriation:', num)
+			if num ~= expr then
+				print('Correct expriation:', num, expr)
+				dbi:exec('alter database set expiration_num '..expr..' set ignore_threshold true')
 			end
 			db.db = assert(dbi)
 		end
