@@ -19,8 +19,8 @@ local info = require 'hjinfo'
 local hisdb = require 'hisdb.hisdb'
 local siridb = require 'siridb.hisdb'
 
---- lua_HJ212_version: 2021-02-01
---  comment: Fixed DataTime for MIN/HOUR/DAY should be the start time
+--- lua_HJ212_version: 2021-03-05
+--  comment: Fixed code error about FLAG
 
 --- 注册对象(请尽量使用唯一的标识字符串)
 local app = app_base:subclass("FREEIOE_HJ212_APP")
