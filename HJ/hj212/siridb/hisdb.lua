@@ -5,6 +5,7 @@ local tag = require 'siridb.tag'
 local info = require 'siridb.info'
 local utils = require 'siridb.utils'
 local log = require 'utils.logger'.new()
+local cjson = require 'cjson.safe'
 
 local hisdb = class('siridb.hisdb')
 
@@ -72,7 +73,8 @@ function hisdb:open()
 			log.info('SIRIDB Current expiration', db.name, num)
 			if num ~= expr then
 				log.warning('SIRIDB Correct expriation:', db.name, num, expr)
-				dbi:exec('alter database set expiration_num '..expr..' set ignore_threshold true')
+				local r = dbi:exec('alter database set expiration_num '..expr..' set ignore_threshold true')
+				log.info('SIRIDB Update result', cjson.encode(r))
 			end
 			db.db = assert(dbi)
 		end
