@@ -32,8 +32,8 @@ function app:initialize(name, sys, conf)
 
 	-- for test
 	if ioe.developer_mode() then
-		conf.server = 'vpn.symid.com'
-		conf.port = 1883
+		conf.server = '127.0.0.1'
+		conf.port = 3883
 		--[[
 		conf.settings = {
 		{name='section_area', value='11.2'},
@@ -71,10 +71,7 @@ function app:on_start()
 	local sys_id = sys:id()
 
 	self._wait_timeout = (tonumber(conf.wait_timeout) or 30) * 1000
-
-	log:info("Wait for station application instance", conf.station)
-	conf.app_inst = ioe.env.wait('HJ212.STATION', conf.station)
-	log:info("Got application instance name", conf.app_inst)
+	conf.app_inst = 'hj212' --default value
 
 	local tpl_file = conf.station_type
 	if not tpl_file then
@@ -230,6 +227,13 @@ function app:on_start()
 	self._ctrl_co = {}
 	self._ctrl_results = {}
 	self._app_reg = nil
+
+	sys:timeout(200, function()
+		log:info("Wait for station application instance", conf.station)
+		conf.app_inst = ioe.env.wait('HJ212.STATION', conf.station)
+		log:info("Got application instance name", conf.app_inst)
+		self._value_map.app_inst = { value = conf.app_inst }
+	end)
 
 	return mqtt_app.on_start(self)
 end
