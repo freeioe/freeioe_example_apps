@@ -82,6 +82,7 @@ function split:split(inputs, option)
 			pack = { fc=v.fc }
 			pack.start = v.addr
 			pack.inputs = {}
+			pack.len = 0
 			pack.unpack = function(input, data, index)
 				return self:unpack(input, data, index)
 			end
@@ -115,6 +116,7 @@ function split:split(inputs, option)
 			pack = { fc=v.fc }
 			pack.start = v.addr
 			pack.inputs = {}
+			pack.len = 0
 			pack.unpack = function(input, data, index)
 				return self:unpack(input, data, index)
 			end
