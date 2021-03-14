@@ -65,7 +65,7 @@ function split:sort(inputs)
 	end)
 end
 
-function split:split(inputs)
+function split:split(inputs, option)
 	self:sort(inputs)
 	--[[
 	local cjson = require 'cjson'
@@ -103,7 +103,14 @@ function split:split(inputs)
 			input_len = math.ceil(input_len / 2)
 		end
 
-		if input_len + v.addr - pack.start > max_len then
+		local same_p = true
+		if option == 'compact' then
+			same_p = input_len >= v.addr - (pack.start + pack.len)
+		else
+			same_p = input_len + v.addr - pack.start < max_len
+		end
+
+		if not same_p then
 			table.insert(packets, pack)
 			pack = { fc=v.fc }
 			pack.start = v.addr

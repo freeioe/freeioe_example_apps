@@ -94,7 +94,7 @@ function app:on_start()
 				end
 			end
 
-			local packets = self._split:split(tpl_inputs)
+			local packets = self._split:split(tpl_inputs, v.pack_opt)
 
 			--- 生成设备对象
 			local dev = self._api:add_device(dev_sn, meta, inputs, outputs)

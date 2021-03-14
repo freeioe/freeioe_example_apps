@@ -72,6 +72,16 @@
 				"name": "tpl",
 				"desc": "模板(Template)",
 				"type": "template"
+			},
+			{
+				"name": "pack_opt",
+				"desc": "Pack request option",
+				"type": "option",
+				"values": [
+					"default",
+					"compact",
+					"greedy"
+				]
 			}
 		]
 	},
