@@ -76,7 +76,8 @@
 			{
 				"name": "pack_opt",
 				"desc": "Pack request option",
-				"type": "option",
+				"type": "dropdown",
+				"default": "default",
 				"values": [
 					"default",
 					"compact",
