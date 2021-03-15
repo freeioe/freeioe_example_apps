@@ -28,6 +28,7 @@ local function load_tpl(name)
 				end
 				input.pack = v[5]
 				input.rate = tonumber(v[6])
+				input.offset = tonumber(v[7] or '')
 
 				table.insert(inputs, input)
 			end

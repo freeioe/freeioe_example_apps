@@ -58,7 +58,7 @@ function app:start()
 		{ ip="192.168.0.200", port=8193, name = 'cnc01', sn = 'xxx-xx-1', tpl = 'cnc' },
 		--{ ip="127.0.0.2", port=8193, name = 'cnc02', sn = 'xxx-xx-2', tpl = 'cnc' },
 	}
-	print(cjson.encode(config.devs))
+	--print(cjson.encode(config.devs))
 
 	--- 获取云配置
 	if not config.devs or config.cnf then
@@ -95,7 +95,7 @@ function app:start()
 		--- 生成设备的序列号
 		local dev_sn = sys_id.."."..v.sn
 		local tpl, err = csv_tpl.load_tpl(v.tpl)
-		print(cjson.encode(tpl))
+		--print(cjson.encode(tpl))
 		if not tpl then
 			self._log:error("loading csv tpl failed", err)
 		else
@@ -175,7 +175,7 @@ function app:read_packet(dev, focas, func, params, inputs)
 		return nil, err
 	end
 
-	local cjson = require 'cjson.safe'
+	--local cjson = require 'cjson.safe'
 	--print(cjson.encode(data))
 
 	if func ~= 'read_pmc' and #inputs == 1 then
