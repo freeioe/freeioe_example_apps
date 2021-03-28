@@ -1,0 +1,61 @@
+[
+	{
+		"name": "serial_opt",
+		"type": "serial"
+	},
+	{
+		"name": "dev_sn",
+		"desc": "设备序列号",
+		"type": "string",
+		"default": "WL_1A1"
+	},
+	{
+		"name": "loop_gap",
+		"desc": "采集间隔(Read Gap)",
+		"type": "number",
+		"default": 1000
+	},
+	{
+		"name": "unit",
+		"desc": "Modbus 地址",
+		"type": "number",
+		"default": 1
+	},
+	{
+		"name": "dev_type",
+		"desc": "设备型号",
+		"type": "dropdown",
+		"default": "SCS_900UV",
+		"values": [
+			"SCS_900UV",
+			"SCS_900CPM"
+		],
+		"depends": {
+			"SCS_900UV": "scs_900uv_opt"
+		}
+	},	
+	{
+		"name": "scs_900uv_opt",
+		"desc": "PLC Data Channel",
+		"type": "section",
+		"child": [
+			{
+				"name": "enable_plc",
+				"desc": "Enable PLC Reading",
+				"type": "boolean",
+				"default": false
+			},
+			{
+				"name": "a_s",
+				"desc": "",
+				"type": "number",
+				"default": 1.4
+			},
+			{
+				"name": "plc_serial",
+				"desc": "PLC Serial",
+				"type": "serial"
+			}
+		]
+	}
+]
