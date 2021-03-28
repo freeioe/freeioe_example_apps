@@ -1,0 +1,49 @@
+[
+	{
+		"name": "serial_opt",
+		"type": "serial"
+	},
+	{
+		"name": "dev_sn",
+		"desc": "设备序列号",
+		"type": "string",
+		"default": "TL_PMM180"
+	},
+	{
+		"name": "loop_gap",
+		"desc": "采集间隔(Read Gap)",
+		"type": "number",
+		"default": 1000
+	},
+	{
+		"name": "unit",
+		"desc": "Modbus 地址",
+		"type": "number",
+		"default": 1
+	},
+	{
+		"name": "dev_type",
+		"desc": "设备型号",
+		"type": "dropdown",
+		"default": "TL_PMM180",
+		"values": [
+			"TL_PMM180"
+		],
+		"depends": {
+			"TL_PMM180": "tl_pmm180_opt"
+		}
+	},	
+	{
+		"name": "tl_pmm180_opt",
+		"desc": "TL-PMM180 Options",
+		"type": "section",
+		"child": [
+			{
+				"name": "a_s",
+				"desc": "",
+				"type": "number",
+				"default": 1.4
+			}
+		]
+	}
+]

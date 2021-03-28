@@ -57,8 +57,9 @@ end
 function worker:read_summary(modbus)
 	local func = 0x03
 	local start_addr = 0
+	local dlen = 15
 
-	local req, err = self._pdu:make_request(func, start_addr, 15)
+	local req, err = self._pdu:make_request(func, start_addr, dlen)
 	if not req then
 		return nil, err
 	end
@@ -77,7 +78,7 @@ function worker:read_summary(modbus)
 	end
 
 	local len = d:uint8(pdu, 2)
-	assert(len >= 16 * 2, SF("length issue :%d - %d", len, 16 * 2))
+	assert(len >= dlen * 2, SF("length issue :%d - %d", len, dlen * 2))
 
 	local pdu_data = string.sub(pdu, 3)
 
