@@ -28,13 +28,13 @@ return {
 		unit = "m/s",
 	},
 	{
-		name = "PaS",
+		name = "pa_s",
 		desc = "烟气静压", -- 30007
 		vt = "float",
 		unit = "Pa",
 	},
 	{
-		name = "PaD",
+		name = "pa_d",
 		desc = "烟气动压", -- 30009
 		vt = "float",
 		unit = "Pa",
