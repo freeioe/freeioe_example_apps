@@ -14,6 +14,7 @@ RELEASE_APP modbus/gateway
 RELEASE_APP modbus/smc
 RELEASE_APP modbus/jbsd
 RELEASE_APP modbus/chsdl
+RELEASE_APP modbus/treeland
 
 # Hardware test
 RELEASE_APP hw_test/reboot 
