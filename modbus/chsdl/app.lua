@@ -22,14 +22,27 @@ function app:on_init()
 			flow_control = "OFF"
 		}
 		conf.scs_900uv_opt = {
+			enable_plc = true,
+			a_s = 1.4,
+			plc_unit = 1,
 			plc_serial = {
 				port = "/tmp/ttyS2",
 				baudrate = 19200,
 				data_bits = 8,
-				parity = "NONE",
+				parity = "EVEN",
 				stop_bits = 1,
 				flow_control = "OFF"
-			}
+			},
+			wet_low = 0,
+			wet_high = 100,
+			dust_low = 0,
+			dust_high = 1000,
+			pa_low = 0,
+			pa_high = 100,
+			temp_low = -30,
+			temp_high = 100,
+			pa_s_low = -30,
+			pa_s_high = 100,
 		}
 	end
 end
@@ -58,6 +71,9 @@ function app:on_start()
 	self._worker = worker:new(self, conf.unit, self._dev, worker_opt)
 
 	self._modbus = master:new('RTU', {link='serial', serial = conf.serial})
+	if conf.scs_900uv_opt.enable_plc then
+		self._plc_modbus = master:new('RTU', {link='serial', serial = conf.scs_900uv_opt.plc_serial})
+	end
 	return self._modbus:start()
 end
 
@@ -73,7 +89,7 @@ end
 function app:on_run(tms)
 	local conf = self:app_conf()
 
-	self._worker:run(self._modbus)
+	self._worker:run(self._modbus, self._plc_modbus)
 
 	return conf.loop_gap or 1000
 end

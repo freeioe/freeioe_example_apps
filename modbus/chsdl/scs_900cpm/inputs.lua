@@ -10,7 +10,7 @@ return {
 		desc = "颗粒物浓度", -- 40001
 		vt = "float",
 		unit = "mg/m3",
-	},
+	}--[[,
 	{
 		name = "r1",
 		desc = "量程1", -- 40003
@@ -41,4 +41,5 @@ return {
 		desc = "颗粒物原始值", -- 40013
 		vt = "float",
 	},
+	]]--
 }

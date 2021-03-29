@@ -1,0 +1,14 @@
+HJ212点名,描述,采样数据单位,数据类型,采集源设备SN,采集源设备点名,数值系数,数据最小值,数据最大值,数据格式化格式,数据计算公式（可选）,累计量计算方法（可选）,是否上传,"累计量累计值（可选,false不上传，数值为强制累计值）",折算值计算,2005点名,采集源属性(可选项)
+a00000,废气,立方米/秒,float,scs_900uv,flow,,,,,,,,,,,RDATA
+a01011,烟气流速,米/秒,float,scs_900uv,speed,,,,,,simple,,N/A,,,RDATA
+a01012,烟气温度,摄氏度,float,scs_900uv,temp,,,,,,simple,,N/A,,,RDATA
+a01013,烟气压力,千帕,float,scs_900uv,pa_s,0.001,,,,,simple,,N/A,,,RDATA
+a01014,烟气湿度,%,float,scs_900uv,wet,,,,,,simple,,N/A,,,RDATA
+a01017,烟气动压,千帕,float,scs_900uv,pa_d,0.001,,,,,,,,,,RDATA
+a19001,氧气含量,%,float,scs_900uv,O2,,,,,,simple,,N/A,,,RDATA
+a34013,烟尘,毫克/立方米,float,scs_900cpm,dust,,,,N4.2,,,,,SRC,,RDATA
+a21026,二氧化硫,毫克/立方米,float,scs_900uv,SO2,,,,,,,,,SRC,,RDATA
+a21002,氮氧化物,毫克/立方米,float,scs_900uv,NOx,,,,,,,,,SRC,,RDATA
+a21003,一氧化氮,毫克/立方米,float,scs_900uv,NO,,,,,,,,,SRC,,RDATA
+a21004,二氧化氮,毫克/立方米,float,scs_900uv,NO2,,,,,,,,,SRC,,RDATA
+Kv,速度场系数,,float,STATION.SETTINGS,Kv,,,,,,simple,N,N/A,,,

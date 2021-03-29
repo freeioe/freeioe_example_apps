@@ -5,6 +5,42 @@ return {
 		desc = "PLC State", -- 43996
 		vt = "int",
 	},
+	{
+		name = "flow",
+		desc = "废气", -- calced
+		vt = "float",
+		unit = "m3/s",
+	},
+	{
+		name = "wet",
+		desc = "烟气湿度", -- 44005
+		vt = "int",
+		unit = "%",
+	},
+	{
+		name = "dust",
+		desc = "烟尘", -- 44006
+		vt = "int",
+		unit = "mg/m3",
+	},
+	{
+		name = "speed",
+		desc = "烟气流速", -- 30013/14
+		vt = "float",
+		unit = "m/s",
+	},
+	{
+		name = "temp",
+		desc = "烟气温度", -- 30013/14
+		vt = "float",
+		unit = "C",
+	},
+	{
+		name = "pa_s",
+		desc = "静压", -- 30013/14
+		vt = "float",
+		unit = "Pa",
+	},
 	--- 900UV
 	{
 		name = "error",

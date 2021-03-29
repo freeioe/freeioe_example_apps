@@ -52,9 +52,75 @@
 				"default": 1.4
 			},
 			{
+				"name": "unit",
+				"desc": "Modbus 地址",
+				"type": "number",
+				"default": 1
+			},
+			{
 				"name": "plc_serial",
 				"desc": "PLC Serial",
 				"type": "serial"
+			},
+			{
+				"name": "wet_low",
+				"desc": "Wet Range Low",
+				"type": "number",
+				"default": 0
+			},
+			{
+				"name": "wet_high",
+				"desc": "Wet Range High",
+				"type": "number",
+				"default": 100
+			},
+			{
+				"name": "dust_low",
+				"desc": "Dust range low",
+				"type": "number",
+				"default": 0
+			},
+			{
+				"name": "dust_high",
+				"desc": "Dust range high",
+				"type": "number",
+				"default": 1000
+			},
+			{
+				"name": "pa_low",
+				"desc": "Diff pressure low",
+				"type": "number",
+				"default": 0
+			},
+			{
+				"name": "pa_high",
+				"desc": "Diff pressure high",
+				"type": "number",
+				"default": 100
+			},
+			{
+				"name": "temp_low",
+				"desc": "Temperature low",
+				"type": "number",
+				"default": -30
+			},
+			{
+				"name": "temp_high",
+				"desc": "Temperature high",
+				"type": "number",
+				"default": 100
+			},
+			{
+				"name": "pa_s_low",
+				"desc": "Static pressure low",
+				"type": "number",
+				"default": -30
+			},
+			{
+				"name": "pa_s_high",
+				"desc": "Static pressure high",
+				"type": "number",
+				"default": 100
 			}
 		]
 	}
