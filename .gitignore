@@ -43,7 +43,10 @@ luac.out
 *.ini
 .~*
 *.swp
-tpl
+# tpl
+**/tpl/TPL*
+**/tpl/CNF*
+test.csv
 
 other/sqlite3/lualib
 *sqlite3*

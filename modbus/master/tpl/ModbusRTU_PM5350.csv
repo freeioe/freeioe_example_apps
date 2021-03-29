@@ -1,0 +1,13 @@
+COMMENT,名称,描述,型号,,,,,,,,,,
+META,Shneider,PowerLogic,PM5350,,,,,,,,,,
+,,,,,,,,,,,,,
+COMMENT,名称,描述,单位,读写权限,解析数据类型,数值类型,功能码,寄存器地址[从0开始],运算系数,数据位偏移[03,04功能码有效],写功能码[可不填],字符长度[数据类型为string时有效]
+PROP,Cr01,Current A,A,RO,float,float,3,2999,,,,,
+PROP,Cr02,Current B,A,RO,float,float,3,3001,,,,,
+PROP,Cr03,Current C,A,RO,float,float,3,3003,,,,,
+PROP,Pw01,Active Power A,A,RO,float,float,3,3053,,,,,
+PROP,Pw02,Active Power B,A,RO,float,float,3,3055,,,,,
+PROP,Pw03,Active Power C,A,RO,float,float,3,3057,,,,,
+PROP,Pw04,Active Power T,A,RO,float,float,3,3059,,,,,
+PROP,em1,Active Energy Dlvr,Wh,RO,int64,int,3,3203,,,,,
+PROP,Eng02,Active Energy Recv,Wh,RO,int64,int,3,3207,,,,,

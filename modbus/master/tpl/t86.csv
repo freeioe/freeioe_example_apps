@@ -1,0 +1,5 @@
+COMMENT,name,description,series,,,,,,,
+META,JC_T8600,Johnson Control T8600,T8600,,,,,,,
+,,,,,,,,,,
+COMMENT,name,description,unit,RW,data type,vt,function_code,data_address,rate,offset
+PROP,comm_check,通讯检测,,RO,uint16,int,3,18,1,

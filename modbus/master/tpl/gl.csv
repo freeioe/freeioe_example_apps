@@ -1,0 +1,12 @@
+﻿COMMENT,name,description,series,,,,,,,,,
+META,BMS,BMS Device,XXX,,,,,,,,,
+,,,,,,,,,,,,
+COMMENT,name,description,unit,RW,data type,vt,function_code,data_address,rate,offset,write_function_code,string_length
+PROP,tag1,测点1,,RW,uint16,int,3,0,1,,,
+PROP,tag2,测点2,,RW,uint16,int,3,1,1,,,
+PROP,tag3,测点3,,RW,uint16,int,3,2,1,,,
+PROP,tag4,测点4,,RW,uint16,int,3,3,1,,,
+PROP,tag5,测点5,,RW,uint16,int,3,4,1,,,
+PROP,tag6,测点6,,RW,uint16,int,3,5,1,,,
+PROP,tag7,测点7,,RW,uint16,int,3,6,1,,,
+PROP,tag8,测点8,,RW,uint16,int,3,7,1,,,
