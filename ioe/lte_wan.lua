@@ -28,13 +28,22 @@ end
 
 local function is_symlink(sys_id)
 	if string.sub(sys_id, 1, 8) == '2-30002-' then
-		return true -- Q102
+		return true -- Q102H
 	end
 	if string.sub(sys_id, 1, 8) == '2-30102-' then
-		return true -- Q204
+		return true -- Q204H
 	end
 	if string.sub(sys_id, 1, 8) == '2-31104-' then
-		return true -- Q208
+		return true -- F208H
+	end
+	if string.sub(sys_id, 1, 8) == '2-31103-' then
+		return true -- F208
+	end
+	if string.sub(sys_id, 1, 8) == '2-31101-' then
+		return true -- F202H
+	end
+	if string.sub(sys_id, 1, 8) == '2-31102-' then
+		return true -- F202
 	end
 end
 
