@@ -197,7 +197,8 @@ function app:on_start()
 	self._dev = api:add_device(dev_sn, meta, inputs, nil, commands)
 
 	local opt = conf.serial_opt or {
-		port = "/tmp/ttyS1",
+		-- port = "/tmp/ttyS1",
+		port = "/dev/ttyUSB0",
 		baudrate = 9600
 	}
 	self._server = serial_server:new(self, opt)

@@ -38,7 +38,7 @@ function client:on_recv(data)
 	end
 end
 
-function client:send(session, raw_data, timeout)
+function client:send(session, raw_data)
 	if not self._serial then
 		return nil, "No serial opened"
 	end
@@ -131,12 +131,12 @@ end
 
 function client:send_req()
 	while not self._closing and self._serial do
+		print('AAAAAAAAAAA')
 		self:send_nowait('##00010077QN=20150530190615121;ST=31;CN=2013;PW=123456;MN=88888880000001;Flag=3;CP=&&&&2414\r\n')
-		self._sys:sleep(1000)
-		self:send_nowait('##00010077QN=20150530191136001;ST=31;CN=2023;PW=123456;MN=88888880000001;Flag=3;CP=&&&&34A9\r\n')
-		self._sys:sleep(1000)
+		self._sys:sleep(2500)
+		-- self:send_nowait('##00010077QN=20150530191136001;ST=31;CN=2023;PW=123456;MN=88888880000001;Flag=3;CP=&&&&34A9\r\n')
 		self:send_nowait('##00010077QN=20150530191653001;ST=31;CN=1073;PW=123456;MN=88888880000001;Flag=3;CP=&&&&9F4B\r\n')
-		self._sys:sleep(3000)
+		self._sys:sleep(2500)
 	end
 end
 

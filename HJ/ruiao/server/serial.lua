@@ -111,6 +111,8 @@ function server:create_serial()
 			self._client:on_recv(data)
 		end
 	end)
+	self._client = client:new(self, serial, opt)
+	self._client:start()
 	return serial
 end
 

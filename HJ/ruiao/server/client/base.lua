@@ -50,6 +50,14 @@ function client:set_sn(sn)
 	self._sn = sn
 end
 
+function client:timeout()
+	return 3000
+end
+
+function client:retry()
+	return 3
+end
+
 function client:set_dev(dev)
 	self._dev = dev
 end
