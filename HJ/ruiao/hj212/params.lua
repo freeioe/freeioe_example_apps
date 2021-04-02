@@ -41,6 +41,10 @@ local PARAMS = {
 	Ctime = ES('N2'),
 	Stime = ES('N4'),
 	InfoId = ES('C6'),
+	ZeroDate = datetime,
+	CellPressure = ES('N3.1'),
+	CellTemp = ES('N3.1'),
+	SpecEnergy = ES('N5.1'),
 }
 
 params.static.PARAMS = PARAMS

@@ -1,6 +1,15 @@
 local base = require 'hj212.server.handler.base'
+local cjson = require 'cjson.safe'
 
 local handler = base:subclass('hj212.server.handler.rdata_start')
+
+local attrs = {
+	'CurrZero', 'DemCoeff', 'ScaleGasNd', 'CailDate', 'ZeroRange', 'FullRange', 'ZeroDev', 'CailDev', 'ZeroCail', 'ZeroOrigin', 'CailOrigin', 'RealOrigin', 'Rtd', 'Mol'
+}
+
+local dlist = {
+	'ZeroDate', 'CellPressure', 'CellTemp', 'SpecEnergy'
+}
 
 function handler:process(request)
 	local params = request:params()
@@ -12,6 +21,16 @@ function handler:process(request)
 		return nil, "DataTime missing"
 	end
 
+	for _, name in ipairs(dlist) do
+		print(name, params:get(name))
+		local rdata = {
+			SampleTime = data_time,
+			Rtd = params:get(name)
+		}
+		self._client:on_rdata(name, rdata)
+
+	end
+
 	if params:has_tags() then
 		local tags = params:tags()
 
@@ -19,22 +38,23 @@ function handler:process(request)
 			return nil, "Tags not found"
 		end
 
+		local ttlist = {}
 		for _, tag in pairs(tags[data_time]) do
-			print(tag:tag_name(), tag:get('CurrZero'), tag:get('DemCoeff'), tag:get('ScaleGasNd'), 
-				tag:get('CailDate'), tag:get('ZeroRange'), tag:get('FullRange'),
-				tag:get('ZeroDev'), tag:get('CailDev'), tag:get('ZeroCail'),
-				tag:get('ZeroRange'), tag:get('FullRange'), tag:get('ZeroOrigin'),
-				tag:get('CailOrigin'), tag:get('RealOrigin'), tag:get('Rtd'))
-
-				--[[
-			local rdata = {
-				SampleTime = tag:get('SampleTime') or data_time,
-				Rtd = tag:get('Rtd'),
-				Flag = tag:get('Flag') or 'N',
-				ZsRtd = tag:get('ZsRtd')
-			}
-			self._client:on_rdata(tag:tag_name(), rdata)
-			]]--
+			local tt = ttlist[tag:tag_name()]
+			if not tt then
+				tt = {}
+				ttlist[tag:tag_name()] = tt
+			end
+			for _, name in ipairs(attrs) do
+				local v = tag:get(name)
+				if v then
+					tt[name] = v
+				end
+			end
+		end
+		for k, v in pairs(ttlist) do
+			v.SampleTime = data_time
+			self._client:on_rdata(k, v)
 		end
 	end
 
