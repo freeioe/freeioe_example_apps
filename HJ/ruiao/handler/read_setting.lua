@@ -8,7 +8,10 @@ local attrs = {
 }
 
 local dlist = {
-	'ZeroDate', 'CellPressure', 'CellTemp', 'SpecEnergy'
+	'ZeroDate',
+	'CellPressure',
+	'CellTemp',
+	'SpecEnergy'
 }
 
 function handler:process(request)
@@ -22,7 +25,6 @@ function handler:process(request)
 	end
 
 	for _, name in ipairs(dlist) do
-		print(name, params:get(name))
 		local rdata = {
 			SampleTime = data_time,
 			Rtd = params:get(name)
