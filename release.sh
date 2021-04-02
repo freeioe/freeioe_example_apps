@@ -24,6 +24,7 @@ RELEASE_APP hw_test/serial_socket
 RELEASE_APP HJ/hj212
 RELEASE_APP HJ/hj212_screen
 RELEASE_APP HJ/hj212_server
+RELEASE_APP HJ/ruiao
 
 RELEASE_APP tools/frpc
 RELEASE_APP tools/network_uci

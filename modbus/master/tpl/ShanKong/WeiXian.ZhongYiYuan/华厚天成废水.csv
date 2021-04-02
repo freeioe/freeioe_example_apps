@@ -1,0 +1,12 @@
+COMMENT,名称,描述,型号,,,,,,,,,
+META,AND,AND,AND,,,,,,,,,
+,,,,,,,,,,,,
+COMMENT,名称,描述,单位,读写权限,解析数据类型,数值类型,功能码,寄存器地址[从0开始],运算系数,数据位偏移[03 04功能码有效],写功能码[可不填],字符长度[数据类型为string时有效]
+PROP,valid,指示有无有效测量值,,RO,int16,int,3,1,,,,
+PROP,val,当前数据,,RO,float,float,3,2,,,,
+PROP,ab_val,吸光度,,RO,float,float,3,4,,,,
+PROP,state,仪器状态,,RO,int16,int,3,20,,,,
+PROP,alarm,仪器是否存在报警,,RO,int16,int,3,21,,,,
+PROP,state,仪器报警类型,,RO,int16,int,3,22,,,,
+PROP,k1,斜率,,RO,float,float,3,50,,,,
+PROP,r1,截距,,RO,float,float,3,52,,,,

@@ -1,0 +1,8 @@
+COMMENT,名称,描述,型号,,,,,,,,,
+META,AND,AND,AND,,,,,,,,,
+,,,,,,,,,,,,
+COMMENT,名称,描述,单位,读写权限,解析数据类型,数值类型,功能码,寄存器地址[从0开始],运算系数,数据位偏移[03 04功能码有效],写功能码[可不填],字符长度[数据类型为string时有效]
+PROP,test,当前数据,,RO,float,float,3,4096,,,,
+PROP,val,当前数据,,RO,float,float,3,4101,,,,
+PROP,flag,数据标识,,RO,int16,int,3,4104,,,,
+PROP,state,仪器状态,,RO,int16,int,3,8192,,,,

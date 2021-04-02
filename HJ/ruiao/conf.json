@@ -1,0 +1,85 @@
+[
+	{
+		"name": "channel_type",
+		"desc": "通讯类型(Stream Type)",
+		"type": "dropdown",
+		"default": "socket",
+		"values": [
+			{
+				"name": "TCP连接(TCP Server)",
+				"value": "socket"
+			},
+			{
+				"name": "串口(Serial)",
+				"value": "serial"
+			}
+		],
+		"depends": {
+			"socket": "socket_opt",
+			"serial": "serial_opt"
+		}
+	},
+	{
+		"name": "socket_opt",
+		"type": "tcp_client"
+	},
+	{
+		"name": "serial_opt",
+		"type": "serial"
+	},
+	{
+		"name": "stations",
+		"desc": "Station List",
+		"type": "table",
+		"cols": [
+			{
+				"name": "name",
+				"desc": "Station Name",
+				"type": "string",
+				"default": "Station 1"
+			},
+			{
+				"name": "system",
+				"desc": "System ID",
+				"type": "number",
+				"default": 31
+			},
+			{
+				"name": "dev_id",
+				"desc": "Device ID",
+				"type": "string",
+				"default": "010000A8900016F000169DC0"
+			},
+			{
+				"name": "passwd",
+				"desc": "Device Passwd",
+				"type": "string",
+				"default": "123456"
+			},
+			{
+				"name": "timeout",
+				"desc": "Timeout time",
+				"type": "number",
+				"default": 5
+			},
+			{
+				"name": "retry",
+				"desc": "Retry count",
+				"type": "number",
+				"default": 3
+			},
+			{
+				"name": "rdata_interval",
+				"desc": "RData Interval (second)",
+				"type": "number",
+				"default": 30
+			},
+			{
+				"name": "min_interval",
+				"desc": "Minutes Data Interval (minute)",
+				"type": "number",
+				"default": 10
+			}
+		]
+	}
+]
