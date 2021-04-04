@@ -328,7 +328,7 @@ function app:write_packet(dev, stat, unit, output, value)
 	return true, "Write Done!"
 end
 
-function app:read_packet(dev, stat, unit, pack)
+function app:read_packet(dev, stat, unit, pack, tpl)
 	assert(dev and stat and unit)
 	--- 设定读取的起始地址和读取的长度
 	local func = pack.fc or 0x03 -- 03指令
@@ -381,6 +381,13 @@ function app:read_packet(dev, stat, unit, pack)
 		if val == nil then
 			assert(false, err or 'val is nil')
 		end
+		--- AI Calc
+		if tpl.ai_calc_list[input.name] then
+			local ac = tpl.ai_calc_list[input.name]
+			val = ((val - ac.in_min) * (ac.out_max - ac.out_min))/(in_max - in_min)
+			val = val + ac.out_min
+		end
+		--- Data Rate
 		if input.rate and input.rate ~= 1 then
 			val = val * input.rate
 		end
@@ -394,9 +401,9 @@ function app:invalid_dev(dev, pack)
 	end
 end
 
-function app:read_dev(dev, stat, unit, packets)
+function app:read_dev(dev, stat, unit, packets, tpl)
 	for _, pack in ipairs(packets) do
-		self._queue(self.read_packet, self, dev, stat, unit, pack)
+		self._queue(self.read_packet, self, dev, stat, unit, pack, tpl)
 	end
 end
 
@@ -413,7 +420,7 @@ function app:on_run(tms)
 		if not self._modbus then
 			break
 		end
-		self:read_dev(dev.dev, dev.stat, dev.unit, dev.packets)
+		self:read_dev(dev.dev, dev.stat, dev.unit, dev.packets, dev.tpl)
 	end
 
 	local next_tms = gap - ((self._sys:time() - begin_time) * 1000)

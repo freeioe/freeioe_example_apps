@@ -62,6 +62,7 @@ local function load_tpl(name, err_cb)
 
 	local meta = {}
 	local props = {}
+	local ai_calc_list = {}
 
 	NAME_CHECKING = {}
 
@@ -124,12 +125,35 @@ local function load_tpl(name, err_cb)
 					props[#props + 1] = prop
 				end
 			end
+			if v[1] == 'AI_CALC' then
+				local in_name = v[2]
+				if string.len(in_name) > 0 then
+					local in_min = tonumber(v[3] or '0') or 0,
+					local in_max = tonumber(v[4] or '0') or 0,
+					if in_min == in_max then
+						in_max = in_min + 1
+					end
+					local out_min = tonumber(v[5] or '0') or 0,
+					local out_max = tonumber(v[6] or '0') or 0,
+					if out_min == out_max then
+						out_max = out_min + 1
+					end
+					ai_calc_list[in_name] = {
+						name = in_name,
+						in_min = in_min,
+						in_max = in_max,
+						out_min = out_min,
+						out_max = out_max,
+					}
+				end
+			end
 		end
 	end
 
 	return {
 		meta = meta,
 		props = props,
+		ai_calc_list = ai_calc_list,
 	}
 end
 
