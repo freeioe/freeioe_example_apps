@@ -384,7 +384,7 @@ function app:read_packet(dev, stat, unit, pack, tpl)
 		--- AI Calc
 		if tpl.ai_calc_list[input.name] then
 			local ac = tpl.ai_calc_list[input.name]
-			val = ((val - ac.in_min) * (ac.out_max - ac.out_min))/(in_max - in_min)
+			val = ((val - ac.in_min) * (ac.out_max - ac.out_min))/(ac.in_max - ac.in_min)
 			val = val + ac.out_min
 		end
 		--- Data Rate
