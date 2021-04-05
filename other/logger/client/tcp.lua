@@ -57,7 +57,7 @@ function client:connect_proc()
 		if connect_gap > 64 * 100 then
 			connect_gap = 100
 		end
-		self._logger:info("Wait for retart connection", connect_gap)
+		self._logger:info("Wait for restart connection", connect_gap)
 	end
 
 	if self._socket then

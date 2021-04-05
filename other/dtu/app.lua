@@ -97,7 +97,7 @@ function app:connect_proc()
 		if connect_gap > 64 * 1000 then
 			connect_gap = 1000
 		end
-		self._log:debug("Wait for retart connection", connect_gap)
+		self._log:debug("Wait for restart connection", connect_gap)
 	end
 
 	if self._server_socket then

@@ -34,7 +34,7 @@ function server:listen_proc()
 				if sleep_time > 64 * 100 then
 					sleep_time = 100
 				end
-				log:error("Wait for retart listenion", sleep_time)
+				log:error("Wait for re-create listen", sleep_time)
 			end
 		else
 			skynet.sleep(100, self)

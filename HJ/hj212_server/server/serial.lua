@@ -34,7 +34,7 @@ function server:listen_proc()
 				if sleep_time > 64 * 1000 then
 					sleep_time = 1000
 				end
-				log:error("Wait for retart listenion", sleep_time)
+				log:error("Wait for re-create listen", sleep_time)
 			end
 		else
 			sys:sleep(1000, self)
