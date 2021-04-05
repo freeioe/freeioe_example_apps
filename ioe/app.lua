@@ -48,6 +48,9 @@ function app:start()
 			if command == 'reboot_device' then
 				return self:reboot_device(param)
 			end
+			if command == 'update_mode' then
+				return self:update_mode(param)
+			end
 			self._log:trace('on_command', app_src, sn, command, param)
 			return true, "eee"
 		end,
@@ -266,6 +269,10 @@ function app:start()
 		{
 			name = "reboot_device",
 			desc = "Reboot hardware device",
+		},
+		{
+			name = "update_mode",
+			desc = "Update work mode",
 		},
 	}
 
@@ -603,24 +610,47 @@ function app:disable_symlink(param)
 	end
 end
 
-function app:reboot_device(param)
+function app:auth_pwd(param, func, ...)
 	local restful = require('http.restful')
 	local http_api = restful("127.0.0.1:8808")
 	local user = param.user or 'admin'
 	local passwd = param.pwd or ''
 	local status, body = http_api:post("/user/login", nil, {username=user, password=passwd})
 	if status == 200 then
+		return func(...)
+	end
+
+	self._log:error("Auth failed", body)
+	self._log:error("Invalid pwd provied:", pwd)
+	return false, "Invalid pwd provided"
+end
+
+function app:reboot_device(param)
+	return self:auth_pwd(param, function()
+		if ioe.developer_mode() then
+			return false, "Developer mode cannot be rebooted!"
+		end
+
 		self._sys:timeout(3000, function()
 			os.execute("reboot &")
 		end)
+
 		self._log:warning("Reboot is authed with correct password!!!")
 		self._log:warning("Device will be reboot after threee seconds")
 		return true, "Device will be reboot after three seconds"
-	else
-		self._log:error("Auth failed", body)
-		self._log:error("Invalid pwd provied:", pwd)
-		return false, "Invalid pwd provided"
+	end)
+end
+
+function app:update_mode(param)
+	local mode = tonumber(param.mode)
+	if mode == nil then
+		return false, "Work mode is incorrect or missing"
 	end
+
+	return self:auth_pwd(param, function()
+		ioe.set_mode(mode)
+		return true, "Work mode has been updated to "..mode
+	end)
 end
 
 return app
