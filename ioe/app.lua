@@ -195,6 +195,11 @@ function app:start()
 			vt = "int",
 		},
 		{
+			name = "work_mode",
+			desc = "Device work mode",
+			vt = "int",
+		},
+		{
 			name = "symlink_service",
 			desc = "Symlink service enabled",
 			vt = "int",
@@ -516,6 +521,7 @@ function app:run(tms)
 	local enable_log_upload = datacenter.get("CLOUD", "LOG_UPLOAD")
 	local enable_event_upload = datacenter.get("CLOUD", "EVENT_UPLOAD")
 	local enable_beta = ioe.beta()
+	local work_mode = ioe.mode()
 
 	self._dev:set_input_prop('data_upload', 'value', enable_data_upload and 1 or 0)
 	self._dev:set_input_prop('data_upload_max_dpp', 'value', data_upload_max_dpp)
@@ -534,6 +540,7 @@ function app:run(tms)
 	self._dev:set_input_prop('log_upload', 'value', enable_log_upload or 0)
 	self._dev:set_input_prop('event_upload', 'value', enable_event_upload or 99)
 	self._dev:set_input_prop('enable_beta', 'value', enable_beta and 1 or 0)
+	self._dev:set_input_prop('work_mode', 'value', work_mode)
 	self._dev:set_input_prop('symlink_service', 'value', self._symlink and 1 or 0)
 
 	-- Application run status
