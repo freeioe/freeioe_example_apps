@@ -4,14 +4,27 @@ local cjson = require 'cjson.safe'
 local handler = base:subclass('hj212.server.handler.rdata_start')
 
 local attrs = {
-	'CurrZero', 'DemCoeff', 'ScaleGasNd', 'CailDate', 'ZeroRange', 'FullRange', 'ZeroDev', 'CailDev', 'ZeroCail', 'ZeroOrigin', 'CailOrigin', 'RealOrigin', 'Rtd', 'Mol'
+	'CurrZero' = 'CurrZero', -- same with ZeroOrigin
+	'DemCoeff' = 'i13006',
+	'ScaleGasNd' = 'i13008',
+	'CailDate' = 'i13007',
+	--'ZeroRange' = '',
+	'FullRange' = 'i13013',
+	'ZeroDev' = 'i13005',
+	'CailDev' = 'i13010',
+	'ZeroCail' = 'i13003',
+	'ZeroOrigin' = 'i13004',
+	'CailOrigin' = 'i13009',
+	'RealOrigin' = 'i13011',
+	'Rtd' = 'Rtd',
+	'Mol' = 'Mol',
 }
 
 local dlist = {
-	'ZeroDate',
-	'CellPressure',
-	'CellTemp',
-	'SpecEnergy'
+	'ZeroDate' = 'i13001',
+	'CellPressure' = 'CellPressure',
+	'CellTemp' = 'CellTemp',
+	'SpecEnergy' = 'SpecEnergy',
 }
 
 function handler:process(request)
@@ -24,10 +37,10 @@ function handler:process(request)
 		return nil, "DataTime missing"
 	end
 
-	for _, name in ipairs(dlist) do
+	for key, name in ipairs(dlist) do
 		local rdata = {
 			SampleTime = data_time,
-			Rtd = params:get(name)
+			Rtd = params:get(key)
 		}
 		self._client:on_rdata(name, rdata)
 
@@ -47,8 +60,8 @@ function handler:process(request)
 				tt = {}
 				ttlist[tag:tag_name()] = tt
 			end
-			for _, name in ipairs(attrs) do
-				local v = tag:get(name)
+			for key, name in ipairs(attrs) do
+				local v = tag:get(key)
 				if v then
 					tt[name] = v
 				end
