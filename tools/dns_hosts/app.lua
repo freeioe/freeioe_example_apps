@@ -18,16 +18,16 @@ function app:write_dns()
 
 	local exist_hosts = {}
 	for line in f:lines() do
-		print(line)
+		--print(line)
 		local ip, domains = string.match(line, '^([^%s#]+)%s+(.+)$')
 		if ip and domains then
 			local comment_index = string.find(domains, '#', 1, true) 
 			if comment_index then
 				domains = string.sub(domains, 1, comment_index - 1)
 			end
-			print(ip, domains)
+			--print(ip, domains)
 			for domain in string.gmatch(domains, '([^%s#]+)') do
-				print(domain, ip)
+				--print(domain, ip)
 				exist_hosts[domain] = ip
 			end
 		end
@@ -40,7 +40,7 @@ function app:write_dns()
 	for _, dns in pairs(conf.dns) do
 		if not exist_hosts[dns.domain] then
 			local s = string.format('%s %s #FREEIOE', dns.ip, dns.domain)
-			print('echo "'..s..'" >> '..hosts_file)
+			--print('echo "'..s..'" >> '..hosts_file)
 			os.execute('echo "'..s..'" >> '..hosts_file)
 		else
 			if exist_hosts[dns.domain] ~= dns.ip then
@@ -53,7 +53,7 @@ function app:write_dns()
 end
 
 function app:on_close(reason)
-	os.execute([[sed '/FREEIOE/d' /etc/hosts >> /etc/hosts]])
+	os.execute([[sed '/FREEIOE/d' /etc/hosts > /etc/hosts]])
 end
 
 function app:on_run(tms)
