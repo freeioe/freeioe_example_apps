@@ -76,6 +76,7 @@ function app:on_start()
 		local r, err = self:uci_show(zn)
 		if not r then
 			self:uci_add('firewall', 'zone', {
+				name = 'lan1proxy',
 				input = 'ACCEPT',
 				output = 'ACCEPT',
 				forward = 'ACCEPT',
