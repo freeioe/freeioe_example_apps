@@ -7,6 +7,9 @@ app.static.API_VER = 9
 local hosts_file = '/etc/hosts'
 
 function app:on_start()
+	local sys = self:sys_api()
+	sys:sleep(3000)
+
 	self:clean_dns()
 	return self:write_dns()
 end
@@ -48,7 +51,7 @@ function app:write_dns()
 			os.execute('echo "'..s..'" >> '..hosts_file)
 		else
 			if exist_hosts[dns.domain] ~= dns.ip then
-				return false, 'Domain '..dns.domain..' has different host value'..exists_hosts[dns.domain]
+				return false, 'Domain '..dns.domain..' has different host value'..exist_hosts[dns.domain]
 			end
 		end
 	end
