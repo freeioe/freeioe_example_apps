@@ -104,7 +104,7 @@ function client:on_rdata(name, rdata)
 	table.insert(self._inputs_cov, name)
 
 	self._rdata_map[name] = {
-		value = rdata.Rtd,
+		value = assert(rdata.Rtd),
 		value_z = rdata.ZsRtd,
 		timestamp = rdata.SampleTime,
 		flag = rdata.Flag or self:rs_flag()

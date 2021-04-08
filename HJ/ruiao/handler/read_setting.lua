@@ -4,27 +4,43 @@ local cjson = require 'cjson.safe'
 local handler = base:subclass('hj212.server.handler.rdata_start')
 
 local attrs = {
-	'CurrZero' = 'CurrZero', -- same with ZeroOrigin
-	'DemCoeff' = 'i13006',
-	'ScaleGasNd' = 'i13008',
-	'CailDate' = 'i13007',
-	--'ZeroRange' = '',
-	'FullRange' = 'i13013',
-	'ZeroDev' = 'i13005',
-	'CailDev' = 'i13010',
-	'ZeroCail' = 'i13003',
-	'ZeroOrigin' = 'i13004',
-	'CailOrigin' = 'i13009',
-	'RealOrigin' = 'i13011',
-	'Rtd' = 'Rtd',
-	'Mol' = 'Mol',
+	CurrZero = '', -- same with ZeroOrigin
+	DemCoeff = 'i13006',
+	ScaleGasNd = 'i13008',
+	CailDate = 'i13007',
+	ZeroRange = '',
+	FullRange = 'i13013',
+	ZeroDev = 'i13005',
+	CailDev = 'i13010',
+	ZeroCail = 'i13003',
+	ZeroOrigin = 'i13004',
+	CailOrigin = 'i13009',
+	RealOrigin = 'i13011',
+	Rtd = '',
+	Mol = '',
 }
 
 local dlist = {
-	'ZeroDate' = 'i13001',
-	'CellPressure' = 'CellPressure',
-	'CellTemp' = 'CellTemp',
-	'SpecEnergy' = 'SpecEnergy',
+	ZeroDate = 'i13001',
+	CellPressure = '',
+	CellTemp = '',
+	SpecEnergy = '',
+}
+
+local tag_names = {
+	S01 = 'a19001',
+	S02 = 'a01011',
+	S03 = 'a01012',
+	S04 = 'a01017',
+	S05 = 'a01014',
+	S06 = 'a01015',
+	S07 = 'a01016',
+	S08 = 'a01013',
+	['01'] = 'a23013',
+	['02'] = 'a21026',
+	['03'] = 'a21002',
+	['04'] = 'a21005',
+	['100'] = 'a00000',
 }
 
 function handler:process(request)
@@ -37,13 +53,12 @@ function handler:process(request)
 		return nil, "DataTime missing"
 	end
 
-	for key, name in ipairs(dlist) do
-		local rdata = {
-			SampleTime = data_time,
-			Rtd = params:get(key)
-		}
-		self._client:on_rdata(name, rdata)
-
+	local common_info = {}
+	for key, name in pairs(dlist) do
+		local v = params:get(key)
+		if v and string.len(name) > 0 then
+			common_info[name] = v
+		end
 	end
 
 	if params:has_tags() then
@@ -55,20 +70,40 @@ function handler:process(request)
 
 		local ttlist = {}
 		for _, tag in pairs(tags[data_time]) do
-			local tt = ttlist[tag:tag_name()]
+			local tag_name = tag_names[tag:tag_name()]
+			local tt = ttlist[tag_name]
 			if not tt then
 				tt = {}
-				ttlist[tag:tag_name()] = tt
+				ttlist[tag_name] = tt
+
+				for info, val in pairs(common_info) do
+					local name = tag_name..'_'..info
+					assert(ttlist[name] == nil)
+					ttlist[name] = {
+						PollId = tag_name,
+						Rtd = val
+					}
+				end
 			end
-			for key, name in ipairs(attrs) do
+			for key, name in pairs(attrs) do
 				local v = tag:get(key)
 				if v then
-					tt[name] = v
+					if string.len(name) == 0 then
+						tt[key] = v
+					else
+						name = tag_name..'_'..name
+						assert(ttlist[name] == nil)
+						ttlist[name] = {
+							PollId = tag_name,
+							Rtd = v
+						}
+					end
 				end
 			end
 		end
 		for k, v in pairs(ttlist) do
 			v.SampleTime = data_time
+			--print(k, v.Rtd)
 			self._client:on_rdata(k, v)
 		end
 	end
