@@ -7,7 +7,11 @@ app.static.API_VER = 9
 local hosts_file = '/etc/hosts'
 
 function app:on_start()
+	self:clean_dns()
 	return self:write_dns()
+end
+function app:on_close(reason)
+	return self:clean_dns()
 end
 
 function app:write_dns()
@@ -52,7 +56,7 @@ function app:write_dns()
 	return true
 end
 
-function app:on_close(reason)
+function app:clean_dns()
 	os.execute([[sed '/FREEIOE/d' /etc/hosts > /etc/hosts.new]])
 	os.execute([[mv /etc/hosts.new /etc/hosts]])
 	os.execute('sync')
