@@ -1,0 +1,21 @@
+[
+	{
+		"name": "dns",
+		"desc": "DNS 列表(DNS HOST List)",
+		"type": "table",
+		"cols": [
+			{
+				"name": "domain",
+				"desc": "Domain Name",
+				"type": "string",
+				"default": "sample.com"
+			},
+			{
+				"name": "ip",
+				"desc": "Host IP",
+				"type": "string",
+				"default": "127.0.0.1"
+			}
+		]
+	}
+]
