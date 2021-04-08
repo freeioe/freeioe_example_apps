@@ -60,6 +60,7 @@ function app:on_start()
 		self:uci_set('network.lan1proxy.proto', 'static')
 		self:uci_set('network.lan1proxy.ipaddr', '200.200.200.100')
 		self:uci_set('network.lan1proxy.netmask', '255.255.255.0')
+		self:uci_commit()
 	end
 
 	local i = 0
@@ -73,6 +74,8 @@ function app:on_start()
 			self:uci_set('firewall.@zone[-1].forward', 'ACCEPT')
 			self:uci_set('firewall.@zone[-1].network', 'lan1proxy')
 			self:uci_set('firewall.@zone[-1].subnet', '200.200.200.100/24')
+			self:uci_commit()
+			break
 		end
 		if r.name == 'lan1proxy' then
 			break
@@ -93,6 +96,8 @@ function app:on_start()
 			self:uci_set('firewall.@redirect[-1].dest', 'lan')
 			self:uci_set('firewall.@redirect[-1].dest_ip', '200.200.200.100')
 			self:uci_set('firewall.@redirect[-1].dest_port', '8181')
+			self:uci_commit()
+			break
 		end
 		if r.name == 'lan1proxy' then
 			break
@@ -113,6 +118,8 @@ function app:on_start()
 			self:uci_set('firewall.@redirect[-1].dest', 'lan')
 			self:uci_set('firewall.@redirect[-1].dest_ip', '200.200.200.100')
 			self:uci_set('firewall.@redirect[-1].dest_port', '3883')
+			self:uci_commit()
+			break
 		end
 		if r.name == 'lan1mqtt' then
 			break
@@ -125,6 +132,7 @@ function app:on_start()
 		self:uci_set('socat.lan1proxy', 'socat')
 		self:uci_set('socat.lan1proxy.enable', '1')
 		self:uci_set('socat.lan1proxy.SocatOptions', '-d -d TCP-LISTEN:8181,fork,bind=200.200.200.100 TCP4:ioe.thingsroot.com:80')
+		self:uci_commit()
 	end
 
 	local ret, err = self:uci_show('socat.lan1mqtt')
@@ -132,6 +140,7 @@ function app:on_start()
 		self:uci_set('socat.lan1mqtt', 'socat')
 		self:uci_set('socat.lan1mqtt.enable', '1')
 		self:uci_set('socat.lan1mqtt.SocatOptions', '-d -d TCP-LISTEN:3883,fork,bind=200.200.200.100 TCP4:ioe.thingsroot.com:1883')
+		self:uci_commit()
 	end
 
 	return true
