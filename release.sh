@@ -29,6 +29,7 @@ RELEASE_APP HJ/ruiao
 RELEASE_APP tools/frpc
 RELEASE_APP tools/network_uci
 RELEASE_APP tools/dns_hosts
+RELEASE_APP tools/local_proxy
 
 # OPCUA apps
 RELEASE_APP opcua/server_pub
