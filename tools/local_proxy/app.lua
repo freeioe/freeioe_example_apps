@@ -34,6 +34,15 @@ function app:uci_show(section)
 	return ret 
 end
 
+function app:uci_get(section)
+	local info, err = sysinfo.exec('uci show '..section)
+	if not info or string.len(info) == 0 then
+		return nil, err
+	end
+
+	return info
+end
+
 function app:uci_set(section, name, value)
 	sysinfo.exec('uci set '..section..'='..name)
 	for k,v in pairs(value) do
@@ -60,7 +69,7 @@ function app:uci_add(config, section, value)
 end
 
 function app:on_start()
-	local ret, err = self:uci_show('network.lan1proxy')
+	local ret, err = self:uci_get('network.lan1proxy')
 	if not ret then
 		self:uci_set('network.lan1proxy', 'interface', {
 			ifname = 'br-lan',
@@ -72,8 +81,8 @@ function app:on_start()
 
 	local i = 0
 	while true do
-		local zn = string.format('firewall.@zone[%d]', i)
-		local r, err = self:uci_show(zn)
+		local zn = string.format('firewall.@zone[%d].name', i)
+		local r, err = self:uci_get(zn)
 		if not r then
 			self:uci_add('firewall', 'zone', {
 				name = 'lan1proxy',
@@ -93,8 +102,8 @@ function app:on_start()
 
 	i = 0
 	while true do
-		local zn = string.format('firewall.@redirect[%d]', i)
-		local r, err = self:uci_show(zn)
+		local zn = string.format('firewall.@redirect[%d].name', i)
+		local r, err = self:uci_get(zn)
 		if not r then
 			self:uci_add('firewall', 'redirect', {
 				target = 'DNAT',
@@ -107,7 +116,7 @@ function app:on_start()
 			})
 			break
 		end
-		if r.name == 'lan1proxy' then
+		if r == 'lan1proxy' then
 			break
 		end
 		i = i + 1
@@ -115,8 +124,8 @@ function app:on_start()
 
 	i = 0
 	while true do
-		local zn = string.format('firewall.@redirect[%d]', i)
-		local r, err = self:uci_show(zn)
+		local zn = string.format('firewall.@redirect[%d].name', i)
+		local r, err = self:uci_get(zn)
 		if not r then
 			self:uci_add('firewall', 'redirect', {
 				target = 'DNAT',
@@ -129,13 +138,13 @@ function app:on_start()
 			})
 			break
 		end
-		if r.name == 'lan1mqtt' then
+		if r == 'lan1mqtt' then
 			break
 		end
 		i = i + 1
 	end
 
-	local ret, err = self:uci_show('socat.lan1proxy')
+	local ret, err = self:uci_get('socat.lan1proxy')
 	if not ret then
 		self:uci_set('socat.lan1proxy', 'socat', {
 			enable = '1',
@@ -143,7 +152,7 @@ function app:on_start()
 		})
 	end
 
-	local ret, err = self:uci_show('socat.lan1mqtt')
+	local ret, err = self:uci_get('socat.lan1mqtt')
 	if not ret then
 		self:uci_set('socat.lan1mqtt', 'socat', {
 			enable = '1',
