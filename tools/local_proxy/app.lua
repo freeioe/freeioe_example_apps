@@ -77,8 +77,10 @@ function app:on_start()
 			ipaddr = '200.200.200.100',
 			netmask = '255.255.255.0'
 		})
+		sysinfo.exec('/etc/init.d/network reload')
 	end
 
+	local firewall_changes = false
 	local i = 0
 	while true do
 		local zn = string.format('firewall.@zone[%d].name', i)
@@ -92,6 +94,7 @@ function app:on_start()
 				network = 'lan1proxy',
 				subnet = '200.200.200.100/24'
 			})
+			firewall_changes = true
 			break
 		end
 		if r.name == 'lan1proxy' then
@@ -114,6 +117,7 @@ function app:on_start()
 				dest_ip = '200.200.200.100',
 				dest_port = '8181'
 			})
+			firewall_changes = true
 			break
 		end
 		if r == 'lan1proxy' then
@@ -136,6 +140,7 @@ function app:on_start()
 				dest_ip = '200.200.200.100',
 				dest_port = '3883'
 			})
+			firewall_changes = true
 			break
 		end
 		if r == 'lan1mqtt' then
@@ -143,13 +148,18 @@ function app:on_start()
 		end
 		i = i + 1
 	end
+	if firewall_changes then
+		sysinfo.exec('/etc/init.d/firewall reload')
+	end
 
+	local socat_changes = false
 	local ret, err = self:uci_get('socat.lan1proxy')
 	if not ret then
 		self:uci_set('socat.lan1proxy', 'socat', {
 			enable = '1',
 			SocatOptions = '-d -d TCP-LISTEN:8181,fork,bind=200.200.200.100 TCP4:ioe.thingsroot.com:80'
 		})
+		socat_changes = true
 	end
 
 	local ret, err = self:uci_get('socat.lan1mqtt')
@@ -158,6 +168,10 @@ function app:on_start()
 			enable = '1',
 			SocatOptions = '-d -d TCP-LISTEN:3883,fork,bind=200.200.200.100 TCP4:ioe.thingsroot.com:1883'
 		})
+		socat_changes = true
+	end
+	if socat_changes then
+		sysinfo.exec('/etc/init.d/socat reload')
 	end
 
 	return true
