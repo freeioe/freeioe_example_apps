@@ -17,7 +17,7 @@ end
 
 function app:uci_show(section)
 	local info, err = sysinfo.exec('uci show '..section)
-	if not info then
+	if not info or string.len(info) == 0 then
 		return nil, err
 	end
 
@@ -34,33 +34,40 @@ function app:uci_show(section)
 	return ret 
 end
 
-function app:uci_set(section, value)
+function app:uci_set(section, name, value)
+	sysinfo.exec('uci set '..config..'='..section)
 	for k,v in pairs(value) do
 		if type(v) ~= 'table' then
-			sysinfo.exec('uci set '..section..'.'..k..'='..tostring(v))
+			sysinfo.exec('uci set '..section..'.'..k..'=\''..tostring(v)..'\'')
 		else
-			sysinfo.exec('uci add_list '..section..'.'..k..'='..tostring(v))
+			sysinfo.exec('uci add_list '..section..'.'..k..'=\''..tostring(v)..'\'')
 		end
 	end
-end
-
-function app:uci_commit()
 	sysinfo.exec('uci commit')
 end
 
-function app:uci_add(section)
-	sysinfo.exec('uci add '..section)
+function app:uci_add(config, section, value)
+	sysinfo.exec('uci add '..config..'.'..section)
+	local key = string.format('%s.@%s[-1]', config, section)
+	for k,v in pairs(value) do
+		if type(v) ~= 'table' then
+			sysinfo.exec('uci set '..key..'.'..k..'='..tostring(v))
+		else
+			sysinfo.exec('uci add_list '..key..'.'..k..'='..tostring(v))
+		end
+	end
+	sysinfo.exec('uci commit')
 end
 
 function app:on_start()
 	local ret, err = self:uci_show('network.lan1proxy')
 	if not ret then
-		self:uci_set('network.lan1proxy', 'interface')
-		self:uci_set('network.lan1proxy.ifname', 'br-lan')
-		self:uci_set('network.lan1proxy.proto', 'static')
-		self:uci_set('network.lan1proxy.ipaddr', '200.200.200.100')
-		self:uci_set('network.lan1proxy.netmask', '255.255.255.0')
-		self:uci_commit()
+		self:uci_set('network.lan1proxy', 'interface', {
+			ifname = 'br-lan',
+			proto = 'static',
+			ipaddr = '200.200.200.100',
+			netmask = '255.255.255.0'
+		})
 	end
 
 	local i = 0
@@ -68,13 +75,13 @@ function app:on_start()
 		local zn = string.format('firewall.@zone[%d]', i)
 		local r, err = self:uci_show(zn)
 		if not r then
-			self:uci_add('firewall.zone')
-			self:uci_set('firewall.@zone[-1].input', 'ACCEPT')
-			self:uci_set('firewall.@zone[-1].output', 'ACCEPT')
-			self:uci_set('firewall.@zone[-1].forward', 'ACCEPT')
-			self:uci_set('firewall.@zone[-1].network', 'lan1proxy')
-			self:uci_set('firewall.@zone[-1].subnet', '200.200.200.100/24')
-			self:uci_commit()
+			self:uci_add('firewall', 'zone', {
+				input = 'ACCEPT',
+				output = 'ACCEPT',
+				forward = 'ACCEPT',
+				network = 'lan1proxy',
+				subnet = '200.200.200.100/24'
+			})
 			break
 		end
 		if r.name == 'lan1proxy' then
@@ -88,15 +95,15 @@ function app:on_start()
 		local zn = string.format('firewall.@redirect[%d]', i)
 		local r, err = self:uci_show(zn)
 		if not r then
-			self:uci_add('firewall.redirect')
-			self:uci_set('firewall.@redirect[-1].target', 'DNAT')
-			self:uci_set('firewall.@redirect[-1].name', 'lan1proxy')
-			self:uci_set('firewall.@redirect[-1].src', 'lan1proxy')
-			self:uci_set('firewall.@redirect[-1].src_dport', '80')
-			self:uci_set('firewall.@redirect[-1].dest', 'lan')
-			self:uci_set('firewall.@redirect[-1].dest_ip', '200.200.200.100')
-			self:uci_set('firewall.@redirect[-1].dest_port', '8181')
-			self:uci_commit()
+			self:uci_add('firewall', 'redirect', {
+				target = 'DNAT',
+				name = 'lan1proxy',
+				src = 'lan1proxy',
+				src_dport = '80',
+				dest = 'lan',
+				dest_ip = '200.200.200.100',
+				dest_port = '8181'
+			})
 			break
 		end
 		if r.name == 'lan1proxy' then
@@ -110,15 +117,15 @@ function app:on_start()
 		local zn = string.format('firewall.@redirect[%d]', i)
 		local r, err = self:uci_show(zn)
 		if not r then
-			self:uci_add('firewall.redirect')
-			self:uci_set('firewall.@redirect[-1].target', 'DNAT')
-			self:uci_set('firewall.@redirect[-1].name', 'lan1mqtt')
-			self:uci_set('firewall.@redirect[-1].src', 'lan1proxy')
-			self:uci_set('firewall.@redirect[-1].src_dport', '1883')
-			self:uci_set('firewall.@redirect[-1].dest', 'lan')
-			self:uci_set('firewall.@redirect[-1].dest_ip', '200.200.200.100')
-			self:uci_set('firewall.@redirect[-1].dest_port', '3883')
-			self:uci_commit()
+			self:uci_add('firewall', 'redirect', {
+				target = 'DNAT',
+				name = 'lan1mqtt',
+				src = 'lan1proxy',
+				src_dport = '1883',
+				dest = 'lan',
+				dest_ip = '200.200.200.100',
+				dest_port = '3883'
+			})
 			break
 		end
 		if r.name == 'lan1mqtt' then
@@ -129,18 +136,19 @@ function app:on_start()
 
 	local ret, err = self:uci_show('socat.lan1proxy')
 	if not ret then
-		self:uci_set('socat.lan1proxy', 'socat')
-		self:uci_set('socat.lan1proxy.enable', '1')
-		self:uci_set('socat.lan1proxy.SocatOptions', '-d -d TCP-LISTEN:8181,fork,bind=200.200.200.100 TCP4:ioe.thingsroot.com:80')
+		self:uci_set('socat.lan1proxy', 'socat', {
+			enable = '1',
+			SocatOptions = '-d -d TCP-LISTEN:8181,fork,bind=200.200.200.100 TCP4:ioe.thingsroot.com:80'
+		})
 		self:uci_commit()
 	end
 
 	local ret, err = self:uci_show('socat.lan1mqtt')
 	if not ret then
-		self:uci_set('socat.lan1mqtt', 'socat')
-		self:uci_set('socat.lan1mqtt.enable', '1')
-		self:uci_set('socat.lan1mqtt.SocatOptions', '-d -d TCP-LISTEN:3883,fork,bind=200.200.200.100 TCP4:ioe.thingsroot.com:1883')
-		self:uci_commit()
+		self:uci_set('socat.lan1mqtt', 'socat', {
+			enable = '1',
+			SocatOptions = '-d -d TCP-LISTEN:3883,fork,bind=200.200.200.100 TCP4:ioe.thingsroot.com:1883'
+		})
 	end
 
 	return true

@@ -26,7 +26,7 @@ end
 
 function app:uci_show(section)
 	local info, err = sysinfo.exec('uci show '..section)
-	if not info then
+	if not info or string.len(info) == 0 then
 		return nil, err
 	end
 
