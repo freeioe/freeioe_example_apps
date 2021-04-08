@@ -18,8 +18,8 @@ function app:write_dns()
 
 	local conf = self:app_conf()
 
-	for domain, ip in pairs(conf.dns) do
-		f:write(string.format("%s %s\n", ip, domain))
+	for _, dns in pairs(conf.dns) do
+		f:write(string.format("%s %s\n", dns.ip, dns.domain))
 	end
 	f:close()
 
