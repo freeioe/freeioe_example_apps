@@ -53,7 +53,9 @@ function app:write_dns()
 end
 
 function app:on_close(reason)
-	os.execute([[sed '/FREEIOE/d' /etc/hosts > /etc/hosts]])
+	os.execute([[sed '/FREEIOE/d' /etc/hosts > /etc/hosts.new]])
+	os.execute([[mv /etc/hosts.new /etc/hosts]])
+	os.execute('sync')
 end
 
 function app:on_run(tms)
