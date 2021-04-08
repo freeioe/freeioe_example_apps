@@ -35,7 +35,7 @@ function app:uci_show(section)
 end
 
 function app:uci_set(section, name, value)
-	sysinfo.exec('uci set '..config..'='..section)
+	sysinfo.exec('uci set '..section..'='..name)
 	for k,v in pairs(value) do
 		if type(v) ~= 'table' then
 			sysinfo.exec('uci set '..section..'.'..k..'=\''..tostring(v)..'\'')
@@ -47,13 +47,13 @@ function app:uci_set(section, name, value)
 end
 
 function app:uci_add(config, section, value)
-	sysinfo.exec('uci add '..config..'.'..section)
+	sysinfo.exec('uci add '..config..' '..section)
 	local key = string.format('%s.@%s[-1]', config, section)
 	for k,v in pairs(value) do
 		if type(v) ~= 'table' then
-			sysinfo.exec('uci set '..key..'.'..k..'='..tostring(v))
+			sysinfo.exec('uci set '..key..'.'..k..'=\''..tostring(v)..'\'')
 		else
-			sysinfo.exec('uci add_list '..key..'.'..k..'='..tostring(v))
+			sysinfo.exec('uci add_list '..key..'.'..k..'=\''..tostring(v)..'\'')
 		end
 	end
 	sysinfo.exec('uci commit')
@@ -140,7 +140,6 @@ function app:on_start()
 			enable = '1',
 			SocatOptions = '-d -d TCP-LISTEN:8181,fork,bind=200.200.200.100 TCP4:ioe.thingsroot.com:80'
 		})
-		self:uci_commit()
 	end
 
 	local ret, err = self:uci_show('socat.lan1mqtt')
@@ -152,10 +151,6 @@ function app:on_start()
 	end
 
 	return true
-end
-
-function app:on_close(reason)
-	--print(self._name, reason)
 end
 
 return app
