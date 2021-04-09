@@ -69,34 +69,35 @@ function handler:process(request)
 		end
 
 		local ttlist = {}
+		local ilist = {}
 		for _, tag in pairs(tags[data_time]) do
+			--- Tag name
 			local tag_name = tag_names[tag:tag_name()]
+
+			--- Get exists list
 			local tt = ttlist[tag_name]
+			local it = ilist[tag_name]
+
+			-- Create initial lists
 			if not tt then
 				tt = {}
+				it = {}
 				ttlist[tag_name] = tt
+				ilist[tag_name] = it
 
 				for info, val in pairs(common_info) do
-					local name = tag_name..'_'..info
-					assert(ttlist[name] == nil)
-					ttlist[name] = {
-						PollId = tag_name,
-						Rtd = val
-					}
+					it[info] = val
 				end
 			end
+
+			assert(tt and it)
 			for key, name in pairs(attrs) do
 				local v = tag:get(key)
 				if v then
 					if string.len(name) == 0 then
 						tt[key] = v
 					else
-						name = tag_name..'_'..name
-						assert(ttlist[name] == nil)
-						ttlist[name] = {
-							PollId = tag_name,
-							Rtd = v
-						}
+						it[name] = v
 					end
 				end
 			end
@@ -105,6 +106,9 @@ function handler:process(request)
 			v.SampleTime = data_time
 			--print(k, v.Rtd)
 			self._client:on_rdata(k, v)
+		end
+		for k, v in pairs(ilist) do
+			self._client:on_info(k, v)
 		end
 	end
 
