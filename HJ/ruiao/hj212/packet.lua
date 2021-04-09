@@ -38,7 +38,7 @@ function pack.static.parse(raw, index, on_err, crc_func)
 	-- Read the data_len dddd from ##dddd
 	local data_len = tonumber(string.sub(raw, index + 4 + 2, index + 4 + 5))
 	if not data_len or data_len < 0 then
-		print(raw)
+		--print(raw)
 		local err = 'Stream length error, got:'..string.sub(raw, index + 4 + 2, index + 4 + 5)
 		on_err(err)
 		raw = string.sub(raw, index) -- trim data
@@ -57,7 +57,7 @@ function pack.static.parse(raw, index, on_err, crc_func)
 	--- Check TAIL
 	local s_end = index + data_len + 2 + 4 + 4 + 4
 	if string.sub(raw, s_end, s_end + 1) ~= pack.static.TAIL then 
-		print(raw)
+		--print(raw)
 		local err = 'Tailer<CR><LF> missing, received:'..string.sub(raw, s_end, s_end + 1)
 		on_err(err)
 		raw = string.sub(raw, index + 2) -- trim data
@@ -74,7 +74,7 @@ function pack.static.parse(raw, index, on_err, crc_func)
 
 	local calc_crc = packet_crc(data_raw, crc_func)
 	if calc_crc ~= crc then
-		print(raw)
+		--print(raw)
 		local err = string.format('CRC Error, calc:%s recv:%s', calc_crc, crc)
 		on_err(err)
 		raw = string.sub(raw, index + 2) -- trim data
@@ -85,7 +85,7 @@ function pack.static.parse(raw, index, on_err, crc_func)
 	local obj = pack:new()
 	obj:decode(data_raw)
 
-	print("DONE", raw)
+	--print("DONE", raw)
 	return obj, string.sub(raw, s_end + 2), 'Done'
 end
 

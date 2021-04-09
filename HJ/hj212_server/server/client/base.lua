@@ -15,14 +15,18 @@ local function create_tag_input(tag_name)
 		TAG_INFO[tag_name] = {
 			name = tag_name,
 			desc = tag_name,
-			vt = 'float'
+			vt = 'string'
 		}
 	else
+		local vt = 'string'
+		if tag.format and string.sub(tag.format, 1, 1) == 'N' then
+			vt = 'float'
+		end
 		TAG_INFO[tag_name] = {
 			name = tag_name,
 			desc = tag.desc,
 			unit = tag.unit,
-			vt = 'float'
+			vt = vt
 		}
 	end
 	return TAG_INFO[tag_name]
@@ -34,7 +38,7 @@ local function create_tag_info(tag_name, info_name)
 	if TAG_INFO[tag_name] then
 		return TAG_INFO[tag_name]
 	end
-	local tag = tag_finder(tag_name)
+	local tag = tag_finder(info_name)
 	if not tag then
 		TAG_INFO[tag_name] = {
 			name = tag_name,
@@ -42,11 +46,15 @@ local function create_tag_info(tag_name, info_name)
 			vt = 'string',
 		}
 	else
+		local vt = 'string'
+		if tag.format and string.sub(tag.format, 1, 1) == 'N' then
+			vt = 'float'
+		end
 		TAG_INFO[tag_name] = {
 			name = tag_name,
 			desc = tag.desc,
 			unit = tag.unit,
-			vt = 'string',
+			vt = vt
 		}
 	end
 	return TAG_INFO[tag_name]
