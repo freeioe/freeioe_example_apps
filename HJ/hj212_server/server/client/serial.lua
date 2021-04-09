@@ -38,7 +38,7 @@ function client:on_recv(data)
 	end
 end
 
-function client:send(session, raw_data, timeout)
+function client:send(session, raw_data)
 	if not self._serial then
 		return nil, "No serial opened"
 	end

@@ -14,13 +14,39 @@ local function create_tag_input(tag_name)
 	if not tag then
 		TAG_INFO[tag_name] = {
 			name = tag_name,
-			desc = tag_name
+			desc = tag_name,
+			vt = 'float'
 		}
 	else
 		TAG_INFO[tag_name] = {
 			name = tag_name,
 			desc = tag.desc,
-			unit = tag.unit
+			unit = tag.unit,
+			vt = 'float'
+		}
+	end
+	return TAG_INFO[tag_name]
+end
+
+local function create_tag_info(tag_name, info_name)
+	local tag_name = tag_name .. '_' .. info_name
+
+	if TAG_INFO[tag_name] then
+		return TAG_INFO[tag_name]
+	end
+	local tag = tag_finder(tag_name)
+	if not tag then
+		TAG_INFO[tag_name] = {
+			name = tag_name,
+			desc = tag_name,
+			vt = 'string',
+		}
+	else
+		TAG_INFO[tag_name] = {
+			name = tag_name,
+			desc = tag.desc,
+			unit = tag.unit,
+			vt = 'string',
 		}
 	end
 	return TAG_INFO[tag_name]
@@ -33,12 +59,18 @@ function client:initialize(server, pfuncs)
 	self._server = server
 	self._sn = nil
 	self._log = server:log_api()
+
+	self._meter_rs = types.RS.Normal
+
 	self._rdata_map = {}
 	self._inputs = {
 		{ name = 'RS', desc = 'Meter state', vt = 'int' },
 	}
 	self._inputs_cov = {}
-	self._meter_rs = types.RS.Normal
+
+	self._info_map = {}
+	self._info_cov = {}
+
 	self:add_handler('handler')
 end
 
@@ -48,6 +80,14 @@ end
 
 function client:set_sn(sn)
 	self._sn = sn
+end
+
+function client:timeout()
+	return 3000
+end
+
+function client:retry()
+	return 3
 end
 
 function client:set_dev(dev)
@@ -93,23 +133,47 @@ function client:on_rdata(name, rdata)
 		self._inputs_changed = true
 		table.insert(self._inputs, create_tag_input(name))
 	end
+
 	table.insert(self._inputs_cov, name)
 
 	self._rdata_map[name] = {
-		value = rdata.Rtd,
+		value = assert(rdata.Rtd),
 		value_z = rdata.ZsRtd,
 		timestamp = rdata.SampleTime,
 		flag = rdata.Flag or self:rs_flag()
 	}
 end
 
+function client:on_info(name, info_list, no_cov)
+	local changed = false
+	local info = self._info_map[name]
+	if not info then
+		self._info_map[name] = {}
+		info = self._info_map[name]
+		changed = true
+	end
+
+	for k, v in pairs(info_list) do
+
+		if info[k] == nil then
+			self._inputs_changed = true
+			table.insert(self._inputs, create_tag_info(name, k))
+		end
+
+		if info[k] ~= v then
+			info[k] = v
+			changed = true
+		end
+	end
+	if changed or no_cov then
+		table.insert(self._info_cov, name)
+	end
+end
+
 function client:on_run()
 	if self._inputs_changed then
 		self._inputs_changed = nil
 		self._dev:mod(self._inputs)
-	end
-	if #self._inputs_cov == 0 then
-		return
 	end
 
 	for _, name in ipairs(self._inputs_cov) do
@@ -119,7 +183,18 @@ function client:on_run()
 		self._dev:set_input_prop(name, 'RDATA', cjson.encode(rdata), rdata.timestamp)
 	end
 
+	for _, name in ipairs(self._info_cov) do
+		local info_list = self._info_map[name]
+		--print('INFO', name, cjson.encode(info_list))
+		self._dev:set_input_prop(name, 'INFO', cjson.encode(info_list))
+
+		for k, v in pairs(info_list) do
+			self._dev:set_input_prop(name..'_'..k, 'value', v)
+		end
+	end
+
 	self._inputs_cov = {}
+	self._info_cov = {}
 end
 
 function client:set_meter_rs(rs)
