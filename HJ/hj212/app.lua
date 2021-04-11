@@ -80,6 +80,7 @@ function app:on_start()
 
 	local sint = tonumber(conf.samples_interval) or 120 -- seconds
 	self._samples_interval = sint > 0 and sint or 120
+	--self._samples_interval = 10
 
 	self._rdata_interval = tonumber(conf.rdata_interval) or 30
 	self._min_interval = tonumber(conf.min_interval) or 10
@@ -103,7 +104,7 @@ function app:on_start()
 	def_duration = def_duration..'m'
 	local durations = {
 		SAMPLE='14d',
-		INFO='1m',
+		--INFO='1m', -- INFO Saved duration is same as history data
 	}
 
 	local db_folder = sysinfo.data_dir() .. "/db_" .. self._name
@@ -206,8 +207,7 @@ function app:on_start()
 	for sn, d in pairs(tpl.devs) do
 		local dev = {}
 		local tag_list = {}
-		local info_list = {}
-		for _, prop in ipairs(d.tags) do
+		for _, prop in ipairs(d) do
 			inputs[#inputs + 1] = {
 				name = prop.name,
 				desc = prop.desc,
@@ -224,7 +224,16 @@ function app:on_start()
 				prop.no_hisdb = true
 			end
 
-			local tag = tag:new(self._hisdb, self._station, prop)
+			local tag = tag:new(self._hisdb, self._station, prop, function(tag)
+				local obj = info:new(self._hisdb, tag, {}, prop.no_hisdb)
+				local r, err = obj:init_db()
+				if not r then
+					log:error(err)
+					return nil, err
+				end
+				return obj
+			end)
+
 			local p_name = prop.name
 			tag:set_value_callback(function(type_name, val, timestamp, quality)
 				local dev = app_inst._dev
@@ -263,44 +272,10 @@ function app:on_start()
 			end)
 			tag_list[p_name] = tag
 		end
-		for _, prop in ipairs(d.infos) do
-			inputs[#inputs + 1] = {
-				name = prop.name,
-				desc = prop.desc,
-				unit = prop.unit,
-				vt = prop.vt,
-			}
-			if dev[prop.input] then
-				table.insert(dev[prop.input], prop)
-			else
-				dev[prop.input] = {prop}
-			end
-
-			if no_hisdb then
-				prop.no_hisdb = true
-			end
-
-			local info = info:new(self._hisdb, self._station, prop)
-			local p_name = prop.name
-			info:set_value_callback(function(val, timestamp, quality)
-				local dev = app_inst._dev
-				if not dev then
-					--log:warning('Device object not found', p_name, prop, value, timestamp)
-					return
-				end
-				local value = val
-				if type(val) == 'table' then
-					value = cjson.encode(val)
-				end
-				dev:set_input_prop(p_name, 'value', value, timestamp, quality)
-			end)
-	
-			info_list[p_name] = info
-		end
 
 		local dev_sn = map_dev_sn(sn)
 		self._devs[dev_sn] = dev
-		self._station:add_meter(meter:new(sn, info_list, tag_list))
+		self._station:add_meter(meter:new(sn, tag_list))
 	end
 
 	local meta = self._api:default_meta()
@@ -363,18 +338,11 @@ function app:set_station_prop_value(props, value, timestamp, quality)
 			local val = (v.rate and v.rate ~= 1) and value * v.rate or value
 			timestamp = self._local_timestamp and sys:time() or timestamp
 
-			if not v.is_info then
-				local flag = quality ~= 0 and types.FLAG.Connection or nil
-				local val_z = nil
-				local r, err = self._station:set_tag_value(v.name, val, timestamp, val_z, flag, quality)
-				if not r then
-					self._log:error("Cannot set tag value", v.name, val, err)
-				end
-			else
-				local r, err = self._station:set_info_value(v.name, val, timestamp, quality)
-				if not r then
-					self._log:error("Cannot set info value", v.name, val, err)
-				end
+			local flag = quality ~= 0 and types.FLAG.Connection or nil
+			local val_z = nil
+			local r, err = self._station:set_tag_value(v.name, val, timestamp, val_z, flag, quality)
+			if not r then
+				self._log:error("Cannot set tag value", v.name, val, err)
 			end
 		end
 	end
@@ -388,20 +356,30 @@ function app:set_station_prop_rdata(props, value, timestamp, quality)
 	end
 	for _, v in ipairs(props) do
 		if v.src_prop == 'RDATA' then
-			if not v.is_info then
-				local val = (v.rate and v.rate ~= 1) and value.value * v.rate or value.value
-				local val_z = (v.rate and v.rate ~= 1 and value.value_z ~= nil) and value.value_z * v.rate or value.value_z
-				timestamp = self._local_timestamp and sys:time() or timestamp
+			local val = (v.rate and v.rate ~= 1) and value.value * v.rate or value.value
+			local val_z = (v.rate and v.rate ~= 1 and value.value_z ~= nil) and value.value_z * v.rate or value.value_z
+			timestamp = self._local_timestamp and sys:time() or timestamp
 
-				local r, err = self._station:set_tag_value(v.name, val, timestamp, val_z, v.flag, quality)
-				if not r then
-					self._log:warning("Failed set tag value from rdata", v.name, cjson.encode(value), err)
-				end
-			else
-				local r, err = self._station:set_info_value(v.name, value, timestamp, quality)
-				if not r then
-					self._log:warning("Failed set info value from rdata", v.name, cjson.encode(value), err)
-				end
+			local r, err = self._station:set_tag_value(v.name, val, timestamp, val_z, v.flag, quality)
+			if not r then
+				self._log:warning("Failed set tag value from rdata", v.name, cjson.encode(value), err)
+			end
+		end
+	end
+end
+
+function app:set_station_prop_info(props, value, timestamp, quality)
+	local sys = self:sys_api()
+	local quality = quality ~= nil and quality or 0
+	if quality ~= 0 then
+		self._log:warning("Value quality(INFO) is not good", quality, type(quality))
+	end
+	for _, v in ipairs(props) do
+		local tag, err = self._station:find_tag(v.name)
+		if tag then
+			local r, err = tag:set_info_value(value, timestamp, quality)
+			if not r then
+				self._log:warning("Failed set info value from rdata", v.name, cjson.encode(value), err)
 			end
 		end
 	end
@@ -616,14 +594,23 @@ function app:on_input(app_src, sn, input, prop, value, timestamp, quality)
 	end
 
 	--- Decode the prop RDATA
-	if prop ~= 'value' and prop ~= 'RDATA' then
+	if prop ~= 'value' and prop ~= 'RDATA' and prop ~= 'INFO' then
 		return
 	end
-	if prop == 'RDATA' then
+	if prop == 'RDATA' and type(value) == 'string' then
 		value, err = cjson.decode(value)
 		if not value then
 			self._log:warning("Failed to decode RDATA prop err: "..err)
 			self._log:warning("Failed to decode RDATA prop value: "..value)
+			value = {}
+		end
+	end
+
+	if prop == 'INFO' and type(value) == 'string' then
+		value, err = cjson.decode(value)
+		if not value then
+			self._log:warning("Failed to decode INFO prop err: "..err)
+			self._log:warning("Failed to decode INFO prop value: "..value)
 			value = {}
 		end
 	end
@@ -635,6 +622,9 @@ function app:on_input(app_src, sn, input, prop, value, timestamp, quality)
 	else
 		if prop == 'RDATA' then
 			self:set_station_prop_rdata(inputs, value, timestamp, quality)
+		end
+		if prop == 'INFO' then
+			self:set_station_prop_info(inputs, value, timestamp, quality)
 		end
 	end
 end
@@ -652,14 +642,18 @@ function app:save_samples()
 			if not r then
 				self._log:error("Failed saving sample data for tag:"..tag_name, err)
 			end
+
 			self._sys:sleep(10)
-		end
-		for info_name, info in pairs(meter:info_list()) do
-			local r, err = info:save_samples()
-			if not r then
-				self._log:error("Failed saving sample data for info:"..info_name, err)
+
+			local info, err = tag:info()
+			if info then
+				local r, err = info:save_samples()
+				if not r then
+					self._log:error("Failed saving sample info for tag:"..tag_name, err)
+				end
+
+				self._sys:sleep(10)
 			end
-			self._sys:sleep(10)
 		end
 	end
 

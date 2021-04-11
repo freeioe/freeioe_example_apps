@@ -113,21 +113,12 @@ local function load_tpl(name, err_cb)
 			prop.src_prop = string.len(v[17] or '') > 0 and v[17] or nil
 
 			if valid_prop(prop, err_cb) then
-				local dev = devs[prop.sn]
+				local dev = devs[prop.sn] 
 				if not dev then
-					dev = {
-						tags = {},
-						infos = {},
-					}
+					dev = {}
 					devs[prop.sn] = dev
 				end
-
-				if string.sub(prop.name, 1, 1) ~= 'i' then
-					table.insert(dev.tags, prop)
-				else
-					prop.is_info = true
-					table.insert(dev.infos, prop)
-				end
+				table.insert(dev, prop)
 
 				table.insert(props, {
 					name =prop.name, 

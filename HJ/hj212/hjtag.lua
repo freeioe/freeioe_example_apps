@@ -39,14 +39,14 @@ local function prop2options(prop)
 	}
 end
 
-function tag:initialize(hisdb, station, prop)
+function tag:initialize(hisdb, station, prop, info_creator)
 	--- Base initialize
 	if prop.zs and string.upper(prop.zs) == 'SRC' then
 		prop.zs_calc = true
 	elseif prop.zs then
 		prop.zs_calc = calc_parser(station, prop.zs)
 	end
-	base.initialize(self, station, prop.name, prop2options(prop))
+	base.initialize(self, station, prop.name, prop2options(prop), info_creator)
 	self._upload = prop.upload
 	self._no_hisdb = prop.no_hisdb
 	self._hj2005 = prop.hj2005

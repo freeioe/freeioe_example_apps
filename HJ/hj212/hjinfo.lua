@@ -1,4 +1,5 @@
 local cjson = require 'cjson.safe'
+local tbl_equals = require 'utils.table.equals'
 local calc_parser = require 'calc.parser'
 
 local logger = require 'hj212.logger'
@@ -6,53 +7,42 @@ local base = require 'hj212.client.info'
 
 local info = base:subclass('HJ212_HJ_INFO')
 
-local function prop2options(prop)
-	return {
-		fmt = prop.fmt,
-	}
-end
-
-function info:initialize(hisdb, station, prop)
+function info:initialize(hisdb, tag, props, no_hisdb)
 	--- Base initialize
-	base.initialize(self, station, prop.name, prop2options(prop))
-	self._upload = prop.upload
-	self._no_hisdb = prop.no_hisdb
-	self._hj2005 = prop.hj2005
-	self._vt = prop.vt
+	base.initialize(self, tag)
+	self._no_hisdb = no_hisdb
 
 	--- Member objects
 	self._hisdb = hisdb
-	local calc = prop.calc
-	if calc then
-		--- Value calc
-		self._calc = calc_parser(station, calc)
-	else
-		self._calc = nil
-	end
-	self._value_callback = nil
-end
+	self._info_props = {}
 
-function info:upload()
-	return self._upload
+	local station = tag:station()
+
+	for _, prop in ipairs(props) do
+		local p = {
+			fmt = prop.fmt
+		}
+
+		local calc = prop.calc
+		if calc then
+			--- Value calc
+			p.calc = calc_parser(station, calc)
+		end
+
+		self._info_props[prop.name] = p
+	end
+
+	self._value_callback = nil
 end
 
 function info:set_value_callback(callback)
 	self._value_callback = callback
 end
 
-function info:hj2005_name()
-	if not self._hj2005 then
-		local finder = require 'hj212.infos.finder'
-		local info = finder(self:info_name())
-		if info then
-			self._hj2005 = info.org_name
-		end
-	end
-	return self._hj2005
-end
-
 function info:init_db()
-	local db = self._hisdb:create_info(self:info_name(), self._vt, self._no_hisdb)
+	local tag_name = self:tag():tag_name()
+
+	local db = self._hisdb:create_info(tag_name, self._no_hisdb)
 	local r, err = db:init()
 	if not r then
 		return nil, err
@@ -72,24 +62,44 @@ function info:save_samples()
 	return self._db:save()
 end
 
+function info:get_format(info_name)
+	local p = self._info_props[info_name]
+	if not p then
+		return nil
+	end
+
+	return p.fmt
+end
+
 function info:set_value(value, timestamp, quality)
 	assert(value ~= nil)
 	assert(timestamp ~= nil)
 
-	local value = quality == 0 and value or 0
+	local new_value = {}
+	for info, val in pairs(value) do
+		local val = quality == 0 and val or 0
+		local p = self._info_props[info]
 
-	if self._calc then
-		value = self._calc(value, timestamp)
-		value = math.floor(value * 100000) / 100000
+		if p and p.calc then
+			val = p.calc(val, timestamp)
+			val = math.floor(val * 100000) / 100000
+		end
+
+		-- TODO:
+		new_value[info] = val
 	end
+
 	if self._db then
-		self._db:push(value, timestamp, quality)
+		self._db:push(new_value, timestamp, quality)
 	end
 	if self._value_callback then
-		self._value_callback(value, timestamp, quality)
+		local org_value, org_tm, org_q = self:get_value()
+		if not tbl_equals(org_value, value, true) then
+			self._value_callback(new_value, timestamp, quality)
+		end
 	end
 
-	return base.set_value(self, value, timestamp, quality)
+	return base.set_value(self, new_value, timestamp, quality)
 end
 
 return info
