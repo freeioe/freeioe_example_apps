@@ -25,7 +25,7 @@ return function(types, base_pn)
 		local p_name = base_pn..'.'..key
 		p_name = appendix and p_name..'.'..appendix or p_name
 		local r, p = pcall(require, p_name)
-		print(r, p)
+		--print(r, p)
 		if not r then
 			return nil, p
 		end

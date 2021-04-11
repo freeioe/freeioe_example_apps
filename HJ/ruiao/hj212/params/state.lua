@@ -18,6 +18,8 @@ end
 local PARAMS = {
 	RS = ES('N1'),
 	RT = ES('N2.2'),
+	InstrState = ES('N4'),
+	Ala = ES('N4'),
 }
 
 state.static.PARAMS = PARAMS

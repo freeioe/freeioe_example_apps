@@ -131,7 +131,7 @@ function client:on_disconnect()
 	self._meter_rs = nil
 	for name, rdata in pairs(self._rdata_map) do
 		self._dev:set_input_prop(name, 'value', rdata.value, ioe.time(), -1)
-		self._dev:set_input_prop(name, 'RDATA', cjson.encode(rdata), ioe.time(), -1)
+		self._dev:set_input_prop(name, 'RDATA', rdata, ioe.time(), -1)
 	end
 	return self._server:on_disconnect(self)
 end
@@ -174,6 +174,11 @@ function client:on_info(name, info_list, no_cov)
 		end
 	end
 	if changed or no_cov then
+		for _, v in ipairs(self._info_cov) do
+			if v == name then
+				return
+			end
+		end
 		table.insert(self._info_cov, name)
 	end
 end
@@ -188,13 +193,13 @@ function client:on_run()
 		local rdata = self._rdata_map[name]
 		local quality = (self._meter_rs and self._meter_rs ~= types.RS.Normal) and self._meter_rs or nil
 		self._dev:set_input_prop(name, 'value', rdata.value, nil, quality)
-		self._dev:set_input_prop(name, 'RDATA', cjson.encode(rdata), rdata.timestamp)
+		self._dev:set_input_prop(name, 'RDATA', rdata, rdata.timestamp)
 	end
 
 	for _, name in ipairs(self._info_cov) do
 		local info_list = self._info_map[name]
-		--print('INFO', name, cjson.encode(info_list))
-		self._dev:set_input_prop(name, 'INFO', cjson.encode(info_list))
+		print('INFO', name, cjson.encode(info_list))
+		self._dev:set_input_prop(name, 'INFO', info_list)
 
 		for k, v in pairs(info_list) do
 			self._dev:set_input_prop(name..'_'..k, 'value', v)
@@ -205,12 +210,14 @@ function client:on_run()
 	self._info_cov = {}
 end
 
-function client:set_meter_rs(rs)
+function client:set_meter_rs(rs, fire_rdata)
 	self._meter_rs = rs
-	self._dev:set_input_prop('RS', 'value', flag)
+	self._dev:set_input_prop('RS', 'value', rs)
 
-	for name, rdata in pairs(self._rdata_map) do
-		table.insert(self._inputs_cov, name)
+	if fire_rdata then
+		for name, rdata in pairs(self._rdata_map) do
+			table.insert(self._inputs_cov, name)
+		end
 	end
 end
 

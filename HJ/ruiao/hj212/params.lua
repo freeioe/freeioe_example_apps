@@ -255,7 +255,7 @@ function params:decode(raw, index)
 				if dev_name and type_name then
 					sts = sts_param:new(dev_name)
 					sts:decode(param)
-					table.insert(stss, tag)
+					table.insert(stss, sts)
 				else
 					logger.error('Error SB found')
 				end
