@@ -1,6 +1,7 @@
 local ioe = require 'ioe'
 local base = require 'app.base'
 local serial = require 'serialdriver'
+local cjson = require 'cjson.safe'
 
 local app = base:subclass("FREEIOE.APP.OTHER.SIM_MP1")
 app.static.API_VER = 9
@@ -40,6 +41,7 @@ function app:on_start()
 		opt.port = '/tmp/ttyS2'
 	end
 
+	self._log:notice(string.format("Open serial %s", cjson.encode(opt)))
 	local port = serial:new(opt.port, opt.baudrate or 9600, opt.data_bits or 8, opt.parity or 'NONE', opt.stop_bits or 1, opt.flow_control or "OFF")
 
 	local r, err = port:open()
@@ -70,8 +72,8 @@ function app:on_run(tms)
 		self._dev:dump_comm('SERIAL-OUT', data)
 		self._port:write(data)
 
-		data = '##00010206ST=31;CN=2011;PW=123456;MN=88888880000001;CP=&&DataTime=20180102160917;02-Rtd=0.00,02-RealOrigin=-54.660;03-Rtd=6.444,03-RealOrigin=160.006;S01-Rtd=19.6,S01-RealOrigin=19.955;SB1-InstrState=0;SB1-Ala=0000&&5BF7\r\n'
-
+		-- local data = '##00010206ST=31;CN=2011;PW=123456;MN=88888880000001;CP=&&DataTime=20180102160917;02-Rtd=0.00,02-RealOrigin=-54.660;03-Rtd=6.444,03-RealOrigin=160.006;S01-Rtd=19.6,S01-RealOrigin=19.955;SB1-InstrState=0;SB1-Ala=0000&&5BF7\r\n'
+		local data = '##00010105ST=31;CN=2021;PW=123456;MN=88888880000001;CP=&&DataTime=20150530191231;SB1-InstrState=0000;SB1-Ala=0000&&4188\r\n'
 		self._serial_sent = self._serial_sent + string.len(data)
 		self._dev:dump_comm('SERIAL-OUT', data)
 		self._port:write(data)
