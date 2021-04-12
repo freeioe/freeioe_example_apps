@@ -35,6 +35,10 @@ function info:push(value, timestamp, quality)
 	end
 end
 
+function info:samples_size()
+	return #self._samples
+end
+
 function info:save()
 	local list = self._samples
 	if #list == 0 then
@@ -100,9 +104,8 @@ function info:write(data)
 	local series = siri_series:new(name, 'string')
 
 	for _, d in ipairs(data) do
-		if series then
-			series:push_value(d.value, assert(d.timestamp))
-		end
+		print(_, d.timestamp, d.value)
+		series:push_value(d.value, assert(d.timestamp))
 	end
 
 	db_data:add_series(name, series)

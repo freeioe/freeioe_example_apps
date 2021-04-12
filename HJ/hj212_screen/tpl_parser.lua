@@ -36,9 +36,11 @@ local function valid_setting(prop, err_cb)
 		return false
 	end
 
+	--[[
 	if string.len(prop.hj212 or '') == 0 then
 		return log_cb('Invalid HJ212 tag name found', prop.name, prop.sn)
 	end
+	]]--
 
 	if NAME_CHECKING[prop.name] then
 		return log_cb("Duplicated prop name found", prop.name)

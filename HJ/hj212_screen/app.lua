@@ -173,18 +173,21 @@ function app:on_start()
 			vt = v.vt
 		}
 		table.insert(outputs, inputs[#inputs])
-		inputs[#inputs + 1] = {
-			name = v.hj212,
-			desc = v.desc,
-			vt = v.vt
-		}
+
+		if v.hj212 then
+			inputs[#inputs + 1] = {
+				name = v.hj212,
+				desc = v.desc,
+				vt = v.vt
+			}
+		end
 	end
 
 	for _, v in ipairs(conf.settings) do
 		log:info("Setting:", v.name, v.value)
 		value_map[v.name] = { value = v.value }
 		local setting = settings_map[v.name]
-		if setting then
+		if setting and setting.hj212 then
 			value_map[setting.hj212] = { value = v.value }
 		end
 	end
@@ -193,6 +196,7 @@ function app:on_start()
 			return nil, string.format("Mising settings [%s] value", k)
 		end
 	end
+	ioe.env.set(conf.station..'.SETTINGS', conf.settings)
 
 	self._devs = devs
 	self._stats = stats
@@ -714,9 +718,11 @@ function app:on_mqtt_params(settings)
 		local setting = self._settings_map[output]
 		if setting then
 			self._value_map[output] = { value = value, timestamp = ioe.time() }
-			self._value_map[setting.hj212] = { value = value, timestamp = ioe.time() }
 			self._dev:set_input_prop(output, 'value', value)
-			self._dev:set_input_prop(setting.hj212, 'value', value)
+			if setting.hj212 then
+				self._value_map[setting.hj212] = { value = value, timestamp = ioe.time() }
+				self._dev:set_input_prop(setting.hj212, 'value', value)
+			end
 			local updated = false
 			for _, v in ipairs(conf.settings) do
 				if v.name == output then
@@ -730,6 +736,7 @@ function app:on_mqtt_params(settings)
 		end
 	end
 
+	ioe.env.set(conf.station..'.SETTINGS', conf.settings)
 	sys:set_conf(conf)
 
 	return self:on_mqtt_result(id, true, 'Set output prop done')
@@ -752,9 +759,12 @@ function app:on_output(app_src, sn, output, prop, value, timestamp)
 	conf.settings = conf.settings or {}
 
 	self._value_map[output] = { value = value, timestamp = ioe.time() }
-	self._value_map[setting.hj212] = { value = value, timestamp = ioe.time() }
 	self._dev:set_input_prop(output, 'value', value)
-	self._dev:set_input_prop(setting.hj212, 'value', value)
+
+	if setting.hj212 then
+		self._value_map[setting.hj212] = { value = value, timestamp = ioe.time() }
+		self._dev:set_input_prop(setting.hj212, 'value', value)
+	end
 
 	local updated = false
 	for _, v in ipairs(conf.settings) do
@@ -768,6 +778,7 @@ function app:on_output(app_src, sn, output, prop, value, timestamp)
 		table.insert(conf.settings, {name=output, value=tostring(value)})
 	end
 
+	ioe.env.set(conf.station..'.SETTINGS', conf.settings)
 	sys:set_conf(conf)
 	return true
 end

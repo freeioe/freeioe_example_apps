@@ -89,12 +89,15 @@ function info:set_value(value, timestamp, quality)
 		new_value[info] = val
 	end
 
-	if self._db then
+	local org_value, org_tm, org_q = self:get_value()
+	local eq = tbl_equals(org_value, value, true)
+
+	if not eq or (self._db and self._db:samples_size() == 0) then
 		self._db:push(new_value, timestamp, quality)
 	end
+
 	if self._value_callback then
-		local org_value, org_tm, org_q = self:get_value()
-		if not tbl_equals(org_value, value, true) then
+		if not eq then
 			self._value_callback(new_value, timestamp, quality)
 		end
 	end
