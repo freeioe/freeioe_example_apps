@@ -1,8 +1,8 @@
 local ftcsv = require 'ftcsv'
 
 ---
--- [1] hj212 tag name
--- [2] hj212 tag desc
+-- [1] hj212 pollut id
+-- [2] hj212 pollut desc
 -- [3] rate.Rtd
 -- [4] rate.ZsRtd
 -- [5] rate.Cou

@@ -3,6 +3,8 @@ local cjson = require 'cjson.safe'
 
 local info = class("HJ212_APP_HISDB_INFO_DB")
 
+--[[ FIXME:
+
 local DB_VER = 1 -- version
 
 function info:initialize(hisdb, info_name, vt, no_db)
@@ -63,3 +65,4 @@ function info:read(start_time, end_time)
 end
 
 return info
+]]--

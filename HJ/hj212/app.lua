@@ -14,7 +14,7 @@ local hj212_logger = require 'hj212.logger'
 
 local csv_tpl = require 'csv_tpl'
 local conn = require 'conn'
-local tag = require 'hjtag'
+local poll = require 'hjpoll'
 local info = require 'hjinfo'
 local hisdb = require 'hisdb.hisdb'
 local siridb = require 'siridb.hisdb'
@@ -206,7 +206,7 @@ function app:on_start()
 	local no_hisdb = conf.no_hisdb
 	for sn, d in pairs(tpl.devs) do
 		local dev = {}
-		local tag_list = {}
+		local poll_list = {}
 		for _, prop in ipairs(d) do
 			inputs[#inputs + 1] = {
 				name = prop.name,
@@ -224,8 +224,8 @@ function app:on_start()
 				prop.no_hisdb = true
 			end
 
-			local tag = tag:new(self._hisdb, self._station, prop, function(tag)
-				local obj = info:new(self._hisdb, tag, {}, prop.no_hisdb)
+			local poll = poll:new(self._hisdb, self._station, prop, function(poll)
+				local obj = info:new(self._hisdb, poll, {}, prop.no_hisdb)
 				local r, err = obj:init_db()
 				if not r then
 					log:error(err)
@@ -235,7 +235,7 @@ function app:on_start()
 			end)
 
 			local p_name = prop.name
-			tag:set_value_callback(function(type_name, val, timestamp, quality)
+			poll:set_value_callback(function(type_name, val, timestamp, quality)
 				local dev = app_inst._dev
 				if not dev then
 					-- log:warning('Device object not found', p_name, prop, value, timestamp)
@@ -270,12 +270,12 @@ function app:on_start()
 					end
 				end
 			end)
-			tag_list[p_name] = tag
+			poll_list[p_name] = poll
 		end
 
 		local dev_sn = map_dev_sn(sn)
 		self._devs[dev_sn] = dev
-		self._station:add_meter(meter:new(sn, tag_list))
+		self._station:add_meter(meter:new(sn, poll_list))
 	end
 
 	local meta = self._api:default_meta()
@@ -314,9 +314,9 @@ function app:on_start()
 		--- Start timers
 		self:start_timers()
 		self._station:init(self._calc_mgr, function(...)
-			log:error("Init tag failed", ...)
+			log:error("Init poll failed", ...)
 		end)
-		self:read_tags()
+		self:read_polls()
 		self._inited = true
 	end)
 
@@ -340,9 +340,9 @@ function app:set_station_prop_value(props, value, timestamp, quality)
 
 			local flag = quality ~= 0 and types.FLAG.Connection or nil
 			local val_z = nil
-			local r, err = self._station:set_tag_value(v.name, val, timestamp, val_z, flag, quality)
+			local r, err = self._station:set_poll_value(v.name, val, timestamp, val_z, flag, quality)
 			if not r then
-				self._log:error("Cannot set tag value", v.name, val, err)
+				self._log:error("Cannot set poll value", v.name, val, err)
 			end
 		end
 	end
@@ -360,9 +360,9 @@ function app:set_station_prop_rdata(props, value, timestamp, quality)
 			local val_z = (v.rate and v.rate ~= 1 and value.value_z ~= nil) and value.value_z * v.rate or value.value_z
 			timestamp = self._local_timestamp and sys:time() or timestamp
 
-			local r, err = self._station:set_tag_value(v.name, val, timestamp, val_z, v.flag, quality)
+			local r, err = self._station:set_poll_value(v.name, val, timestamp, val_z, v.flag, quality)
 			if not r then
-				self._log:warning("Failed set tag value from rdata", v.name, cjson.encode(value), err)
+				self._log:warning("Failed set poll value from rdata", v.name, cjson.encode(value), err)
 			end
 		end
 	end
@@ -375,9 +375,9 @@ function app:set_station_prop_info(props, value, timestamp, quality)
 		self._log:warning("Value quality(INFO) is not good", quality, type(quality))
 	end
 	for _, v in ipairs(props) do
-		local tag, err = self._station:find_tag(v.name)
-		if tag then
-			local r, err = tag:set_info_value(value, timestamp, quality)
+		local poll, err = self._station:find_poll(v.name)
+		if poll then
+			local r, err = poll:set_info_value(value, timestamp, quality)
 			if not r then
 				self._log:warning("Failed set info value from rdata", v.name, cjson.encode(value), err)
 			end
@@ -385,7 +385,7 @@ function app:set_station_prop_info(props, value, timestamp, quality)
 	end
 end
 
-function app:read_tags()
+function app:read_polls()
 	local api = self:data_api()
 	local sys = self:sys_api()
 	local sys_id = sys:id()
@@ -396,17 +396,17 @@ function app:read_tags()
 			dev_api = api:get_device(sys_id..'.'..sn)
 		end
 		if dev_api then
-			for input, tags in pairs(dev) do
+			for input, polls in pairs(dev) do
 				local value, timestamp, quality = dev_api:get_input_prop(input, 'value')
 				if value then
-					self:set_station_prop_value(tags, value, timestamp, quality)
+					self:set_station_prop_value(polls, value, timestamp, quality)
 				else
 					--self._log:error("Cannot read input value", sn, input)
 				end
 				local value, timestamp, quality = dev_api:get_input_prop(input, 'RDATA')
 				if value then
 					value = cjson.decode(value) or {}
-					self:set_station_prop_rdata(tags, value, timestamp, quality)
+					self:set_station_prop_rdata(polls, value, timestamp, quality)
 				else
 					--self._log:error("Cannot read input value", sn, input)
 				end
@@ -636,20 +636,20 @@ function app:save_samples()
 	local station = self._station
 	for _, meter in ipairs(station:meters()) do
 		--self._log:debug("Saving sample data for meter:"..meter:sn())
-		for tag_name, tag in pairs(meter:tag_list()) do
-			--self._log:debug("Saving sample data for tag:"..tag_name)
-			local r, err = tag:save_samples()
+		for poll_id, poll in pairs(meter:poll_list()) do
+			--self._log:debug("Saving sample data for poll:"..poll_id)
+			local r, err = poll:save_samples()
 			if not r then
-				self._log:error("Failed saving sample data for tag:"..tag_name, err)
+				self._log:error("Failed saving sample data for poll:"..poll_id, err)
 			end
 
 			self._sys:sleep(10)
 
-			local info, err = tag:info()
+			local info, err = poll:info()
 			if info then
 				local r, err = info:save_samples()
 				if not r then
-					self._log:error("Failed saving sample info for tag:"..tag_name, err)
+					self._log:error("Failed saving sample info for poll:"..poll_id, err)
 				end
 
 				self._sys:sleep(10)

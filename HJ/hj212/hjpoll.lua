@@ -2,9 +2,9 @@ local cjson = require 'cjson.safe'
 local calc_parser = require 'calc.parser'
 
 local logger = require 'hj212.logger'
-local base = require 'hj212.client.tag'
+local base = require 'hj212.client.poll'
 
-local tag = base:subclass('HJ212_HJTAG')
+local poll = base:subclass('HJ212_HJTAG')
 
 local function prop2options(prop)
 	if not prop.cou_calc then
@@ -39,7 +39,7 @@ local function prop2options(prop)
 	}
 end
 
-function tag:initialize(hisdb, station, prop, info_creator)
+function poll:initialize(hisdb, station, prop, info_creator)
 	--- Base initialize
 	if prop.zs and string.upper(prop.zs) == 'SRC' then
 		prop.zs_calc = true
@@ -63,50 +63,50 @@ function tag:initialize(hisdb, station, prop, info_creator)
 	self._value_callback = nil
 end
 
-function tag:upload()
+function poll:upload()
 	return self:inited() and self._upload
 end
 
-function tag:hj2005_name()
+function poll:hj2005_id()
 	if not self._hj2005 then
 		local finder = require 'hj212.tags.finder'
-		local tag = finder(self:tag_name())
-		if tag then
-			self._hj2005 = tag.org_name
+		local poll = finder(self:id())
+		if poll then
+			self._hj2005 = poll.org_id
 		end
 	end
 	return self._hj2005
 end
 
-function tag:init_db()
+function poll:init_db()
 	local cou_calc = self:cou_calc()
-	local db = self._hisdb:create_tag(self:tag_name(), self._no_hisdb)
+	local db = self._hisdb:create_poll(self:id(), self._no_hisdb)
 	local r, err = db:init()
 	if not r then
 		return nil, err
 	end
 	cou_calc:set_db(db)
-	self._tagdb = db
+	self._polldb = db
 	return true
 end
 
-function tag:init(calc_mgr)
+function poll:init(calc_mgr)
 	base.init(self, calc_mgr)
 	return self:init_db()
 end
 
-function tag:save_samples()
-	if not self._tagdb then
+function poll:save_samples()
+	if not self._polldb then
 		return nil, "Database is not loaded correctly"
 	end
-	return self._tagdb:save_samples()
+	return self._polldb:save_samples()
 end
 
-function tag:set_value_callback(cb)
+function poll:set_value_callback(cb)
 	self._value_callback = cb
 end
 
-function tag:set_value(value, timestamp, value_z, flag, quality)
+function poll:set_value(value, timestamp, value_z, flag, quality, ex_vals)
 	assert(value ~= nil)
 	assert(timestamp ~= nil)
 	local value = (quality or 0) == 0 and value or 0
@@ -120,11 +120,11 @@ function tag:set_value(value, timestamp, value_z, flag, quality)
 			value_z = math.floor(value_z * 100000) / 100000
 		end
 	end
-	return base.set_value(self, value, timestamp, value_z, flag, quality)
+	return base.set_value(self, value, timestamp, value_z, flag, quality, ex_vals)
 end
 
 --- Forward to MQTT application
-function tag:on_calc_value(type_name, val, timestamp, quality)
+function poll:on_calc_value(type_name, val, timestamp, quality)
 	assert(type_name ~= 'value')
 	assert(val and type(val) == 'table')
 	--print('on_calc_value', self._name, type_name, timestamp, cjson.encode(val))
@@ -134,4 +134,4 @@ function tag:on_calc_value(type_name, val, timestamp, quality)
 	return val
 end
 
-return tag
+return poll

@@ -8,9 +8,9 @@ local info = base:subclass('siridb.info')
 
 local DB_VER = 1 -- version
 
-function info:initialize(hisdb, tag_name)
+function info:initialize(hisdb, poll_id)
 	self._hisdb = hisdb
-	self._tag_name = tag_name
+	self._poll_id = poll_id
 	self._samples = {}
 	self._db = nil
 end
@@ -30,7 +30,7 @@ function info:push(value, timestamp, quality)
 
 	table.insert(self._samples, {value = val, timestamp = timestamp})
 	if #self._samples > 3600 then
-		assert(nil, 'Info of tag:'..self._tag_name..'\t reach max sample data unsaving')
+		assert(nil, 'Info of pollut:'..self._poll_id..'\t reach max sample data unsaving')
 		self._samples = {}
 	end
 end
@@ -57,7 +57,7 @@ local function build_read(name, stime, etime)
 end
 function info:read(start_time, end_time)
 	assert(start_time and end_time)
-	local info_name = 'INFO.'..self._tag_name
+	local info_name = 'INFO.'..self._poll_id
 
 	local db = assert(self._db, 'DB not found')
 	local sql = build_read(info_name, start_time, end_time)
@@ -90,7 +90,7 @@ function info:read(start_time, end_time)
 
 	--[[
 	local cjson = require 'cjson.safe'
-	print(tag_name, cate, start_time, end_time)
+	print(poll_id, cate, start_time, end_time)
 	print(cjson.encode(dm:data()))
 	]]--
 
@@ -100,7 +100,7 @@ end
 function info:write(data)
 	local db_data = siri_data:new()
 
-	local name = 'INFO.'..self._tag_name
+	local name = 'INFO.'..self._poll_id
 	local series = siri_series:new(name, 'string')
 
 	for _, d in ipairs(data) do

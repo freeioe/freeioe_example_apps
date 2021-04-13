@@ -15,7 +15,7 @@ local attrs = {
 	ZeroCail = 'i13003',
 	ZeroOrigin = 'i13004',
 	CailOrigin = 'i13009',
-	RealOrigin = 'i13011',
+	RealOrigin = '', --'i13011', This will be uploaded in rdata not in info status
 	Rtd = '',
 	Mol = '',
 }
@@ -104,10 +104,14 @@ function handler:process(request)
 		end
 		for k, v in pairs(ttlist) do
 			v.SampleTime = data_time
+			v.RtdSrc = v.RealOrigin
+			v.RealOrigin = nil
+			v.Mol = nil -- No include Mol value TODO:
 			--print(k, v.Rtd)
 			self._client:on_rdata(k, v)
 		end
 		for k, v in pairs(ilist) do
+			v.DT = 3 -- 废气自动检测设备工作参数
 			self._client:on_info(k, v)
 		end
 	end

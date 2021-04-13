@@ -162,25 +162,19 @@ function client:on_info(name, info_list, no_cov)
 	end
 
 	for k, v in pairs(info_list) do
-
 		if info[k] == nil then
 			self._inputs_changed = true
 			table.insert(self._inputs, create_tag_info(name, k))
 		end
+		info[k] = v
+	end
 
-		if info[k] ~= v then
-			info[k] = v
-			changed = true
+	for _, v in ipairs(self._info_cov) do
+		if v == name then
+			return
 		end
 	end
-	if changed or no_cov then
-		for _, v in ipairs(self._info_cov) do
-			if v == name then
-				return
-			end
-		end
-		table.insert(self._info_cov, name)
-	end
+	table.insert(self._info_cov, name)
 end
 
 function client:on_run()

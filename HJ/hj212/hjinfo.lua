@@ -7,16 +7,16 @@ local base = require 'hj212.client.info'
 
 local info = base:subclass('HJ212_HJ_INFO')
 
-function info:initialize(hisdb, tag, props, no_hisdb)
+function info:initialize(hisdb, poll, props, no_hisdb)
 	--- Base initialize
-	base.initialize(self, tag)
+	base.initialize(self, poll)
 	self._no_hisdb = no_hisdb
 
 	--- Member objects
 	self._hisdb = hisdb
 	self._info_props = {}
 
-	local station = tag:station()
+	local station = poll:station()
 
 	for _, prop in ipairs(props) do
 		local p = {
@@ -40,9 +40,9 @@ function info:set_value_callback(callback)
 end
 
 function info:init_db()
-	local tag_name = self:tag():tag_name()
+	local poll_id = self:poll():id()
 
-	local db = self._hisdb:create_info(tag_name, self._no_hisdb)
+	local db = self._hisdb:create_info(poll_id, self._no_hisdb)
 	local r, err = db:init()
 	if not r then
 		return nil, err

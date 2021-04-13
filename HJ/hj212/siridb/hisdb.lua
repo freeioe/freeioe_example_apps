@@ -1,7 +1,7 @@
 local class = require 'middleclass'
 local client = require 'db.siridb.client'
 local database = require 'db.siridb.database'
-local tag = require 'siridb.tag'
+local poll = require 'siridb.poll'
 local info = require 'siridb.info'
 local utils = require 'siridb.utils'
 local log = require 'utils.logger'.new()
@@ -120,8 +120,8 @@ function hisdb:purge_all()
 	-- TODO:
 end
 
-function hisdb:create_tag(...)
-	return tag:new(self, ...)
+function hisdb:create_poll(...)
+	return poll:new(self, ...)
 end
 
 function hisdb:create_info(...)

@@ -1,0 +1,67 @@
+[
+	{
+		"name": "serial_opt",
+		"type": "serial"
+	},
+	{
+		"name": "dev_sn",
+		"desc": "设备序列号",
+		"type": "string",
+		"default": "cems_ai"
+	},
+	{
+		"name": "station",
+		"desc": "HJ212 站名",
+		"type": "string",
+		"default": "HJ212"
+	},
+	{
+		"name": "loop_gap",
+		"desc": "采集间隔(Read Gap)",
+		"type": "number",
+		"default": 1000
+	},
+	{
+		"name": "unit",
+		"desc": "Modbus 地址",
+		"type": "number",
+		"default": 1
+	},
+	{
+		"name": "ai_list",
+		"desc": "AI Options",
+		"type": "table",
+		"child": [
+			{
+				"name": "channel",
+				"desc": "Channel ID (1-8)",
+				"type": "number",
+				"default": 1
+			},
+			{
+				"name": "name",
+				"desc": "HJ212 Name",
+				"type": "string",
+				"default": "a34013"
+			},
+			{
+				"name": "desc",
+				"desc": "HJ212 Description",
+				"type": "string",
+				"default": "烟尘"
+			},
+			{
+				"name": "setting_prefix",
+				"desc": "Setting prefix",
+				"type": "string",
+				"default": "DUST"
+			},
+			{
+				"name": "unit",
+				"desc": "Value Unit",
+				"type": "string",
+				"default": "mg/m3"
+			}
+		]
+	}
+]

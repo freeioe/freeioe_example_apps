@@ -3,11 +3,11 @@ local siri_data = require 'db.siridb.data'
 local siri_series = require 'db.siridb.series'
 local data_merge = require 'siridb.data_merge'
 
-local tag = base:subclass('siridb.tag')
+local poll = base:subclass('siridb.poll')
 
-function tag:initialize(hisdb, tag_name)
+function poll:initialize(hisdb, poll_id)
 	self._hisdb = hisdb
-	self._tag_name = tag_name
+	self._poll_id = poll_id
 	self._samples = {}
 	self._value_type_map = {}
 	self._db_map = {}
@@ -23,7 +23,7 @@ local function map_value_type(v_type)
 	end
 end
 
-function tag:init()
+function poll:init()
 	local meta = self:sample_meta()
 	for _, v in ipairs(meta) do
 		self._value_type_map['SAMPLE.'..v.name] = map_value_type(v.type)
@@ -49,7 +49,7 @@ function tag:init()
 	return true
 end
 
-function tag:get_value_type(cate, prop)
+function poll:get_value_type(cate, prop)
 	if prop == 'timestamp' then
 		return nil
 	end
@@ -58,19 +58,19 @@ function tag:get_value_type(cate, prop)
 	if vt then
 		return vt
 	end
-	--print(self._tag_name, cate, prop)
+	--print(self._poll_id, cate, prop)
 	return nil -- skipped those data
 end
 
-function tag:push_sample(data)
+function poll:push_sample(data)
 	table.insert(self._samples, data)
 	if #self._samples > 3600 then
-		assert(nil, 'Tag Name:'..self._tag_name..'\t reach max sample data unsaving')
+		assert(nil, 'Tag Name:'..self._poll_id..'\t reach max sample data unsaving')
 		self._samples = {}
 	end
 end
 
-function tag:save_samples()
+function poll:save_samples()
 	local list = self._samples
 	if #list == 0 then
 		return true
@@ -79,7 +79,7 @@ function tag:save_samples()
 	return self:write('SAMPLE', list, true)
 end
 
-function tag:read_samples(start_time, end_time)
+function poll:read_samples(start_time, end_time)
 	return self:read('SAMPLE', start_time, end_time)
 end
 
@@ -90,12 +90,12 @@ local read_sql = 'select * from /%s.%s.*/ between %d and %d'
 local function build_read(cate, name, stime, etime)
 	return string.format(read_sql, cate, name, math.floor(stime * 1000), math.floor(etime * 1000) + 1)
 end
-function tag:read(cate, start_time, end_time)
+function poll:read(cate, start_time, end_time)
 	assert(cate and start_time and end_time)
-	local tag_name = self._tag_name
+	local poll_id = self._poll_id
 
 	local db = assert(self._db_map[cate], 'CATE:'..cate..' not found')
-	local sql = build_read(cate, tag_name, start_time, end_time)
+	local sql = build_read(cate, poll_id, start_time, end_time)
 	local data, err = db:query(sql)
 	if not data then
 		--TODO: Log error
@@ -105,7 +105,7 @@ function tag:read(cate, start_time, end_time)
 	local dm = data_merge:new()
 	for name, values in pairs(data) do
 		local c, n, k, t = string.match(name, '^([^%.]+)%.([^%.]+)%.([^%.]+)%.(.+)$')
-		if not c or c ~= cate or n ~= tag_name then
+		if not c or c ~= cate or n ~= poll_id then
 			goto CONTINUE
 		end
 
@@ -120,14 +120,14 @@ function tag:read(cate, start_time, end_time)
 
 	--[[
 	local cjson = require 'cjson.safe'
-	print(tag_name, cate, start_time, end_time)
+	print(poll_id, cate, start_time, end_time)
 	print(cjson.encode(dm:data()))
 	]]--
 
 	return dm:data()
 end
 
-function tag:write(cate, data, is_array)
+function poll:write(cate, data, is_array)
 	local db_data = siri_data:new()
 
 	if not is_array then
@@ -141,7 +141,7 @@ function tag:write(cate, data, is_array)
 			if not series and k ~= 'timestamp' then
 				local vt = self:get_value_type(cate, k)
 				if vt then
-					local name = cate..'.'..self._tag_name..'.'..k..'.'..vt
+					local name = cate..'.'..self._poll_id..'.'..k..'.'..vt
 					--print(name, vt)
 					series = siri_series:new(name, vt)
 					series_map[k] = series
@@ -159,4 +159,4 @@ function tag:write(cate, data, is_array)
 	return db:insert(db_data)
 end
 
-return tag
+return poll

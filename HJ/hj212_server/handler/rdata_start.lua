@@ -26,7 +26,7 @@ function handler:process(request)
 				Flag = tag:get('Flag') or 'N',
 				ZsRtd = tag:get('ZsRtd')
 			}
-			self._client:on_rdata(tag:tag_name(), rdata)
+			self._client:on_rdata(tag:id(), rdata)
 		end
 	end
 

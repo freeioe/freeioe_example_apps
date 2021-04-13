@@ -18,7 +18,7 @@ local function valid_prop(prop, err_cb)
 	end
 
 	if string.len(prop.input or '') == 0 then
-		return log_cb('Invalid tag input name found', prop.name, prop.input)
+		return log_cb('Invalid pollut input name found', prop.name, prop.input)
 	end
 
 	if NAME_CHECKING[prop.name] then
@@ -67,15 +67,15 @@ local function NA_BOOL_NUMBER(val, default, num_def)
 end
 
 ---
--- [1] hj212 tag name
--- [2] hj212 tag desc
--- [3] hj212 tag unit (not used by HJ212 stack)
--- [4] hj212 tag vt (not used by HJ212 stack)
+-- [1] hj212 pollut name
+-- [2] hj212 pollut desc
+-- [3] hj212 pollut unit (not used by HJ212 stack)
+-- [4] hj212 pollut vt (not used by HJ212 stack)
 -- [5] source device sn (without sys_id as the prefix)
--- [6] source tag name
--- [7] source tag value rate
--- [8] hj212 tag value format (optional)
--- [9] hj212 tag value calc
+-- [6] source pollut name
+-- [7] source pollut value rate
+-- [8] hj212 pollut value format (optional)
+-- [9] hj212 pollut value calc
 
 local function load_tpl(name, err_cb)
 	local path = tpl_dir..name..'.csv'

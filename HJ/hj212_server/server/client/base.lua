@@ -6,15 +6,15 @@ local cjson = require 'cjson.safe'
 
 local TAG_INFO = {}
 
-local function create_tag_input(tag_name)
-	if TAG_INFO[tag_name] then
-		return TAG_INFO[tag_name]
+local function create_poll_input(poll_id)
+	if TAG_INFO[poll_id] then
+		return TAG_INFO[poll_id]
 	end
-	local tag = tag_finder(tag_name)
+	local tag = tag_finder(poll_id)
 	if not tag then
-		TAG_INFO[tag_name] = {
-			name = tag_name,
-			desc = tag_name,
+		TAG_INFO[poll_id] = {
+			name = poll_id,
+			desc = poll_id,
 			vt = 'string'
 		}
 	else
@@ -22,27 +22,27 @@ local function create_tag_input(tag_name)
 		if tag.format and string.sub(tag.format, 1, 1) == 'N' then
 			vt = 'float'
 		end
-		TAG_INFO[tag_name] = {
-			name = tag_name,
+		TAG_INFO[poll_id] = {
+			name = poll_id,
 			desc = tag.desc,
 			unit = tag.unit,
 			vt = vt
 		}
 	end
-	return TAG_INFO[tag_name]
+	return TAG_INFO[poll_id]
 end
 
-local function create_tag_info(tag_name, info_name)
-	local tag_name = tag_name .. '_' .. info_name
+local function create_poll_info(poll_id, info_id)
+	local poll_id = poll_id .. '_' .. info_id
 
-	if TAG_INFO[tag_name] then
-		return TAG_INFO[tag_name]
+	if TAG_INFO[poll_id] then
+		return TAG_INFO[poll_id]
 	end
-	local tag = tag_finder(info_name)
+	local tag = tag_finder(info_id)
 	if not tag then
-		TAG_INFO[tag_name] = {
-			name = tag_name,
-			desc = tag_name,
+		TAG_INFO[poll_id] = {
+			name = poll_id,
+			desc = poll_id,
 			vt = 'string',
 		}
 	else
@@ -50,14 +50,14 @@ local function create_tag_info(tag_name, info_name)
 		if tag.format and string.sub(tag.format, 1, 1) == 'N' then
 			vt = 'float'
 		end
-		TAG_INFO[tag_name] = {
-			name = tag_name,
+		TAG_INFO[poll_id] = {
+			name = poll_id,
 			desc = tag.desc,
 			unit = tag.unit,
 			vt = vt
 		}
 	end
-	return TAG_INFO[tag_name]
+	return TAG_INFO[poll_id]
 end
 
 local client = base:subclass('hj212_server.server.client.base')
@@ -139,7 +139,7 @@ end
 function client:on_rdata(name, rdata)
 	if not self._rdata_map[name] then
 		self._inputs_changed = true
-		table.insert(self._inputs, create_tag_input(name))
+		table.insert(self._inputs, create_poll_input(name))
 	end
 
 	table.insert(self._inputs_cov, name)
@@ -165,7 +165,7 @@ function client:on_info(name, info_list, no_cov)
 
 		if info[k] == nil then
 			self._inputs_changed = true
-			table.insert(self._inputs, create_tag_info(name, k))
+			table.insert(self._inputs, create_poll_info(name, k))
 		end
 
 		if info[k] ~= v then

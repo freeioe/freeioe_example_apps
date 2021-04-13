@@ -1,7 +1,7 @@
 local class = require 'middleclass'
 local index = require 'hisdb.index'
 local object = require 'hisdb.object'
-local tag = require 'hisdb.tag'
+local poll = require 'hisdb.poll'
 local info = require 'hisdb.info'
 
 local hisdb = class('hisdb.hisdb')
@@ -76,8 +76,8 @@ function hisdb:purge_all()
 	return self._index_db:purge_all()
 end
 
-function hisdb:create_tag(...)
-	return tag:new(self, ...)
+function hisdb:create_poll(...)
+	return poll:new(self, ...)
 end
 
 function hisdb:create_info(...)

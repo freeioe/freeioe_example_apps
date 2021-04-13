@@ -242,12 +242,12 @@ function conn:convert_version(data)
 
 	local new_data = {}
 	for _, v in ipairs(data) do
-		local tag_name = v:tag_name()
-		local tag = self._station:find_tag(tag_name)
-		--print(tag_name, tag:hj2005_name())
-		assert(tag)
-		tag_name = tag:hj2005_name() or tag_name
-		new_data[#new_data + 1] = v:clone(tag_name)
+		local id = v:id()
+		local poll = self._station:find_poll(id)
+		--print(id, poll:hj2005_id())
+		assert(poll)
+		id = poll:hj2005_id() or id
+		new_data[#new_data + 1] = v:clone(id)
 	end
 	return new_data
 end
@@ -260,7 +260,7 @@ function conn:convert_rate(data)
 	local new_data = {}
 	for _, v in ipairs(data) do
 		new_data[#new_data + 1] = v:transform(function(key, val)
-			return self._value_tpl(v:tag_name(), key, val)
+			return self._value_tpl(v:id(), key, val)
 		end)
 	end
 	return new_data

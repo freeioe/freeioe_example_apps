@@ -108,6 +108,7 @@ function app:on_start()
 		{ name = 'station', desc = 'Station name', vt = 'string'},
 		{ name = 'station_type', desc = 'Station type', vt = 'string'},
 		{ name = 'app_inst', desc = 'Station app instance name', vt = 'string'},
+		{ name = 'info', desc = 'Station settings info tag', vt = 'string'},
 	}
 	local value_map = {
 		station = { value = conf.station },
@@ -183,6 +184,7 @@ function app:on_start()
 		end
 	end
 
+	conf.settings = conf.settings or {}
 	for _, v in ipairs(conf.settings) do
 		log:info("Setting:", v.name, v.value)
 		value_map[v.name] = { value = v.value }
@@ -196,7 +198,7 @@ function app:on_start()
 			return nil, string.format("Mising settings [%s] value", k)
 		end
 	end
-	ioe.env.set(conf.station..'.SETTINGS', conf.settings)
+	ioe.env.set('HJ212.SETTINGS', conf.station, conf.settings)
 
 	self._devs = devs
 	self._stats = stats
@@ -237,6 +239,15 @@ function app:on_start()
 		conf.app_inst = ioe.env.wait('HJ212.STATION', conf.station)
 		log:info("Got application instance name", conf.app_inst)
 		self._value_map.app_inst = { value = conf.app_inst }
+
+		-- Settings
+		local sval, err = cjson.encode(conf.settings)
+		if not sval then
+			self._log:error("Settings json serialize error:", err)
+		else
+			self._dev:set_input_prop('info', 'value', sval)
+			self._dev:set_input_prop('info', 'INFO', conf.settings)
+		end
 	end)
 
 	return mqtt_app.on_start(self)
@@ -710,6 +721,7 @@ function app:on_mqtt_params(settings)
 	conf.settings = conf.settings or {}
 	local id = os.time()
 
+	local changed = false
 	for name, value in pairs(settings) do
 		local output = string.match('^TS_.(+)$') or ''
 		if output == 'post_CalcId' then
@@ -726,17 +738,30 @@ function app:on_mqtt_params(settings)
 			local updated = false
 			for _, v in ipairs(conf.settings) do
 				if v.name == output then
-					v.value = tostring(value)
+					if v.value ~= value then
+						changed = true
+					end
+					v.value = value
 					updated = true
 				end
 			end
 			if not updated then
-				table.insert(conf.settings, {name=output, value=tostring(value)})
+				changed = true
+				table.insert(conf.settings, {name=output, value=value})
 			end
 		end
 	end
 
-	ioe.env.set(conf.station..'.SETTINGS', conf.settings)
+	ioe.env.set('HJ212.SETTINGS', conf.station, conf.settings)
+	if changed then
+		local sval, err = cjson.encode(conf.settings)
+		if not sval then
+			self._log:error("Settings json serialize error:", err)
+		else
+			self._dev:set_input_prop('info', 'value', sval)
+			self._dev:set_input_prop('info', 'INFO', conf.settings)
+		end
+	end
 	sys:set_conf(conf)
 
 	return self:on_mqtt_result(id, true, 'Set output prop done')
@@ -767,18 +792,33 @@ function app:on_output(app_src, sn, output, prop, value, timestamp)
 	end
 
 	local updated = false
+	local changed = false
 	for _, v in ipairs(conf.settings) do
 		if v.name == output then
-			v.value = tostring(value)
+			if v.value ~= value then
+				changed = true
+			end
+			v.value = value
 			updated = true
 		end
 	end
 
 	if not updated then
-		table.insert(conf.settings, {name=output, value=tostring(value)})
+		changed = true
+		table.insert(conf.settings, {name=output, value=value})
 	end
 
-	ioe.env.set(conf.station..'.SETTINGS', conf.settings)
+	ioe.env.set('HJ212.SETTINGS', conf.station, conf.settings)
+	if changed then
+		local sval, err = cjson.encode(conf.settings)
+		if not sval then
+			self._log:error("Settings json serialize error:", err)
+		else
+			self._dev:set_input_prop('info', 'value', sval)
+			self._dev:set_input_prop('info', 'INFO', conf.settings)
+		end
+	end
+
 	sys:set_conf(conf)
 	return true
 end
