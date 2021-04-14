@@ -1,0 +1,139 @@
+[
+	{
+		"name": "station",
+		"desc": "站名",
+		"type": "string",
+		"default": "HJ212"
+	},
+	{
+		"name": "system",
+		"desc": "系统编码 ST",
+		"type": "number",
+		"default": 31
+	},
+	{
+		"name": "dev_id",
+		"desc": "设备唯一标识 MN",
+		"type": "string",
+		"default": "XXXXXXXXXXXXXXX"
+	},
+	{
+		"name": "samples_interval",
+		"desc": "采样数据保存周期（秒）",
+		"type": "number",
+		"default": 120
+	},
+	{
+		"name": "rdata_interval",
+		"desc": "实时数据上传周期（秒）",
+		"type": "number",
+		"default": 30
+	},
+	{
+		"name": "min_interval",
+		"desc": "分钟数据上传周期（分钟）",
+		"type": "number",
+		"default": 10
+	},
+	{
+		"name": "servers",
+		"desc": "Server List",
+		"type": "table",
+		"cols": [
+			{
+				"name": "name",
+				"desc": "平台名称",
+				"type": "string",
+				"default": "Server1"
+			},
+			{
+				"name": "host",
+				"desc": "平台地址",
+				"type": "string",
+				"default": "127.0.0.1"
+			},
+			{
+				"name": "port",
+				"desc": "平台端口",
+				"type": "string",
+				"default": "6000"
+			},
+			{
+				"name": "passwd",
+				"desc": "设备密码",
+				"type": "string",
+				"default": "123456"
+			},
+			{
+				"name": "timeout",
+				"desc": "超时时间（秒）",
+				"type": "number",
+				"default": 5
+			},
+			{
+				"name": "retry",
+				"desc": "重试次数",
+				"type": "number",
+				"default": 3
+			},
+			{
+				"name": "resend",
+				"desc": "失败重试",
+				"type": "dropdown",
+				"default": "No",
+				"values": [
+					"Yes",
+					"No"
+				]
+			}
+		]
+	},
+	{
+		"name": "tpls",
+		"desc": "设备模板",
+		"type": "templates",
+		"limit": 1
+	},
+	{
+		"name": "no_hisdb",
+		"desc": "关闭数据本地存储",
+		"type": "boolean",
+		"default": false
+	},
+	{
+		"name": "duration",
+		"desc": "数据存储时限(月)",
+		"type": "number",
+		"default": 121
+	},
+	{
+		"name": "timezone",
+		"desc": "时区",
+		"type": "string",
+		"default": "CST-8"
+	},
+	{
+		"name": "timezone_name",
+		"desc": "时区名称",
+		"type": "string",
+		"default": "Asia/Shanghai"
+	},
+	{
+		"name": "calc_delay",
+		"desc": "分钟/小时/天统计数据计算延迟（毫秒）",
+		"type": "number",
+		"default": 1000
+	},
+	{
+		"name": "local_timestamp",
+		"desc": "使用设备时间代替数据源的时间戳",
+		"type": "boolean",
+		"default": false
+	},
+	{
+		"name": "using_siridb",
+		"desc": "使用SIRIDB存储数据",
+		"type": "boolean",
+		"default": true
+	}
+]
