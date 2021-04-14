@@ -69,7 +69,12 @@ function app:on_close(reason)
 end
 
 function app:on_command(app, sn, command, params)
-
+	if command == 'open_door' then
+		return self:open_door(params)
+	end
+	if command == 'add_person' then
+		return self:add_person(params)
+	end
 end
 
 function app:create_device(dev_sn)
@@ -98,6 +103,7 @@ function app:create_device(dev_sn)
 	local commands = {
 		{ name = 'open_door', desc = 'Open door with access token' }
 		{ name = 'add_person', desc = 'Add person information' }
+		{ name = 'del_person', desc = 'Delete person information' }
 	}
 
 	local dev = api:add_device(dev_sn, meta, inputs, {}, commands)
@@ -330,6 +336,92 @@ function app:subscribe(local_addr, local_port, device_id)
 	self._subscribed = true
 	self._last_hearbeat = ioe.now()
 	return true
+end
+
+function app:open_door(device_id, params)
+	local content = {
+		operator = 'OpenDoor',
+		info = {
+			DeviceID = device_id,
+			Chn = 0
+		}
+	}
+	local status, body = self._api:post('/action/OpenDoor', {}, content, 'application/json')
+	if not status or status ~= 200 then
+		return nil, body
+	end
+
+	local ret = cjson.decode(body)
+	if ret.operator ~= 'OpenDoor' then
+		return nil, 'Error operator'
+	end
+	if tonumber(ret.code or '') ~= 200 then
+		local err = ret.info and ret.info.Detail or 'Error status code:'..ret.code
+		return nil, err
+	end
+
+
+	return true
+end
+
+function app:add_person(device_id, params)
+	local content = {
+		operator = 'AddPerson'
+		info = {
+			DeviceID = device_id,
+			IdType = 0,
+			CustomizeID = tonumber(params.i3310D), -- TODO: FIXME how to generate
+			Nodes = params.i3310D,
+			PersonType = 0,
+			Name = params.i3310J,
+			picURI = params.i2210I,
+		}
+	}
+
+	local status, body = self._api:post('/action/AddPerson', {}, content, 'application/json')
+	if not status or status ~= 200 then
+		return nil, body
+	end
+
+	local ret = cjson.decode(body)
+	if ret.operator ~= 'AddPerson' then
+		return nil, 'Error operator'
+	end
+	if tonumber(ret.code or '') ~= 200 then
+		local err = ret.info and ret.info.Detail or 'Error status code:'..ret.code
+		return nil, err
+	end
+
+	return true
+end
+
+function app:del_person(device_id, params)
+	local content = {
+		operator = 'DeletePerson'
+		info = {
+			DeviceID = device_id,
+			TotalNum = 1
+			IdType = 0,
+			CustomizeID = {tonumber(params.i3310D)}, -- TODO: FIXME how to generate
+		}
+	}
+
+	local status, body = self._api:post('/action/DeletePerson', {}, content, 'application/json')
+	if not status or status ~= 200 then
+		return nil, body
+	end
+
+	local ret = cjson.decode(body)
+	if ret.operator ~= 'DeletePerson' then
+		return nil, 'Error operator'
+	end
+	if tonumber(ret.code or '') ~= 200 then
+		local err = ret.info and ret.info.Detail or 'Error status code:'..ret.code
+		return nil, err
+	end
+
+	return true
+
 end
 
 return app
