@@ -248,5 +248,9 @@ function conn:upload_day_data(data)
 	return self:data_request('day_data', data, 'DAY')
 end
 
+function conn:send_command(dev_sn, cmd, params)
+	return self._app:send_command(dev_sn, cmd, params)
+end
+
 return conn
 

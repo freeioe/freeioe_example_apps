@@ -333,4 +333,12 @@ function client:on_command_day_data(stime, etime)
 	return self._conn:upload_hour_data(data)
 end
 
+function client:on_command_hb_add_person(info, SFP)
+	if SFP == 1 then
+		return self._conn:send_command('STATION.DOOR', 'add_person', info)
+	else
+		return self._conn:send_command('STATION.DOOR', 'del_person', info)
+	end
+end
+
 return client 
