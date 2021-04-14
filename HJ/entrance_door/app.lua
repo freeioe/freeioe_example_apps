@@ -253,6 +253,7 @@ function app:handle_http_req(method, path, header, query, body, response)
 
 		local di = data.info
 		local ot = convert_type(di.VerfyType)
+		--[[
 		local pid = di.PersionID
 		if ot == 4 then
 			pid = self._door_token
@@ -260,18 +261,19 @@ function app:handle_http_req(method, path, header, query, body, response)
 		if ot == 2 then
 			pid = di.RFIDCard
 		end
+		]]--
 
 		local info = {
 			i3310A = self._door_sn,
 			i3310B = ot,
-			i3310C = tonumber(di.Notes) or 1,
-			i3310D = pid,
+			--i3310C = tonumber(di.Notes) or 1,
+			i3310D = di.Notes,
 			i3310E = ioe.time(), -- TODO: Convert time
 			i3310F = 1, -- TODO: Door status
-			i3310G = di.RFIDCard,
-			i3310H = tostring(di.PersionID),
-			i3310I = 'http://example.com/example.jpg',
-			i3310J = di.Name
+			--i3310G = di.RFIDCard,
+			--i3310H = tostring(di.PersionID),
+			--i3310I = 'http://example.com/example.jpg', TODO: Upload picture
+			--i3310J = di.Name
 		}
 		self._dev:set_input_prop('info', 'INFO', info)
 
