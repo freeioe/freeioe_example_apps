@@ -21,9 +21,10 @@ function app:on_start()
 	local conf = self:app_conf()
 	conf.devs = conf.devs or {}
 
+	local station = conf.station or 'HJ212'
+
 	--- Default is with gateway sn prefix
-	local with_prefix = conf.dev_sn_prefix ~= nil and conf.dev_sn_prefix or true
-	local dev_sn = with_prefix and sys:id()..'.'..(conf.sn or self:app_name())
+	local dev_sn = sys:id()..'.'..station..'.DOOR'
 
 	self:create_device(dev_sn)
 
@@ -74,8 +75,8 @@ end
 function app:create_device(dev_sn)
 	local api = self:data_api()
 	local meta = api:default_meta()
-	meta.name = 'EntranceGuard'
-	meta.description = "Entrance Guard device"
+	meta.name = 'EntranceDoor'
+	meta.description = "Entrance Door device"
 	meta.series = 'X'
 	meta.inst = self:app_name()
 
@@ -91,15 +92,17 @@ function app:create_device(dev_sn)
 		{ name = 'persion_id', desc = 'Persion ID', vt='string'},
 		{ name = 'persion_image', desc = 'Persion Image URL', vt='string'},
 		{ name = 'persion_name', desc = 'Persion Name', vt='string'},
+
+		{ name = 'info', desc = 'Door info', vt='string'}
 	}
 	local commands = {
 		{ name = 'open_door', desc = 'Open door with access token' }
+		{ name = 'add_person', desc = 'Add person information' }
 	}
 
 	local dev = api:add_device(dev_sn, meta, inputs, {}, commands)
 
 	self._dev = dev
-	self._stat = dev:stat('port')
 end
 
 function app:start_httpd(port, ip)
@@ -210,6 +213,19 @@ function app:process_http(protocol, id, addr)
 	end
 end
 
+local function convert_type(verfy_type)
+	local typ = tonumber(verfy_type) or 1
+	if typ == 1 then
+		return 1
+	end
+	if typ == 27 then
+		return 4
+	end
+
+	-- Others are 2
+	return 2
+end
+
 function app:handle_http_req(method, path, header, query, body, response)
 	local log = self:log_api()
 
@@ -234,6 +250,30 @@ function app:handle_http_req(method, path, header, query, body, response)
 		if not r then
 			log:error(err)
 		end
+
+		local di = data.info
+		local ot = convert_type(di.VerfyType)
+		local pid = di.PersionID
+		if ot == 4 then
+			pid = self._door_token
+		end
+		if ot == 2 then
+			pid = di.RFIDCard
+		end
+
+		local info = {
+			i3310A = self._door_sn,
+			i3310B = ot,
+			i3310C = tonumber(di.Notes) or 1,
+			i3310D = pid,
+			i3310E = ioe.time(), -- TODO: Convert time
+			i3310F = 1, -- TODO: Door status
+			i3310G = di.RFIDCard,
+			i3310H = tostring(di.PersionID),
+			i3310I = 'http://example.com/example.jpg',
+			i3310J = di.Name
+		}
+		self._dev:set_input_prop('info', 'INFO', info)
 
 		return response(200, {code=200, desc="OK"})
 	end

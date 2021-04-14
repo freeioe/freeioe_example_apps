@@ -1,5 +1,17 @@
 [
 	{
+		"name": "station",
+		"desc": "HJ212 站名",
+		"type": "string",
+		"default": "HJ212"
+	},
+	{
+		"name": "SN",
+		"desc": "门禁唯一编码",
+		"type": "string",
+		"default": "88888888"
+	},
+	{
 		"name": "device",
 		"desc": "Device IP address",
 		"type": "string",
@@ -22,11 +34,5 @@
 		"desc": "Gateway local HTTP port",
 		"type": "number",
 		"default": 9876
-	},
-	{
-		"name": "dev_sn_prefix",
-		"desc": "Use gateway sn as prefix for device sn",
-		"type": "boolean",
-		"default": true
 	}
 ]
