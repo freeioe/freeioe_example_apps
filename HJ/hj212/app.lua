@@ -231,6 +231,9 @@ function app:on_start()
 					log:error(err)
 					return nil, err
 				end
+				obj:set_value_callback(function(value, timestamp, quality)
+					self:upload_poll_info(poll, value, timestamp, quality)
+				end)
 				return obj
 			end)
 
@@ -832,6 +835,52 @@ function app:start_timers()
 		now = (now // 3600) * 3600
 		self._calc_mgr:trigger(calc_mgr.TYPES.HOUR, now, 3600)
 	end)
+end
+
+function app:send_command(dev_sn, cmd, params, timeout)
+	local timeout = timeout or 5000 -- five seconds
+	local conf = self:app_conf()
+	local sys_id = self._sys:id()
+
+	local dev_sn = string.gsub(dev_sn, '^STATION(.*)$', conf.station..'%1')
+
+	local device, err = self._api:get_device(sys_id..'.'..dev_sn)
+	if not device then
+		return nil, 'Device not found!!'
+	end
+
+	local priv = {}
+	self._command_wait[priv] == {}
+	local r, err = device:send_command(data.cmd, data.param or {}, priv)
+	if not r then
+		self._command_wait[priv] = nil
+		self._log:error('Device command execute failed!', err)
+		return nil, err
+	end
+
+	self._sys:sleep(timeout, priv)
+
+	local r = self._command_wait[priv]
+
+	self._command_wait[priv] = nil
+
+	if r.result ~= nil then
+		return r.result, r.msg
+	end
+
+	return nil, 'Command timeout!!!'
+end
+
+function app:on_command_result(app_src, priv, result, err)
+	if self._command_wait[priv] then
+		self._command_wait[priv] = {
+			result = result,
+			msg = err
+		}
+		self._sys:wakeup(priv)
+	else
+		self._log:error("No result waitor for command!")
+	end
 end
 
 --- 返回应用对象

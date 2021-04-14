@@ -91,7 +91,7 @@ function conn:start()
 	end
 
 	if self:resend() then
-		local cache_folder = sysinfo.data_dir().."/CACHE_"..self._app:app_name()..'.'..conf.name
+		local cache_folder = sysinfo.data_dir().."/CACHE_V2_"..self._app:app_name()..'.'..conf.name
 		self:log('notice', 'Data cache folder:', cache_folder)
 		-- 128 message in one file, max 1024 files, 128 in batch which is not used, 5 for index saving
 		-- RDATA: 30 seconds, MIN: 1 or 10 minutes thus one hour for one file, thus about one months data
@@ -101,11 +101,8 @@ function conn:start()
 				return nil, "Not connected"
 			end
 
-			local tags = self:decode_tags(data)
-			if #tags == 0 then
-				return true
-			end
-			return self:data_request(pn, tags, 'CACHE', true)
+			local params = self:decode_params(data)
+			return self:fb_request(pn, params, 'CACHE', true)
 		end)
 	end
 
@@ -172,15 +169,33 @@ function conn:on_output(app_src, sn, output, prop, value, timestamp)
 	return nil, "Output not found!"
 end
 
-function conn:data_request(pn, data, key, from_fb)
+function conn:fb_request(pn, need_ack, params, key)
 	local r, request = pcall(require, 'hj212.request.'..pn)
 	if not r then
 		self:log('error', request)
 		return true
 	end
 
-	local req = request:new(data, true)
+	local req = request:new(need_ack)
 
+	req:command():set_params(params)
+
+	return self:real_request(req, pn, key, true)
+end
+
+function conn:data_request(pn, data, key)
+	local r, request = pcall(require, 'hj212.request.'..pn)
+	if not r then
+		self:log('error', request)
+		return true
+	end
+
+	local req = request:new(true, data)
+
+	return self:real_request(req, pn, key)
+end
+
+function conn:real_request(req, pn, key, from_fb)
 	local r, err = self._client:request(req, function(resp, err)
 		if not resp then
 			return nil, "Upload "..key.." data failed. error:"..err
@@ -195,11 +210,14 @@ function conn:data_request(pn, data, key, from_fb)
 		if from_fb then
 			self:log('debug', 'Resend cache data failed', pn)
 		elseif self._fb then
+			self:log("error", "Upload "..key.." error:", err)
 			self:log("info", 'Save unsend data to cache', pn)
-			local tags, err = self:encode_tags(data)
-			if tags then
+			local params = assert(req:command():params())
+			local data, err = self:encode_params(params)
+			if data then
 				if #tags >= 0 then
-					self._fb:push(pn, tags)
+					local need_ack = req:need_ack()
+					self._fb:push(pn, need_ack, data)
 				else
 					self:log("warning", "Encoded tags are empty!")
 				end
@@ -207,30 +225,22 @@ function conn:data_request(pn, data, key, from_fb)
 				self:log("error", "Encode tags failed", err)
 			end
 		end
-		self:log("error", "Upload "..key.." error:", err)
 	else
 		self:log("debug", "Upload "..key.." success")
 	end
 	return r, err
 end
 
-function conn:encode_tags(tags)
-	local data = {}
-	for _, v in ipairs(tags) do
-		data[#data + 1] = { v:data_time(), v:encode()}
-	end
-	return data
+function conn:encode_params(params)
+	local data, err = params:encode()
+	print(data)
+	return data, err
 end
 
-function conn:decode_tags(data)
-	local tags = {}
-	for _, v in ipairs(data) do
-		local tag = param_tag:new()
-		tag:set_data_time(v[1])
-		tag:decode(v[2])
-		tags[#tags + 1] = tag
-	end
-	return tags
+function conn:decode_params(data)
+	local p = params:new()
+	p:decode(data)
+	return p
 end
 
 function conn:convert_version(data)
@@ -294,6 +304,22 @@ end
 function conn:upload_day_data(data)
 	data = self:convert_data(data)
 	return self:data_request('day_data', data, 'DAY')
+end
+
+function conn:send_command(dev_sn, cmd, params)
+	return self._app:send_command(dev_sn, cmd, params)
+end
+
+function conn:upload_meter_info(poll_id, data, timestamp)
+	local r, request = pcall(require, 'hj212.request.get_meter_info')
+	if not r then
+		self:log('error', request)
+		return true
+	end
+
+	local req = request:new(true, poll_id, data, true)
+
+	return self:real_request(req, 'get_meter_info', 'INFO')
 end
 
 return conn
