@@ -192,7 +192,7 @@ function client:on_run()
 
 	for _, name in ipairs(self._info_cov) do
 		local info_list = self._info_map[name]
-		print('INFO', name, cjson.encode(info_list))
+		--print('INFO', name, cjson.encode(info_list))
 		self._dev:set_input_prop(name, 'INFO', info_list)
 
 		for k, v in pairs(info_list) do

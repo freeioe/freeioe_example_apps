@@ -30,13 +30,13 @@ local function map_alarm(state, alarm)
 	}
 
 	for k, v in pairs(infos) do
-		v.i12001 = state
-		v.i12002 = alarm == 0 and 0 or 1
+		v.i12007 = state
+		v.i12008 = alarm == 0 and 0 or 1
 	end
 
 	local set_all = function(val)
 		for k, v in pairs(infos) do
-			v.i12003 = val
+			v.i12009 = val
 		end
 	end
 
@@ -69,31 +69,31 @@ local function map_alarm(state, alarm)
 	end
 
 	if 0x40 == (alarm & 0x40) then
-		infos.a19001.i12003 = 8
+		infos.a19001.i12009 = 8
 	end
 
 	if 0x80 == (alarm & 0x80) then
-		infos.a21026.i12003 = 2
+		infos.a21026.i12009 = 2
 	end
 
 	if 0x100 == (alarm & 0x100) then
-		infos.a21026.i12003 = 3
+		infos.a21026.i12009 = 3
 	end
 
 	if 0x200 == (alarm & 0x200) then
-		infos.a21002.i12003 = 2
+		infos.a21002.i12009 = 2
 	end
 
 	if 0x400 == (alarm & 0x400) then
-		infos.a21002.i12003 = 3
+		infos.a21002.i12009 = 3
 	end
 
 	if 0x800 == (alarm & 0x800) then
-		infos.a19001.i12003 = 2
+		infos.a19001.i12009 = 2
 	end
 
 	if 0x1000 == (alarm & 0x1000) then
-		infos.a19001.i12003 = 3
+		infos.a19001.i12009 = 3
 	end
 
 	return infos

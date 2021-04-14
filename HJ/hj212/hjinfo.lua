@@ -96,13 +96,13 @@ function info:set_value(value, timestamp, quality)
 		self._db:push(new_value, timestamp, quality)
 	end
 
-	if self._value_callback then
-		if not eq then
-			self._value_callback(new_value, timestamp, quality)
-		end
+	assert( base.set_value(self, new_value, timestamp, quality) )
+
+	if not eq and self._value_callback then
+		self._value_callback(base.get_value(self))
 	end
 
-	return base.set_value(self, new_value, timestamp, quality)
+	return true
 end
 
 return info

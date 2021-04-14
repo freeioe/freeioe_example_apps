@@ -3,6 +3,7 @@ local tbl_equals = require 'utils.table.equals'
 local calc_parser = require 'calc.parser'
 
 local logger = require 'hj212.logger'
+local params_tag = require 'hj212.params.tag'
 local base = require 'hj212.client.info'
 
 local info = base:subclass('HJ212_HJ_INFO')
@@ -33,6 +34,8 @@ function info:initialize(hisdb, poll, props, no_hisdb)
 	end
 
 	self._value_callback = nil
+	self._last_state = {}
+	self._last_status = {}
 end
 
 function info:set_value_callback(callback)
@@ -114,7 +117,7 @@ function info:info_data(value, timestamp, quality)
 		return
 	end
 
-	local poll_id = self:id()
+	local poll_id = self:poll():id()
 	local INFO_STATE = string.sub(poll_id, 1, 1) == 'a' and A_INFO_STATE or W_INFO_STATE
 
 	local status = {}
@@ -141,23 +144,23 @@ function info:info_data(value, timestamp, quality)
 
 	if state then
 		local data = {}
+		local has_data = false
 		for k, v in pairs(state) do
+			has_data = true
 			local fmt = self:get_format(k)
-			table.insert(data, param_tag:new(k, {
-				Info = self._info
-			}, timestamp, fmt))
+			table.insert(data, params_tag:new(k, { Info = v }, timestamp, fmt))
 		end
-		state = data
+		state = has_data and data or nil
 	end
 	if status then
 		local data =  {}
+		local has_data = false
 		for k, v in pairs(status) do
+			has_data = true
 			local fmt = self:get_format(k)
-			table.insert(data, param_tag:new(k, {
-				Info = self._info
-			}, timestamp, fmt))
+			table.insert(data, params_tag:new(k, { Info = v }, timestamp, fmt))
 		end
-		status = data
+		status = has_data and data or nil
 	end
 
 	return state, status

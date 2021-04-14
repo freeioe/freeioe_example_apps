@@ -16,7 +16,6 @@ local csv_tpl = require 'csv_tpl'
 local conn = require 'conn'
 local poll = require 'hjpoll'
 local info = require 'hjinfo'
-local hisdb = require 'hisdb.hisdb'
 local siridb = require 'siridb.hisdb'
 
 --- lua_HJ212_version: 2021-04-04
@@ -110,11 +109,14 @@ function app:on_start()
 
 	local db_folder = sysinfo.data_dir() .. "/db_" .. self._name
 	if not conf.using_siridb then
+		assert(false, "Only siridb supported")
+		--[[
 		self._hisdb = hisdb:new(db_folder, durations, def_duration)
 		local r, err = self._hisdb:open()
 		if not r  then
 			return nil, err
 		end
+		]]--
 	else
 		local i = 1
 		local max_retry = 10
@@ -205,7 +207,7 @@ function app:on_start()
 	local no_hisdb = conf.no_hisdb
 	for sn, d in pairs(tpl.devs) do
 		local dev = {
-			'RS' = {} -- Handle the meter connection status
+			RS = {} -- Handle the meter connection status
 		}
 		local poll_list = {}
 		for _, prop in ipairs(d) do
@@ -233,7 +235,7 @@ function app:on_start()
 					return nil, err
 				end
 				obj:set_value_callback(function(value, timestamp, quality)
-					self:upload_poll_info(poll, value, timestamp, quality)
+					self:upload_poll_info(poll, obj, value, timestamp, quality)
 				end)
 				return obj
 			end)
@@ -283,12 +285,10 @@ function app:on_start()
 	end
 
 	if true then
-		local dev = {}
 		local poll_list = {}
 		local station_prop = { name = "__STATION__", src_prop = 'INFO' }
 		local door_prop = { name = "__DOOR__", src_prop = 'INFO' }
-		dev[prop.input] = {prop}
-		table.insert(poll_list, station_poll:new(self._hisdb, self._station, {name="__STATION__"}, function(poll)
+		table.insert(poll_list, poll:new(self._hisdb, self._station, {name="__STATION__"}, function(poll)
 			local obj = info:new(self._hisdb, poll, {}, false)
 			local r, err = obj:init_db()
 			if not r then
@@ -301,7 +301,7 @@ function app:on_start()
 			self:bind_station_info(obj)
 			return obj
 		end))
-		table.insert(poll_list, door_poll:new(self._hisdb, self._station, {name="__DOOR__"}, function(poll)
+		table.insert(poll_list, poll:new(self._hisdb, self._station, {name="__DOOR__"}, function(poll)
 			local obj = info:new(self._hisdb, poll, {}, false)
 			local r, err = obj:init_db()
 			if not r then
@@ -768,18 +768,15 @@ function app:for_earch_client_async(func, ...)
 	end
 end
 
-local A_INFO_STATE = {'i12007', 'i12008', 'i12009'}
-local W_INFO_STATE = {'i12101', 'i12102', 'i12103'}
-function app:upload_poll_info(info, value, timestamp, quality)
+function app:upload_poll_info(poll, info, value, timestamp, quality)
 	if quality ~= 0 then
 		-- TODO: upload station info
 		return
 	end
 
-	local poll = infi:poll()
+	local poll_id = poll:id()
 	local state, status = info:info_data(value, timestamp, quality)
 
-	local poll_id = poll:id()
 	if string.sub(poll_id, 1, 1) == 'a' then
 		if state then
 			self:upload_meter_info(2, poll_id, state)
@@ -826,21 +823,37 @@ end
 
 function app:upload_rdata(now)
 	local data = self._station:rdata(now, false)
+	if #data == 0 then
+		self._log:warning("No RDATA!!!")
+		return
+	end
 	self:for_earch_client_async('upload_rdata', data)
 end
 
 function app:upload_min_data(now)
 	local data = self._station:min_data(now, now)
+	if #data == 0 then
+		self._log:warning("No MIN DATA!!!")
+		return
+	end
 	self:for_earch_client_async('upload_min_data', data)
 end
 
 function app:upload_hour_data(now)
 	local data = self._station:hour_data(now, now)
+	if #data == 0 then
+		self._log:warning("No HOUR DATA!!!")
+		return
+	end
 	self:for_earch_client_async('upload_hour_data', data)
 end
 
 function app:upload_day_data(now)
 	local data = self._station:day_data(now, now)
+	if #data == 0 then
+		self._log:warning("No DAY DATA!!!")
+		return
+	end
 	self:for_earch_client_async('upload_day_data', data)
 end
 
@@ -996,8 +1009,8 @@ function app:send_command(dev_sn, cmd, params, timeout)
 	end
 
 	local priv = {}
-	self._command_wait[priv] == {}
-	local r, err = device:send_command(data.cmd, data.param or {}, priv)
+	self._command_wait[priv] = {}
+	local r, err = device:send_command(cmd, params or {}, priv)
 	if not r then
 		self._command_wait[priv] = nil
 		self._log:error('Device command execute failed!', err)

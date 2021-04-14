@@ -215,14 +215,18 @@ function conn:real_request(req, pn, key, from_fb)
 			local params = assert(req:command():params())
 			local data, err = self:encode_params(params)
 			if data then
-				if #tags >= 0 then
-					local need_ack = req:need_ack()
-					self._fb:push(pn, need_ack, data)
+				local need_ack = req:need_ack()
+				if type(data) == 'table' then
+					for _, v in ipairs(data) do
+						print('CACHE:', pn, need_ack, v)
+						self._fb:push(pn, need_ack, v)
+					end
 				else
-					self:log("warning", "Encoded tags are empty!")
+					print('CACHE:', pn, need_ack, data)
+					self._fb:push(pn, need_ack, data)
 				end
 			else
-				self:log("error", "Encode tags failed", err)
+				self:log("error", "Encode params failed", err)
 			end
 		end
 	else
@@ -233,7 +237,6 @@ end
 
 function conn:encode_params(params)
 	local data, err = params:encode()
-	print(data)
 	return data, err
 end
 

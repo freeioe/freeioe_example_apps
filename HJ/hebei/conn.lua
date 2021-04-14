@@ -7,6 +7,7 @@ local client = require 'client_sc'
 local types = require 'hj212.types'
 local param_tag = require 'hj212.params.tag'
 local param_state = require 'hj212.params.state'
+local hjparams = require 'hj212.params'
 
 local conn = class("FREEIOE_HJ212_APP_CONN")
 
@@ -90,13 +91,13 @@ function conn:start()
 		-- 128 message in one file, max 1024 files, 128 in batch which is not used, 5 for index saving
 		-- RDATA: 30 seconds, MIN: 1 or 10 minutes thus one hour for one file, thus about one months data
 		self._fb = filebuffer:new(cache_folder, 128, 1024, 128, 5)
-		self._fb:start(function(pn, data)
+		self._fb:start(function(pn, need_ack, data)
 			if not self._client:is_connected() then
 				return nil, "Not connected"
 			end
 
 			local params = self:decode_params(data)
-			return self:fb_request(pn, params, 'CACHE', true)
+			return self:fb_request(pn, need_ack, params, 'CACHE')
 		end)
 	end
 
@@ -209,14 +210,18 @@ function conn:real_request(req, pn, key, from_fb)
 			local params = assert(req:command():params())
 			local data, err = self:encode_params(params)
 			if data then
-				if #tags >= 0 then
-					local need_ack = req:need_ack()
-					self._fb:push(pn, need_ack, data)
+				local need_ack = req:need_ack()
+				if type(data) == 'table' then
+					for _, v in ipairs(data) do
+						print('CACHE:', pn, need_ack, v)
+						self._fb:push(pn, need_ack, v)
+					end
 				else
-					self:log("warning", "Encoded tags are empty!")
+					print('CACHE:', pn, need_ack, data)
+					self._fb:push(pn, need_ack, data)
 				end
 			else
-				self:log("error", "Encode tags failed", err)
+				self:log("error", "Encode params failed", err)
 			end
 		end
 	else
@@ -227,12 +232,11 @@ end
 
 function conn:encode_params(params)
 	local data, err = params:encode()
-	print(data)
 	return data, err
 end
 
 function conn:decode_params(data)
-	local p = params:new()
+	local p = hjparams:new()
 	p:decode(data)
 	return p
 end
@@ -273,7 +277,7 @@ function conn:upload_meter_info(dt, poll_id, data, timestamp)
 
 	local cmd = req:command()
 	local params = cmd:params()
-	params:set_from_raw('DT', 'N2')
+	params:set('DT', dt, 'N2')
 
 	return self:real_request(req, 'get_meter_info', 'INFO')
 end

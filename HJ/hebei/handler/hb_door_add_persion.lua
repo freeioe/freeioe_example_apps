@@ -22,8 +22,7 @@ function handler:process(request)
 		end
 
 		for _, tag in pairs(tags[data_time]) do
-			local tag_name = tag:tag_name()
-			info[tag_name] = tag:get('Info')
+			info[tag:id()] = tag:get('Info')
 		end
 	end
 

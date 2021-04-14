@@ -149,7 +149,7 @@ function app:on_start()
 				passwd = '123456',
 				retry = 1,
 				resend = 'Yes',
-				version = '2005',
+				version = '2017',
 				value_tpl = 'TaiAn',
 			})
 		end
@@ -232,7 +232,7 @@ function app:on_start()
 					return nil, err
 				end
 				obj:set_value_callback(function(value, timestamp, quality)
-					self:upload_poll_info(poll, value, timestamp, quality)
+					self:upload_poll_info(poll, obj, value, timestamp, quality)
 				end)
 				return obj
 			end)
@@ -698,11 +698,23 @@ function app:upload_day_data(now)
 	self:for_earch_client_async('upload_day_data', data)
 end
 
+function app:upload_poll_info(poll, info, value, timestamp, quality)
+	if quality ~= 0 then
+		-- TODO: upload station info
+		return
+	end
+
+	local poll_id = poll:id()
+	local data = info:data(timestamp)
+
+	self:for_earch_client_async('upload_meter_info', poll_id, data, timestamp)
+end
+
 function app:diff_data(data, diff_hour)
 	for _, v in ipairs(data) do
 		local dt = v:data_time()
 		dt = dt + (diff_hour * 3600)
-		print(v:data_time(), diff_hour, dt)
+		--print(v:data_time(), diff_hour, dt)
 		v:set_data_time(dt)
 	end
 	return data
@@ -850,7 +862,7 @@ function app:send_command(dev_sn, cmd, params, timeout)
 	end
 
 	local priv = {}
-	self._command_wait[priv] == {}
+	self._command_wait[priv] = {}
 	local r, err = device:send_command(data.cmd, data.param or {}, priv)
 	if not r then
 		self._command_wait[priv] = nil

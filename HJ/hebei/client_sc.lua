@@ -83,6 +83,17 @@ function client:send(session, raw_data)
 	--self:log('debug', 'Send request', session)
 	--self:log('debug', 'OUT:', basexx.to_hex(raw_data))
 
+	if self._requests[session] then
+		while self._requests[session] and self._socket and not self._closing do
+			self:log('trace', 'Wait for same session finished')
+			skynet.sleep(10)
+			t_left = t_left - 100
+		end
+		if not self._socket or self._closing  then
+			return nil, "Socket closed"
+		end
+	end
+
 	local t = {}
 	self._requests[session] = t
 
@@ -94,6 +105,7 @@ function client:send(session, raw_data)
 				self._retry_cb(self._name, cur, self:retry(), raw_data)
 			end
 		end
+		self:log('trace', "Send request", session)
 		local r, err = socket.write(self._socket, raw_data)
 		if not r then
 			self._results[session] = {false, err or 'Disconnected'}
