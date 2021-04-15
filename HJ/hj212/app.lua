@@ -193,6 +193,9 @@ function app:on_start()
 			return self:set_min_interval(interval)
 		end
 	})
+	local settings = ioe.env.wait('HJ212.SETTINGS', conf.station)
+	log:info("Loaded settings:", cjson.encode(settings))
+	self._station:set_settings(settings)
 	self._station:set_rdata_interval(self._rdata_interval)
 	self._station:set_min_interval(self._min_interval)
 
@@ -267,7 +270,7 @@ function app:on_start()
 						val_str, err = cjson.encode(val)
 					end
 					if val_str then
-						dev:set_input_prop(p_name, type_name, val_str, timestamp, quality)
+						dev:set_input_prop(p_name, type_name, val, timestamp, quality)
 					else
 						log:error('Value cannot serialized by cjson')
 					end
@@ -408,7 +411,14 @@ function app:read_polls()
 				end
 				local value, timestamp, quality = dev_api:get_input_prop(input, 'RDATA')
 				if value then
-					value = cjson.decode(value) or {}
+					if type(value) == 'string' then
+						local val, err = cjson.decode(value)
+						if not val then
+							self._log:warning("Value of RDATA decode failed", err)
+						else
+							value = val
+						end
+					end
 					self:set_station_prop_rdata(polls, value, timestamp, quality)
 				else
 					--self._log:error("Cannot read input value", sn, input)
@@ -680,21 +690,37 @@ end
 
 function app:upload_rdata(now)
 	local data = self._station:rdata(now, false)
+	if #data == 0 then
+		self._log:warning("No RDATA!!!")
+		return
+	end
 	self:for_earch_client_async('upload_rdata', data)
 end
 
 function app:upload_min_data(now)
 	local data = self._station:min_data(now, now)
+	if #data == 0 then
+		self._log:warning("No MIN DATA!!!")
+		return
+	end
 	self:for_earch_client_async('upload_min_data', data)
 end
 
 function app:upload_hour_data(now)
 	local data = self._station:hour_data(now, now)
+	if #data == 0 then
+		self._log:warning("No HOUR DATA!!!")
+		return
+	end
 	self:for_earch_client_async('upload_hour_data', data)
 end
 
 function app:upload_day_data(now)
 	local data = self._station:day_data(now, now)
+	if #data == 0 then
+		self._log:warning("No DAY DATA!!!")
+		return
+	end
 	self:for_earch_client_async('upload_day_data', data)
 end
 
@@ -714,7 +740,7 @@ function app:diff_data(data, diff_hour)
 	for _, v in ipairs(data) do
 		local dt = v:data_time()
 		dt = dt + (diff_hour * 3600)
-		--print(v:data_time(), diff_hour, dt)
+		print(v:data_time(), diff_hour, dt)
 		v:set_data_time(dt)
 	end
 	return data
@@ -863,7 +889,7 @@ function app:send_command(dev_sn, cmd, params, timeout)
 
 	local priv = {}
 	self._command_wait[priv] = {}
-	local r, err = device:send_command(data.cmd, data.param or {}, priv)
+	local r, err = device:send_command(cmd, params or {}, priv)
 	if not r then
 		self._command_wait[priv] = nil
 		self._log:error('Device command execute failed!', err)

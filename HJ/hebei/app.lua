@@ -194,6 +194,9 @@ function app:on_start()
 			return self:set_min_interval(interval)
 		end
 	})
+	local settings = ioe.env.wait('HJ212.SETTINGS', conf.station)
+	log:info("Loaded settings:", cjson.encode(settings))
+	self._station:set_settings(settings)
 	self._station:set_rdata_interval(self._rdata_interval)
 	self._station:set_min_interval(self._min_interval)
 
@@ -270,7 +273,7 @@ function app:on_start()
 						val_str, err = cjson.encode(val)
 					end
 					if val_str then
-						dev:set_input_prop(p_name, type_name, val_str, timestamp, quality)
+						dev:set_input_prop(p_name, type_name, val, timestamp, quality)
 					else
 						log:error('Value cannot serialized by cjson')
 					end
@@ -453,7 +456,7 @@ function app:set_station_prop_rdata(props, value, timestamp, quality)
 end
 
 function app:set_station_prop_info(props, value, timestamp, quality)
-	local dt = assert(value.DT)
+	local dt = value.DT or 0
 	value.DT = nil -- clean up DT in info data
 
 	local sys = self:sys_api()
@@ -492,7 +495,14 @@ function app:read_polls()
 				end
 				local value, timestamp, quality = dev_api:get_input_prop(input, 'RDATA')
 				if value then
-					value = cjson.decode(value) or {}
+					if type(value) == 'string' then
+						local val, err = cjson.decode(value)
+						if not val then
+							self._log:warning("Value of RDATA decode failed", err)
+						else
+							value = val
+						end
+					end
 					self:set_station_prop_rdata(polls, value, timestamp, quality)
 				else
 					--self._log:error("Cannot read input value", sn, input)

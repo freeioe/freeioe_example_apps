@@ -8,6 +8,7 @@ local types = require 'hj212.types'
 local value_tpl = require 'value_tpl.parser'
 local param_tag = require 'hj212.params.tag'
 local param_state = require 'hj212.params.state'
+local hjparams = require 'hj212.params'
 
 local conn = class("FREEIOE_HJ212_APP_CONN")
 
@@ -96,13 +97,13 @@ function conn:start()
 		-- 128 message in one file, max 1024 files, 128 in batch which is not used, 5 for index saving
 		-- RDATA: 30 seconds, MIN: 1 or 10 minutes thus one hour for one file, thus about one months data
 		self._fb = filebuffer:new(cache_folder, 128, 1024, 128, 5)
-		self._fb:start(function(pn, data)
+		self._fb:start(function(pn, need_ack, data)
 			if not self._client:is_connected() then
 				return nil, "Not connected"
 			end
 
 			local params = self:decode_params(data)
-			return self:fb_request(pn, params, 'CACHE', true)
+			return self:fb_request(pn, need_ack, params, 'CACHE')
 		end)
 	end
 
@@ -241,7 +242,7 @@ function conn:encode_params(params)
 end
 
 function conn:decode_params(data)
-	local p = params:new()
+	local p = hjparams:new()
 	p:decode(data)
 	return p
 end
