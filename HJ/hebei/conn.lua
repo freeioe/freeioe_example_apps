@@ -213,11 +213,11 @@ function conn:real_request(req, pn, key, from_fb)
 				local need_ack = req:need_ack()
 				if type(data) == 'table' then
 					for _, v in ipairs(data) do
-						print('CACHE:', pn, need_ack, v)
+						--print('CACHE:', pn, need_ack, v)
 						self._fb:push(pn, need_ack, v)
 					end
 				else
-					print('CACHE:', pn, need_ack, data)
+					--print('CACHE:', pn, need_ack, data)
 					self._fb:push(pn, need_ack, data)
 				end
 			else
@@ -231,8 +231,7 @@ function conn:real_request(req, pn, key, from_fb)
 end
 
 function conn:encode_params(params)
-	local data, err = params:encode()
-	return data, err
+	return params:encode()
 end
 
 function conn:decode_params(data)

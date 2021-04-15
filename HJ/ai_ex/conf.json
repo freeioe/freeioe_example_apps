@@ -10,6 +10,12 @@
 		"default": "cems_ai"
 	},
 	{
+		"name": "dev_name",
+		"desc": "设备名称",
+		"type": "string",
+		"default": "AI Dust device"
+	},
+	{
 		"name": "station",
 		"desc": "HJ212 站名",
 		"type": "string",

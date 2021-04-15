@@ -36,6 +36,12 @@ function app:on_init()
 		log[level](log, ...)
 	end)
 	self._rs_map = {}
+
+	local tags = require 'hebei.tags'
+	local exinfo = require 'hj212.tags.exinfo'
+	for k, v in pairs(tags) do
+		exinfo.add(k, v.desc, v.format, v.org_id, v.unit, v.cou_unit)
+	end
 end
 
 local cmd = [[
@@ -148,7 +154,7 @@ function app:on_start()
 			table.insert(conf.servers, {
 				name = 'ministry',
 				host = '127.0.0.1',
-				port = 16005,
+				port = 16000,
 				passwd = '123456',
 				retry = 1,
 				resend = 'Yes',
@@ -446,8 +452,14 @@ function app:set_station_prop_rdata(props, value, timestamp, quality)
 			local val = (v.rate and v.rate ~= 1) and value.value * v.rate or value.value
 			local val_z = (v.rate and v.rate ~= 1 and value.value_z ~= nil) and value.value_z * v.rate or value.value_z
 			timestamp = self._local_timestamp and sys:time() or timestamp
+			local ex_vals = nil
+			if value.value_src then
+				ex_vals = {
+					['i13115-Info'] = value.value_src
+				}
+			end
 
-			local r, err = self._station:set_poll_value(v.name, val, timestamp, val_z, v.flag, quality)
+			local r, err = self._station:set_poll_value(v.name, val, timestamp, val_z, v.flag, quality, ex_vals)
 			if not r then
 				self._log:warning("Failed set poll value from rdata", v.name, cjson.encode(value), err)
 			end
@@ -805,6 +817,7 @@ function app:upload_poll_info(poll, info, value, timestamp, quality)
 end
 
 function app:upload_meter_info(dt, poll_id, data, timestamp)
+	assert(#data > 0, 'PolId:'..poll_id..' DT:'..dt)
 	self:for_earch_client_async('upload_meter_info', dt, poll_id, data, timestamp)	
 end
 

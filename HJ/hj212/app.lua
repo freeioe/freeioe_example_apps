@@ -688,6 +688,18 @@ function app:for_earch_client_async(func, ...)
 	end
 end
 
+function app:upload_poll_info(poll, info, value, timestamp, quality)
+	if quality ~= 0 then
+		-- TODO: upload station info
+		return
+	end
+
+	local poll_id = poll:id()
+	local data = info:data(timestamp)
+
+	self:for_earch_client_async('upload_meter_info', poll_id, data, timestamp)
+end
+
 function app:upload_rdata(now)
 	local data = self._station:rdata(now, false)
 	if #data == 0 then
@@ -722,18 +734,6 @@ function app:upload_day_data(now)
 		return
 	end
 	self:for_earch_client_async('upload_day_data', data)
-end
-
-function app:upload_poll_info(poll, info, value, timestamp, quality)
-	if quality ~= 0 then
-		-- TODO: upload station info
-		return
-	end
-
-	local poll_id = poll:id()
-	local data = info:data(timestamp)
-
-	self:for_earch_client_async('upload_meter_info', poll_id, data, timestamp)
 end
 
 function app:diff_data(data, diff_hour)

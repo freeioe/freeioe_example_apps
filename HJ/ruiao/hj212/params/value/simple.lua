@@ -112,7 +112,7 @@ end
 
 function simple:decode(raw)
 	if not self._format then
-		self._value = tonumber(raw) or raw
+		self._value = raw
 		return string.len(raw)
 	end
 

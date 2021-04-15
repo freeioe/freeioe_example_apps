@@ -21,7 +21,8 @@ function app:on_init()
 	if ioe.developer_mode() then
 		conf.unit = 1
 		conf.serial = conf.serial or {
-			port = "/tmp/ttyS3",
+			--port = "/tmp/ttyS3",
+			port = "/dev/ttyUSB1",
 			baudrate = 9600,
 			data_bits = 8,
 			parity = "NONE",
@@ -38,20 +39,27 @@ function app:on_start()
 	local conf = self:app_conf()
 	local log = self:log_api()
 
-	local sn = conf.dev_sn_prefix and sys_id.."."..conf.dev_sn or conf.dev_sn
+	local sn = sys_id.."."..conf.dev_sn
 
 	local meta = self._api:default_meta()
-	meta.name = "AI Extension"
+	meta.name = conf.dev_name or "AI Extension"
 
-	local ai_list = conf.ai_list or {}
+	conf.ai_list = conf.ai_list or {
+		{ channel = 1, name = 'a34013', desc = '烟尘', unit = 'mg/m3', setting_prefix = 'Dust' },
+		{ channel = 2, name = 'a01012', desc = '烟气温度', unit = 'C', setting_prefix = 'Temp' },
+		{ channel = 3, name = 'a01013', desc = '烟气压力', unit = 'Pa', setting_prefix = 'Pressure' },
+		{ channel = 6, name = 'a01011', desc = '烟气流速', unit = 'm/s', setting_prefix = 'Flow' },
+		{ channel = 5, name = 'a01014', desc = '烟气湿度', unit = '%', setting_prefix = 'Humidity' },
+	}
 
 	local inputs = {}
-	for _, v in pairs(ai_list) do
+	for _, v in pairs(conf.ai_list) do
 		table.insert(inputs, {
 			name = v.name,
 			desc = v.desc,
 			unit = v.unit
 		})
+		--[[
 		table.insert(inputs, {
 			name = v.name..'_low',
 			desc = v.desc..' output low value',
@@ -62,11 +70,18 @@ function app:on_start()
 			desc = v.desc..' output high value',
 			unit = v.unit
 		})
+		--]]
 	end
 
 	self._dev = self._api:add_device(sn, meta, inputs)
 
 	self._modbus = master:new('RTU', {link='serial', serial = conf.serial})
+
+	--- 设定通讯口数据回调
+	self._modbus:set_io_cb(function(io, unit, msg)
+		self._dev:dump_comm(io, msg)
+	end)
+
 	return self._modbus:start()
 end
 
@@ -76,6 +91,7 @@ function app:on_close(reason)
 		self._modbus:stop()
 		self._modbus = nil
 	end
+	return true
 end
 
 --- 应用运行入口
@@ -84,7 +100,7 @@ function app:on_run(tms)
 
 	self:read_settings()
 
-	self:read_ai()
+	self:read_ai(self._modbus, conf.unit, conf.ai_list)
 
 	return conf.loop_gap or 1000
 end
@@ -108,7 +124,7 @@ function app:read_settings()
 	end
 end
 
-function app:read_ai()
+function app:read_ai(modbus, unit, ai_list)
 	local func = 0x03
 	local addr = 0
 	local dlen = 8
@@ -116,10 +132,12 @@ function app:read_ai()
 	if not req then
 		return nil, err
 	end
-	local pdu, err = modbus:request(self._unit, req, 1000)
+	local pdu, err = modbus:request(unit, req, 1000)
 	if not pdu then
 		return nil, err
 	end
+
+	local now = ioe.time()
 
 	--- 解析数据
 	local d = self._data_unpack
@@ -136,17 +154,28 @@ function app:read_ai()
 
 	local settings = self._settings
 
-	for _, v in ipairs(conf.ai_list) do
-		local index = assert(tonumber(v.channel))
-		assert(index >= 1)
-		local val = d:uint16(pdu_data, index)
+	for _, v in ipairs(ai_list) do
+		local index = assert(tonumber(v.channel)) - 1
+		assert(index >= 0)
+		local val, n_index = d:uint16(pdu_data, index * 2 + 1)
 		local out_min = settings[v.setting_prefix..'_Min'] or 0
 		local out_max = settings[v.setting_prefix..'_Max'] or 65535
 
-		val = ((val - 0) * (out_max - out_min))/(65535 - 0)
-		val = val + out_min
 
-		self._dev:set_input_prop(v.name, "value", val)
+		local mA = ((val - 0) * (20 - 4)) / (65535 - 0)
+		mA = mA + 4
+
+		local value = ((val - 0) * (out_max - out_min))/(65535 - 0)
+		value = value + out_min
+		--print(val, mA, value)
+
+		self._dev:set_input_prop(v.name, "value", value, now, 0)
+		self._dev:set_input_prop(v.name, 'RDATA', {
+			value = value,
+			value_src = mA,
+			value_raw = val,
+			timestamp = now,
+		}, now, 0)
 	end
 end
 

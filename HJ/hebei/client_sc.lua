@@ -84,11 +84,12 @@ function client:send(session, raw_data)
 	--self:log('debug', 'OUT:', basexx.to_hex(raw_data))
 
 	if self._requests[session] then
+		self:log('trace', 'Wait for same session finished', session)
 		while self._requests[session] and self._socket and not self._closing do
-			self:log('trace', 'Wait for same session finished')
 			skynet.sleep(10)
 			t_left = t_left - 100
 		end
+		self:log('trace', 'Wait for same session done', session)
 		if not self._socket or self._closing  then
 			return nil, "Socket closed"
 		end

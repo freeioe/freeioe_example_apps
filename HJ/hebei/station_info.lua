@@ -1,5 +1,6 @@
 local base = require 'hjinfo'
 local param_tag = require 'hj212.params.tag'
+local finder = require 'hj212.tags.finder'
 
 local info = base:subclass('HJ212_HJ_STATION_INFO')
 
@@ -60,34 +61,15 @@ function info:update_value_by_key(key, val, timestamp, quality)
 	return self:set_value(value, timemstamp, quality)
 end
 
-local info_fmt = {
-	-- STATE
-	i22001 = 'N2',
-	i22005 = 'N2',
-	i22003 = 'N2',
-	i52001 = 'N2',
-
-	-- INFO
-	a01016 = 'N2',
-	i23002 = 'N2',
-	i23003 = 'N2',
-	i23004 = 'N2',
-	i23005 = 'N5.2',
-	i23006 = 'N5.2',
-	i23007 = 'N5.2',
-	i23008 = 'N5.2',
-	i23009 = 'N5.2',
-	i23010 = 'N5.2',
-	i23011 = 'N5.2',
-	i23011 = 'N5.2'
-}
-
 function info:get_format(info_name)
 	if string.match(info_name, '(.+)%-i22004') then
-		return 'N2'
+		local info = finder('i22004')
+		return info and info.format or 'N2'
 	end
-	if info_fmt[info_name] then
-		return info_fmt[info_name]
+
+	local info = finder(info_name)
+	if info then
+		return info.format
 	end
 
 	return nil

@@ -2,6 +2,7 @@ local base = require 'hj212.calc.db'
 local siri_data = require 'db.siridb.data'
 local siri_series = require 'db.siridb.series'
 local data_merge = require 'siridb.data_merge'
+local cjson = require 'cjson.safe'
 
 local poll = base:subclass('siridb.poll')
 
@@ -109,6 +110,12 @@ function poll:read(cate, start_time, end_time)
 			goto CONTINUE
 		end
 
+		if k == 'ex_vals' then
+			for i, v in ipairs(values) do
+				v[2] = cjson.decode(v[2])
+			end
+		end
+
 		local vt = self:get_value_type(cate, k)
 		if vt and vt == t then
 			dm:push_kv(k, values, 0.001)
@@ -137,6 +144,7 @@ function poll:write(cate, data, is_array)
 	local series_map = {}
 	for _, d in ipairs(data) do
 		for k, v in pairs(d) do
+			local val = v
 			local series = series_map[k]
 			if not series and k ~= 'timestamp' then
 				local vt = self:get_value_type(cate, k)
@@ -146,10 +154,13 @@ function poll:write(cate, data, is_array)
 					series = siri_series:new(name, vt)
 					series_map[k] = series
 					db_data:add_series(name, series)
+					if k == 'ex_vals' then
+						val = cjson.encode(val)
+					end
 				end
 			end
 			if series then
-				series:push_value(v, assert(d.timestamp))
+				series:push_value(val, assert(d.timestamp))
 			end
 		end
 	end

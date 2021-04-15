@@ -147,6 +147,7 @@ function client:on_rdata(name, rdata)
 	self._rdata_map[name] = {
 		value = assert(rdata.Rtd),
 		value_z = rdata.ZsRtd,
+		value_src = rdata.RtdSrc,
 		timestamp = rdata.SampleTime,
 		flag = rdata.Flag or self:rs_flag()
 	}

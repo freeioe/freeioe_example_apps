@@ -1,3 +1,4 @@
+local date = require 'date'
 local base = require 'hj212.server.handler.base'
 local cjson = require 'cjson.safe'
 
@@ -43,6 +44,12 @@ local tag_names = {
 	['100'] = 'a00000',
 }
 
+local decode_dt = function(raw)
+	local time_raw = string.sub(raw, 1, 14)
+	return math.floor(date.diff(date(time_raw):toutc(), date(0)):spanseconds())
+end
+
+
 function handler:process(request)
 	local params = request:params()
 	if not params then
@@ -57,6 +64,11 @@ function handler:process(request)
 	for key, name in pairs(dlist) do
 		local v = params:get(key)
 		if v and string.len(name) > 0 then
+			if string.match(key, 'Date') then
+				v = decode_dt(v)
+				--print(key, v)
+			end
+
 			common_info[name] = v
 		end
 	end
@@ -94,6 +106,11 @@ function handler:process(request)
 			for key, name in pairs(attrs) do
 				local v = tag:get(key)
 				if v then
+					if string.match(key, 'Date') then
+						v = decode_dt(v)
+						--print(key, v)
+					end
+
 					if string.len(name) == 0 then
 						tt[key] = v
 					else

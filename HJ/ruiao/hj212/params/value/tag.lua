@@ -7,6 +7,7 @@ local tv = base:subclass('hj212.params.value.tag')
 local function get_tag_format(name)
 	local tag = tag_finder(name)
 	if not tag then
+		--assert(false, "Tag format missing for "..name)
 		return nil
 	end
 	return tag.format	
@@ -29,7 +30,7 @@ end
 function tv:decode(raw, index)
 	if self._format == 'YYYYMMDDHHMMSS' then
 		local d = datetime(self._name, self._value)		
-		local index = d:encode(raw, index)
+		local index = d:decode(raw, index)
 		self._value = d:value()
 	else
 		return base.decode(self, raw, index)
