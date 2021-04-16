@@ -5,110 +5,41 @@ local base = require 'app.base'
 local socket = require 'skynet.socket'
 local sockethelper = require 'http.sockethelper'
 local urllib = require 'http.url'
-local restful = require 'eg_http.restful'
-local httpd = require 'eg_http.httpd'
+local restful = require 'http.restful'
+local httpd = require 'http.httpd'
 
-local app = base:subclass("FREEIOE.APP.OTHER.ENTRANCE_GUARD")
+local app = base:subclass("FREEIOE.APP.SIM.FACE_ENTRANCE")
 app.static.API_VER = 9
 
 function app:on_init()
 	self._devs = {}
+	self._subscribe = false
 end
 
 function app:on_start()
 	local sys = self:sys_api()
-	local log = self:log_api()
 	local conf = self:app_conf()
-	conf.devs = conf.devs or {}
 
-	local station = conf.station or 'HJ212'
+	verify.init(sys:app_dir()..'/images/')
 
-	--- Default is with gateway sn prefix
-	local dev_sn = sys:id()..'.'..station..'.DOOR'
-
-	self:create_device(dev_sn)
-
-	self._cycle = tonumber(conf.cycle) or 5000 -- ms
-	if self._cycle < 100 then
-		self._cycle = 5000
-	end
-
-	verify.init('/tmp/'..self:app_name())
-
-	self._api = restful:new(conf.device, 1000, nil, {'admin', 'admin'})
-
-	return self:start_httpd(conf.port, conf.addr)
+	return self:start_httpd(conf.port)
 end
 
 function app:on_run(tms)
 	local log = self:log_api()
 
-	if not self._subscribed then
-		local conf = self:app_conf()
-		local r, err = self:subscribe(conf.addr, conf.port, conf.device_id)
-		if not r then
-			log:error('Subscribe error:', err)
-		else
-			log:info('Subscribed success to device')
-		end
+	if self._subscribe then
+		self:fire_heartbeat()
+		self:fire_verify()
 		return 5000 -- five seconds
 	end
 
-	if ioe.now() - self._last_hearbeat > (30 + 10) * 1000 then
-		log:error('Subscribe heartbeat lost:', err)
-		self._subscribed = false
-		return 100 -- subscribe lost
-	end
-
-	return self._cycle
+	return 100
 end
 
 function app:on_close(reason)
 	self:stop_httpd()
 	return true
-end
-
-function app:on_command(app, sn, command, params)
-	if command == 'open_door' then
-		return self:open_door(params)
-	end
-	if command == 'add_person' then
-		return self:add_person(params)
-	end
-end
-
-function app:create_device(dev_sn)
-	local api = self:data_api()
-	local meta = api:default_meta()
-	meta.name = 'EntranceDoor'
-	meta.description = "Entrance Door device"
-	meta.series = 'X'
-	meta.inst = self:app_name()
-
-	local inputs = {
-		{ name = 'id', desc = 'Device ID', vt='string'},
-		{ name = 'verify_status', desc = 'Verify Status', vt='int'},
-		{ name = 'verify_type', desc = 'Verify Type', vt='int'},
-		{ name = 'person_type', desc = 'Person Type', vt='int'},
-		{ name = 'verify_code', desc = 'Face, Card, token code', vt='string'},
-		{ name = 'open_time', desc = 'Door open time', vt='string'},
-		{ name = 'door_status', desc = 'Door status', vt='int'},
-		{ name = 'card_no', desc = 'Dorr status', vt='string'},
-		{ name = 'persion_id', desc = 'Persion ID', vt='string'},
-		{ name = 'persion_image', desc = 'Persion Image URL', vt='string'},
-		{ name = 'persion_name', desc = 'Persion Name', vt='string'},
-
-		{ name = 'info', desc = 'Door info', vt='string'}
-	}
-	local commands = {
-		{ name = 'open_door', desc = 'Open door with access token' }
-		{ name = 'add_person', desc = 'Add person information' }
-		{ name = 'del_person', desc = 'Delete person information' }
-	}
-
-	local dev = api:add_device(dev_sn, meta, inputs, {}, commands)
-
-	self._dev = dev
 end
 
 function app:start_httpd(port, ip)
@@ -142,7 +73,6 @@ local function response(id, write, ...)
 		skynet.error(string.format("fd = %d, %s", id, err))
 	end
 end
-
 
 local SSLCTX_SERVER = nil
 local function gen_interface(protocol, fd)
@@ -235,193 +165,97 @@ end
 function app:handle_http_req(method, path, header, query, body, response)
 	local log = self:log_api()
 
-	if path == '/subscribe/heartbeat' then
-		self._last_hearbeat = ioe.now()
-		return response(200, {code=200, desc="OK"})
-	end
-	if path == '/subscribe/snap' then
-		return response(200, {code=200, desc="OK"})
-	end
-	if path == '/subscribe/verify' then
+	if path == '/action/subscribe' then
 		local data, err = cjson.decode(body)
 		if not data then
 			return response(403, {code=403, desc="Decode JSON failure"})
 		end
-		if data.operator ~= 'VerifyPush' then
-			return response(403, {code=403, desc="Incorrect Operator"})
-		end
 
-		--saving files
-		local r, err = verify.save(data)
-		if not r then
-			log:error(err)
-		end
+		self._subscribe = data.info
 
-		local di = data.info
-		local ot = convert_type(di.VerfyType)
-		--[[
-		local pid = di.PersionID
-		if ot == 4 then
-			pid = self._door_token
-		end
-		if ot == 2 then
-			pid = di.RFIDCard
-		end
-		]]--
+		self._api = restful:new(data.info.SubscribeAddr, 1000, nil, {'admin', 'admin'})
 
-		local info = {
-			i3310A = self._door_sn,
-			i3310B = ot,
-			--i3310C = tonumber(di.Notes) or 1,
-			i3310D = di.Notes,
-			i3310E = ioe.time(), -- TODO: Convert time
-			i3310F = 1, -- TODO: Door status
-			--i3310G = di.RFIDCard,
-			--i3310H = tostring(di.PersionID),
-			--i3310I = 'http://example.com/example.jpg', TODO: Upload picture
-			--i3310J = di.Name
-		}
-		self._dev:set_input_prop('info', 'INFO', info)
-
-		return response(200, {code=200, desc="OK"})
+		return response(200, {
+			operator = 'Subscribe',
+			code=200,
+			info = {
+				Result="OK"
+			}
+		})
 	end
 
 	return response(403, "Not implemented such request handling")
 end
 
-function app:subscribe(local_addr, local_port, device_id)
-	--[[
-	self._subscribed = true
-	if true then
-		self._last_hearbeat = ioe.now()
-		return true
-	end
-	]]--
-	local addr = 'http://'..local_addr..':'..local_port
+function app:fire_heartbeat()
+	local sub = self._subscribe
 	local p = {
-		operator = 'Subscribe',
+		operator = 'HeartBeat',
 		info = {
-			DeviceID = device_id,
-			Num = 2,
-			Topics = {'Snap', 'Verify'},-- 'Card'}, --, 'PassWord'},
-			SubscribeAddr = addr,
-			SubscribeUrl = {
-				Snap = '/Subscribe/Snap',
-				Verify = '/Subscribe/Verify',
-				--Card = '/subscribe/card',
-				--PassWord = '/subscribe/password'
-				HeartBeat = '/Subscribe/heartbeat',
-			},
-			BeatInterval = 30,
-			ResumefromBreakpoint = 0,
-			Auth = 'none'
+			DeviceID = sub.DeviceID,
+			Time = os.date('%FT%T')
 		}
 	}
 	--- Hacks about the \/ escape
 	local content = string.gsub(cjson.encode(p), '\\/', '/')
 
-	local status, body = self._api:post('/action/Subscribe', {}, content, 'application/json')
+	local status, body = self._api:post('/Subscribe/heartbeat', {}, content, 'application/json')
 	if not status or status ~= 200 then
+		self._subscribe = nil
+		self._api = nil
 		return nil, body
 	end
-	local ret = cjson.decode(body)
-	if ret.operator ~= 'Subscribe' then
-		return nil, 'Error operator'
-	end
-	if tonumber(ret.code or '') ~= 200 then
-		local err = ret.info and ret.info.Detail or 'Error status code:'..ret.code
-		return nil, err
-	end
-
-	self._subscribed = true
 	self._last_hearbeat = ioe.now()
 	return true
 end
 
-function app:open_door(device_id, params)
+function app:fire_verify()
+	local sub = self._subscribe
 	local content = {
-		operator = 'OpenDoor',
+		operator = 'VerifyPush',
 		info = {
-			DeviceID = device_id,
-			Chn = 0
-		}
-	}
-	local status, body = self._api:post('/action/OpenDoor', {}, content, 'application/json')
-	if not status or status ~= 200 then
-		return nil, body
-	end
-
-	local ret = cjson.decode(body)
-	if ret.operator ~= 'OpenDoor' then
-		return nil, 'Error operator'
-	end
-	if tonumber(ret.code or '') ~= 200 then
-		local err = ret.info and ret.info.Detail or 'Error status code:'..ret.code
-		return nil, err
-	end
-
-
-	return true
-end
-
-function app:add_person(device_id, params)
-	local content = {
-		operator = 'AddPerson'
-		info = {
-			DeviceID = device_id,
-			IdType = 0,
-			CustomizeID = tonumber(params.i3310D), -- TODO: FIXME how to generate
-			Nodes = params.i3310D,
+			DeviceID = sub.DeviceID,
+			PersonID = 1,
+			CreateTime = os.date('%FT%T'),
+			Similarity1 = 95.123,
+			Similarity2 = 0,
+			VerifyStation = 1,
+			VerifyType = 1,
 			PersonType = 0,
-			Name = params.i3310J,
-			picURI = params.i2210I,
-		}
+			Name = '门禁1',
+			Gender = 0,
+			Nation = 1,
+			CardType = 0,
+			IdCard = "",
+			Birthday = os.date('%F', 0),
+			Telnum = '',
+			Native = '',
+			Address = '',
+			Notes = '13810955224',
+			MjCardFrom = '',
+			MjCardNo = 1,
+			Tempvalid = 0,
+			CustomizeID = 0,
+			PersonUUID = '11000000-0000-0000-0000-013810955224',
+			ValidBegin = '0000-00-00T00:00:00',
+			ValidEnd = '0000-00-00T00:00:00',
+			RFIDCard = '',
+			Sendintime = 1,
+		},
+		SnapPic = 'data:image/jpeg;base64,QUFBCg==',
 	}
-
-	local status, body = self._api:post('/action/AddPerson', {}, content, 'application/json')
+	local status, body = self._api:post('/Subscribe/Verify', {}, content, 'application/json')
 	if not status or status ~= 200 then
 		return nil, body
 	end
 
 	local ret = cjson.decode(body)
-	if ret.operator ~= 'AddPerson' then
-		return nil, 'Error operator'
-	end
 	if tonumber(ret.code or '') ~= 200 then
-		local err = ret.info and ret.info.Detail or 'Error status code:'..ret.code
+		local err = ret.desc and ret.desc or 'Error status code:'..ret.code
 		return nil, err
 	end
 
 	return true
-end
-
-function app:del_person(device_id, params)
-	local content = {
-		operator = 'DeletePerson'
-		info = {
-			DeviceID = device_id,
-			TotalNum = 1
-			IdType = 0,
-			CustomizeID = {tonumber(params.i3310D)}, -- TODO: FIXME how to generate
-		}
-	}
-
-	local status, body = self._api:post('/action/DeletePerson', {}, content, 'application/json')
-	if not status or status ~= 200 then
-		return nil, body
-	end
-
-	local ret = cjson.decode(body)
-	if ret.operator ~= 'DeletePerson' then
-		return nil, 'Error operator'
-	end
-	if tonumber(ret.code or '') ~= 200 then
-		local err = ret.info and ret.info.Detail or 'Error status code:'..ret.code
-		return nil, err
-	end
-
-	return true
-
 end
 
 return app
