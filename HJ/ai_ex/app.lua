@@ -52,7 +52,13 @@ function app:on_start()
 		{ channel = 5, name = 'a01014', desc = '烟气湿度', unit = '%', setting_prefix = 'Humidity' },
 	}
 
-	local inputs = {}
+	local inputs = {
+		{
+			name = 'RS',
+			desc = 'Meter connection status',
+			vt = 'int',
+		},
+	}
 	for _, v in pairs(conf.ai_list) do
 		table.insert(inputs, {
 			name = v.name,
@@ -73,6 +79,7 @@ function app:on_start()
 		--]]
 	end
 
+	self._inputs = inputs
 	self._dev = self._api:add_device(sn, meta, inputs)
 
 	self._modbus = master:new('RTU', {link='serial', serial = conf.serial})
@@ -100,9 +107,23 @@ function app:on_run(tms)
 
 	self:read_settings()
 
-	self:read_ai(self._modbus, conf.unit, conf.ai_list)
+	local r, err = self:read_ai(self._modbus, conf.unit, conf.ai_list)
+	if not r then
+		self._log:error('Read AI failed', err)
+		self:invalid_dev()
+	end
 
 	return conf.loop_gap or 1000
+end
+
+function app:invalid_dev()
+	for _, v in ipairs(self._inputs) do
+		if v.name == 'RS' then
+			self._dev:set_input_prop(v.name, 'value', 0)
+		else
+			self._dev:set_input_prop(v.name, 'value', 0, nil, -1)
+		end
+	end
 end
 
 function app:read_settings()
@@ -177,6 +198,8 @@ function app:read_ai(modbus, unit, ai_list)
 			timestamp = now,
 		}, now, 0)
 	end
+	self._dev:set_input_prop('RS', 'value', 1)
+	return true
 end
 
 --- 返回应用对象
