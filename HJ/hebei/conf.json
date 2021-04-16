@@ -33,7 +33,7 @@
 		"name": "min_interval",
 		"desc": "分钟数据上传周期（分钟）",
 		"type": "number",
-		"default": 10
+		"default": 1
 	},
 	{
 		"name": "servers",
@@ -79,6 +79,7 @@
 			{
 				"name": "resend",
 				"desc": "失败重试",
+				"comment": "Enable resend will have cache",
 				"type": "dropdown",
 				"default": "No",
 				"values": [

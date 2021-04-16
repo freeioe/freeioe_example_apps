@@ -14,8 +14,9 @@ local hj212_logger = require 'hj212.logger'
 
 local csv_tpl = require 'csv_tpl'
 local conn = require 'conn'
-local poll = require 'hjpoll'
-local info = require 'hjinfo'
+local hjpoll = require 'hjpoll'
+local hjinfo = require 'hjinfo'
+local station_info = require 'station_info'
 local siridb = require 'siridb.hisdb'
 
 --- lua_HJ212_version: 2021-04-04
@@ -236,8 +237,8 @@ function app:on_start()
 				prop.no_hisdb = true
 			end
 
-			local poll = poll:new(self._hisdb, self._station, prop, function(poll)
-				local obj = info:new(self._hisdb, poll, {}, prop.no_hisdb)
+			local poll = hjpoll:new(self._hisdb, self._station, prop, function(poll)
+				local obj = hjinfo:new(self._hisdb, poll, {}, prop.no_hisdb)
 				local r, err = obj:init_db()
 				if not r then
 					log:error(err)
@@ -296,22 +297,12 @@ function app:on_start()
 	if true then
 		local poll_list = {}
 		local station_prop = { name = "__STATION__", src_prop = 'INFO' }
-		local door_prop = { name = "__DOOR__", src_prop = 'INFO' }
-		table.insert(poll_list, poll:new(self._hisdb, self._station, {name="__STATION__"}, function(poll)
-			local obj = info:new(self._hisdb, poll, {}, false)
-			local r, err = obj:init_db()
-			if not r then
-				log:error(err)
-				return nil, err
-			end
-			obj:set_value_callback(function(value, timestamp, quality)
-				self:upload_station_info(poll, value, timestamp, quality)
-			end)
-			self:bind_station_info(obj)
-			return obj
-		end))
-		table.insert(poll_list, poll:new(self._hisdb, self._station, {name="__DOOR__"}, function(poll)
-			local obj = info:new(self._hisdb, poll, {}, false)
+		local door_prop = { name = "__STATION.DOOR__", src_prop = 'INFO' }
+		poll_list[station_prop.name] = hjpoll:new(self._hisdb, self._station, station_prop, function(poll)
+			return self:create_station_info(poll)
+		end)
+		poll_list[door_prop.name] = hjpoll:new(self._hisdb, self._station, door_prop, function(poll)
+			local obj = hjinfo:new(self._hisdb, poll, {}, false)
 			local r, err = obj:init_db()
 			if not r then
 				log:error(err)
@@ -322,14 +313,14 @@ function app:on_start()
 			end)
 			self._door_info = obj
 			return obj
-		end))
+		end)
 
 		self._devs[map_dev_sn('STATION.SETTINGS')] = {
-			info = station_prop
+			info = {station_prop}
 		}
 
 		self._devs[map_dev_sn('STATION.DOOR')] = {
-			info = door_prop
+			info = {door_prop}
 		}
 
 		local sys_id = self._sys:id()
@@ -385,8 +376,22 @@ function app:on_start()
 	return true
 end
 
-function app:bind_station_info(info)
-	self._station_info = obj
+function app:create_station_info(poll)
+	assert(poll)
+	if self._station_info then
+		return self._station_info
+	end
+
+	self._station_info = station_info:new(self._hisdb, poll, {}, false)
+	local r, err = self._station_info:init_db()
+	if not r then
+		log:error(err)
+		return nil, err
+	end
+
+	self._station_info:set_value_callback(function(value, timestamp, quality)
+		self:upload_station_info(self._station_info, value, timestamp, quality)
+	end)
 
 	local poll_list = {}
 	for sn, val in pairs(self._rs_map) do
@@ -397,15 +402,18 @@ function app:bind_station_info(info)
 				table.insert(poll_list, v.name)
 			end
 		end
+		self._station_info:set_conn_list(poll_list, table.unpack(val))
 	end
 
-	return self._station_info:set_conn_list(poll_list, value, tiemstamp, quality)
+	return self._station_info
 end
 
 function app:set_station_rs(sn, dev, value, timestamp, quality)
-	self._rs_map[sn] = value
+	self._log:info("Meter state changed", sn, value, timestamp, quality)
+	self._rs_map[sn] = { value, timestamp, quality }
 
 	if not self._station_info then
+		self._log:warning("Station info missing!")
 		return
 	end
 
@@ -416,7 +424,7 @@ function app:set_station_rs(sn, dev, value, timestamp, quality)
 		end
 	end
 
-	return self._station_info:set_conn_list(poll_list, value, tiemstamp, quality)
+	return self._station_info:set_conn_list(poll_list, value, timestamp, quality)
 end
 
 function app:set_station_prop_value(props, value, timestamp, quality)
@@ -501,6 +509,9 @@ function app:read_polls()
 			for input, polls in pairs(dev) do
 				local value, timestamp, quality = dev_api:get_input_prop(input, 'value')
 				if value then
+					if input == 'RS' then
+						self:set_station_rs(sn, dev, value, timestamp, quality)
+					end
 					self:set_station_prop_value(polls, value, timestamp, quality)
 				else
 					--self._log:error("Cannot read input value", sn, input)
@@ -516,6 +527,12 @@ function app:read_polls()
 						end
 					end
 					self:set_station_prop_rdata(polls, value, timestamp, quality)
+				else
+					--self._log:error("Cannot read input value", sn, input)
+				end
+				local value, timestamp, quality = dev_api:get_input_prop(input, 'INFO')
+				if value then
+					self:set_station_prop_info(polls, value, timestamp, quality)
 				else
 					--self._log:error("Cannot read input value", sn, input)
 				end
@@ -731,9 +748,8 @@ function app:on_input(app_src, sn, input, prop, value, timestamp, quality)
 	if prop == 'value' then
 		if input == 'RS' then
 			self:set_station_rs(sn, dev, value, timestamp, quality)
-		else
-			self:set_station_prop_value(inputs, value, timestamp, quality)
 		end
+		self:set_station_prop_value(inputs, value, timestamp, quality)
 	else
 		if prop == 'RDATA' then
 			self:set_station_prop_rdata(inputs, value, timestamp, quality)
@@ -817,19 +833,28 @@ function app:upload_poll_info(poll, info, value, timestamp, quality)
 end
 
 function app:upload_meter_info(dt, poll_id, data, timestamp)
-	assert(#data > 0, 'PolId:'..poll_id..' DT:'..dt)
+	assert(#data > 0, 'PolId:'..(poll_id or 'STATION')..' DT:'..dt)
+	self._log:debug("Upload meter info", dt, poll_id, timestamp)
 	self:for_earch_client_async('upload_meter_info', dt, poll_id, data, timestamp)	
 end
 
 function app:upload_station_info(info, value, timestamp, quality)
+	assert(info)
+	assert(value)
+	assert(timestamp)
+	assert(quality)
+
 	if quality ~= 0 then
 		--- TODO:
 		return
 	end
 
-	local state = info:info_data(value, timestamp, quality)
-	if state then
-		self:upload_meter_info(1, nil, state, timestamp)
+	local data, err = info:data(timestamp)
+	if data then
+		self._log:info("Station info data upload")
+		self:upload_meter_info(1, nil, data, timestamp)
+	else
+		self._log:error("Station info data error", err)
 	end
 end
 
@@ -838,7 +863,7 @@ function app:upload_door_info(info, value, timestamp, quality)
 		--- TODO:
 		return
 	end
-	local state = info:info_data(value, timestamp, quality)
+	local state = info:data(timestamp)
 	if state then
 		self:upload_meter_info(0, nil, state, timestamp)
 	end

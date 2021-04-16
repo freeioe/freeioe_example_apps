@@ -8,14 +8,20 @@ local info = base:subclass('siridb.info')
 
 local DB_VER = 1 -- version
 
-function info:initialize(hisdb, poll_id)
+function info:initialize(hisdb, poll_id, no_db)
+	assert(poll_id)
 	self._hisdb = hisdb
 	self._poll_id = poll_id
 	self._samples = {}
+	self._no_db = no_db
 	self._db = nil
 end
 
 function info:init()
+	if self._no_db then
+		return true
+	end
+
 	self._db = assert(self._hisdb:db('INFO'))
 
 	return true
@@ -57,6 +63,10 @@ local function build_read(name, stime, etime)
 end
 function info:read(start_time, end_time)
 	assert(start_time and end_time)
+	if self._no_db then
+		return true
+	end
+
 	local info_name = 'INFO.'..self._poll_id
 
 	local db = assert(self._db, 'DB not found')
@@ -84,7 +94,7 @@ function info:read(start_time, end_time)
 				quality = val[1]
 			})
 		else
-			print(err)
+			print('siridb.info value decode error', err)
 		end
 	end
 
@@ -98,13 +108,17 @@ function info:read(start_time, end_time)
 end
 
 function info:write(data)
+	if self._no_db then
+		return true
+	end
+
 	local db_data = siri_data:new()
 
 	local name = 'INFO.'..self._poll_id
 	local series = siri_series:new(name, 'string')
 
 	for _, d in ipairs(data) do
-		print(_, d.timestamp, d.value)
+		--print(_, d.timestamp, d.value)
 		series:push_value(d.value, assert(d.timestamp))
 	end
 

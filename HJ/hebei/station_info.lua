@@ -1,4 +1,5 @@
 local base = require 'hjinfo'
+local hjbase = require 'hj212.client.info'
 local param_tag = require 'hj212.params.tag'
 local finder = require 'hj212.tags.finder'
 
@@ -10,7 +11,7 @@ function info:set_conn(poll_id, status, timestamp, quality)
 end
 
 function info:set_conn_list(poll_list, status, timestamp, quality)
-	local status = tonumber(status) == 0 and 0 or 1
+	local status = tonumber(status) == 1 and 0 or 1
 	assert(status)
 	assert(timestamp)
 	assert(quality)
@@ -21,7 +22,8 @@ function info:set_conn_list(poll_list, status, timestamp, quality)
 	local changed = false
 	for _, v in ipairs(poll_list) do
 		local key = v..'-i22004'
-		if value[key] == status then
+		if value[key] ~= status then
+			print(key, station, timestamp, quality)
 			value[key] = status
 			changed = true
 		end
@@ -30,7 +32,7 @@ function info:set_conn_list(poll_list, status, timestamp, quality)
 		return
 	end
 
-	return self:set_value(value, timemstamp, quality)
+	return self:set_value(value, timestamp, quality)
 end
 
 function info:set_mode(mode, timestamp, quality)
@@ -58,7 +60,7 @@ function info:update_value_by_key(key, val, timestamp, quality)
 
 	value[key] = val
 
-	return self:set_value(value, timemstamp, quality)
+	return self:set_value(value, timestamp, quality)
 end
 
 function info:get_format(info_name)

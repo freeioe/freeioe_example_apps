@@ -6,10 +6,11 @@ local cjson = require 'cjson.safe'
 
 local poll = base:subclass('siridb.poll')
 
-function poll:initialize(hisdb, poll_id)
+function poll:initialize(hisdb, poll_id, no_db)
 	self._hisdb = hisdb
 	self._poll_id = poll_id
 	self._samples = {}
+	self._no_db = no_db
 	self._value_type_map = {}
 	self._db_map = {}
 end
@@ -25,6 +26,10 @@ local function map_value_type(v_type)
 end
 
 function poll:init()
+	if self._no_db then
+		return true
+	end
+
 	local meta = self:sample_meta()
 	for _, v in ipairs(meta) do
 		self._value_type_map['SAMPLE.'..v.name] = map_value_type(v.type)
@@ -93,6 +98,10 @@ local function build_read(cate, name, stime, etime)
 end
 function poll:read(cate, start_time, end_time)
 	assert(cate and start_time and end_time)
+	if self._no_db then
+		return
+	end
+
 	local poll_id = self._poll_id
 
 	local db = assert(self._db_map[cate], 'CATE:'..cate..' not found')
@@ -129,6 +138,10 @@ function poll:read(cate, start_time, end_time)
 end
 
 function poll:write(cate, data, is_array)
+	if self._no_db then
+		return true
+	end
+
 	local db_data = siri_data:new()
 
 	if not is_array then
