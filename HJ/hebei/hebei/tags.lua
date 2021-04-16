@@ -352,6 +352,48 @@ return {
 		unit = 'Pa'
 	},
 
+	--
+	i3310A = {
+		desc = '门禁编码',
+		format = 'C30'
+	},
+	i3310B = {
+		desc = '开门方式',
+		format = 'N2'
+	},
+	i3310C = {
+		desc = '开门类型',
+		format = 'N2'
+	},
+	i3310D = {
+		desc = '开门编码',
+		format = 'C30'
+	},
+	i3310E = {
+		desc = '开门时间',
+		format = 'YYYYMMDDHHMMSS'
+	},
+	i3310F = {
+		desc = '门状态',
+		format = 'N2'
+	},
+	i3310G = {
+		desc = 'IC卡卡号',
+		format = 'C32'
+	},
+	i3310H = {
+		desc = '人员图像编号',
+		format = 'C12'
+	},
+	i3310I = {
+		desc = '人员图像地址',
+		format = 'C100'
+	},
+	i3310J = {
+		desc = '人员姓名',
+		format = 'C10'
+	},
+
 	-- Door history
 	i41001 = {
 		desc = '开关门记录',

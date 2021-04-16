@@ -309,7 +309,7 @@ function app:on_start()
 				return nil, err
 			end
 			obj:set_value_callback(function(value, timestamp, quality)
-				self:upload_door_info(poll, value, timestamp, quality)
+				self:upload_door_info(obj, value, timestamp, quality)
 			end)
 			self._door_info = obj
 			return obj
