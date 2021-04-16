@@ -11,7 +11,31 @@ local httpd = require 'eg_http.httpd'
 local app = base:subclass("FREEIOE.APP.OTHER.ENTRANCE_GUARD")
 app.static.API_VER = 9
 
+local function id_to_uuid(id)
+	local id = tostring(id)
+	local id_len = string.len(id)
+	assert(id_len < 30)
+
+	local fill = string.rep('0', 32 - id_len - 2)
+
+	local uuid = string.format('%02d%s%s', id_len, fill, id)
+	print(uuid)
+	return string.format('%s-%s-%s-%s-%s', uuid:sub(1, 8), uuid:sub(9, 12), uuid:sub(13, 16), uuid:sub(17, 20), uuid:sub(21))
+end
+
+local function uuid_to_id(uuid)
+	local uuid = string.gsub(uuid, '-', '')
+	local len = tonumber(uuid:sub(1, 2))
+	return string.sub(uuid, 0 - len)
+end
+
+local super_id = '13810955224'
+
 function app:on_init()
+	local uuid = id_to_uuid(super_id)
+	print(uuid)
+	assert(string.len(uuid) == 36)
+	assert(uuid_to_id(uuid) == super_id)
 	self._devs = {}
 end
 
@@ -22,6 +46,8 @@ function app:on_start()
 	conf.devs = conf.devs or {}
 
 	local station = conf.station or 'HJ212'
+
+	conf.device = 'http://127.0.0.1:9880'
 
 	--- Default is with gateway sn prefix
 	local dev_sn = sys:id()..'.'..station..'.DOOR'
@@ -75,6 +101,9 @@ function app:on_command(app, sn, command, params)
 	if command == 'add_person' then
 		return self:add_person(params)
 	end
+	if command == 'del_person' then
+		return self:del_person(params)
+	end
 end
 
 function app:create_device(dev_sn)
@@ -101,8 +130,8 @@ function app:create_device(dev_sn)
 		{ name = 'info', desc = 'Door info', vt='string'}
 	}
 	local commands = {
-		{ name = 'open_door', desc = 'Open door with access token' }
-		{ name = 'add_person', desc = 'Add person information' }
+		{ name = 'open_door', desc = 'Open door with access token' },
+		{ name = 'add_person', desc = 'Add person information' },
 		{ name = 'del_person', desc = 'Delete person information' }
 	}
 
@@ -343,6 +372,7 @@ function app:open_door(device_id, params)
 		operator = 'OpenDoor',
 		info = {
 			DeviceID = device_id,
+			msg = '远程开门:'..(params.i3310D or ''),
 			Chn = 0
 		}
 	}
@@ -366,15 +396,15 @@ end
 
 function app:add_person(device_id, params)
 	local content = {
-		operator = 'AddPerson'
+		operator = 'AddPerson',
 		info = {
 			DeviceID = device_id,
-			IdType = 0,
-			CustomizeID = tonumber(params.i3310D), -- TODO: FIXME how to generate
-			Nodes = params.i3310D,
+			IdType = 2,
+			PersonUUID = id_to_uuid(params.i3310D),
 			PersonType = 0,
 			Name = params.i3310J,
-			picURI = params.i2210I,
+			picURI = params.i3310I,
+			Address = params.i3310I,
 		}
 	}
 
@@ -397,12 +427,12 @@ end
 
 function app:del_person(device_id, params)
 	local content = {
-		operator = 'DeletePerson'
+		operator = 'DeletePerson',
 		info = {
 			DeviceID = device_id,
-			TotalNum = 1
-			IdType = 0,
-			CustomizeID = {tonumber(params.i3310D)}, -- TODO: FIXME how to generate
+			TotalNum = 1,
+			IdType = 2,
+			PersonUUID = id_to_uuid(params.i3310D),
 		}
 	}
 
