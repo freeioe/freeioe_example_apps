@@ -71,9 +71,10 @@ RELEASE_APP other/dtu
 RELEASE_APP other/oliver_355_monitor
 RELEASE_APP other/logger
 
-RELEASE_APP sim/sim_tank
 RELEASE_APP sim/sim
 RELEASE_APP sim/sim_tpl
-RELEASE_APP sim/sim_mp1
-RELEASE_APP sim/sim_ruiao
-RELEASE_APP sim/event_sim
+RELEASE_APP sim/tank
+RELEASE_APP sim/mp1_cems
+RELEASE_APP sim/ruiao_cems
+RELEASE_APP sim/event
+

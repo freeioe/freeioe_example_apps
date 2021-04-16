@@ -1,0 +1,38 @@
+[
+	{
+		"name": "station",
+		"desc": "HJ212 站名",
+		"type": "string",
+		"default": "HJ212"
+	},
+	{
+		"name": "SN",
+		"desc": "门禁唯一编码",
+		"type": "string",
+		"default": "88888888"
+	},
+	{
+		"name": "device",
+		"desc": "Device IP address",
+		"type": "string",
+		"default": "192.168.2.10"
+	},
+	{
+		"name": "device_id",
+		"desc": "Device ID",
+		"type": "number",
+		"default": 1435807
+	},
+	{
+		"name": "addr",
+		"desc": "Gateway local IP address",
+		"type": "string",
+		"default": "192.168.2.139"
+	},
+	{
+		"name": "port",
+		"desc": "Gateway local HTTP port",
+		"type": "number",
+		"default": 9876
+	}
+]
