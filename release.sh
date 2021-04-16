@@ -12,9 +12,6 @@ RELEASE_APP modbus/master
 RELEASE_APP modbus/slave
 RELEASE_APP modbus/gateway
 RELEASE_APP modbus/smc
-RELEASE_APP modbus/jbsd
-RELEASE_APP modbus/chsdl
-RELEASE_APP modbus/treeland
 
 # Hardware test
 RELEASE_APP hw_test/reboot 
@@ -25,6 +22,10 @@ RELEASE_APP HJ/hj212
 RELEASE_APP HJ/hj212_screen
 RELEASE_APP HJ/hj212_server
 RELEASE_APP HJ/ruiao
+RELEASE_APP HJ/hebei
+RELEASE_APP HJ/jbsd
+RELEASE_APP HJ/chsdl
+RELEASE_APP HJ/treeland
 
 RELEASE_APP tools/frpc
 RELEASE_APP tools/network_uci
@@ -66,12 +67,13 @@ RELEASE_APP tsdb/bench
 
 # Others
 RELEASE_APP dlt645
-RELEASE_APP other/sim_tank
 RELEASE_APP other/dtu 
-RELEASE_APP other/sim
-RELEASE_APP other/sim_tpl
-RELEASE_APP other/sim_mp1
-RELEASE_APP other/sim_ruiao
-RELEASE_APP other/event_sim
 RELEASE_APP other/oliver_355_monitor
 RELEASE_APP other/logger
+
+RELEASE_APP sim/sim_tank
+RELEASE_APP sim/sim
+RELEASE_APP sim/sim_tpl
+RELEASE_APP sim/sim_mp1
+RELEASE_APP sim/sim_ruiao
+RELEASE_APP sim/event_sim
