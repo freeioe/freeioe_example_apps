@@ -14,8 +14,8 @@ local hj212_logger = require 'hj212.logger'
 
 local csv_tpl = require 'csv_tpl'
 local conn = require 'conn'
-local poll = require 'hjpoll'
-local info = require 'hjinfo'
+local hjpoll = require 'hjpoll'
+local hjinfo = require 'hjinfo'
 local hisdb = require 'hisdb.hisdb'
 local siridb = require 'siridb.hisdb'
 
@@ -36,6 +36,11 @@ function app:on_init()
 		assert(level and log[level], 'Level is incorrect: '..level)
 		log[level](log, ...)
 	end)
+
+	self._command_wait = {}
+	self._command_token = 0
+
+	self._rs_map = {}
 end
 
 local cmd = [[
@@ -208,7 +213,9 @@ function app:on_start()
 	end
 	local no_hisdb = conf.no_hisdb
 	for sn, d in pairs(tpl.devs) do
-		local dev = {}
+		local dev = {
+			RS = {} -- Handle the meter connection status
+		}
 		local poll_list = {}
 		for _, prop in ipairs(d) do
 			inputs[#inputs + 1] = {
@@ -227,8 +234,8 @@ function app:on_start()
 				prop.no_hisdb = true
 			end
 
-			local poll = poll:new(self._hisdb, self._station, prop, function(poll)
-				local obj = info:new(self._hisdb, poll, {}, prop.no_hisdb)
+			local poll = hjpoll:new(self._hisdb, self._station, prop, function(poll)
+				local obj = hjinfo:new(self._hisdb, poll, {}, prop.no_hisdb)
 				local r, err = obj:init_db()
 				if not r then
 					log:error(err)
@@ -332,6 +339,11 @@ function app:on_start()
 	return true
 end
 
+function app:set_station_rs(sn, dev, value, timestamp, quality)
+	self._log:info("Meter state changed", sn, value, timestamp, quality)
+	self._rs_map[sn] = { value, timestamp, quality }
+end
+
 function app:set_station_prop_value(props, value, timestamp, quality)
 	local sys = self:sys_api()
 	local quality = quality ~= nil and quality or 0
@@ -405,6 +417,9 @@ function app:read_polls()
 			for input, polls in pairs(dev) do
 				local value, timestamp, quality = dev_api:get_input_prop(input, 'value')
 				if value then
+					if input == 'RS' then
+						self:set_station_rs(sn, dev, value, timestamp, quality)
+					end
 					self:set_station_prop_value(polls, value, timestamp, quality)
 				else
 					--self._log:error("Cannot read input value", sn, input)
@@ -420,6 +435,12 @@ function app:read_polls()
 						end
 					end
 					self:set_station_prop_rdata(polls, value, timestamp, quality)
+				else
+					--self._log:error("Cannot read input value", sn, input)
+				end
+				local value, timestamp, quality = dev_api:get_input_prop(input, 'INFO')
+				if value then
+					self:set_station_prop_info(polls, value, timestamp, quality)
 				else
 					--self._log:error("Cannot read input value", sn, input)
 				end
@@ -631,6 +652,9 @@ function app:on_input(app_src, sn, input, prop, value, timestamp, quality)
 	timestamp = self._local_timestamp and self._sys:time() or timestamp
 
 	if prop == 'value' then
+		if input == 'RS' then
+			self:set_station_rs(sn, dev, value, timestamp, quality)
+		end
 		self:set_station_prop_value(inputs, value, timestamp, quality)
 	else
 		if prop == 'RDATA' then
@@ -887,8 +911,10 @@ function app:send_command(dev_sn, cmd, params, timeout)
 		return nil, 'Device not found!!'
 	end
 
-	local priv = {}
+	local priv = self._command_token
+	self._command_token = (self._command_token + 1) % 0xFFFF
 	self._command_wait[priv] = {}
+
 	local r, err = device:send_command(cmd, params or {}, priv)
 	if not r then
 		self._command_wait[priv] = nil
@@ -896,7 +922,7 @@ function app:send_command(dev_sn, cmd, params, timeout)
 		return nil, err
 	end
 
-	self._sys:sleep(timeout, priv)
+	self._sys:sleep(timeout, self._command_wait[priv])
 
 	local r = self._command_wait[priv]
 
@@ -910,12 +936,11 @@ function app:send_command(dev_sn, cmd, params, timeout)
 end
 
 function app:on_command_result(app_src, priv, result, err)
-	if self._command_wait[priv] then
-		self._command_wait[priv] = {
-			result = result,
-			msg = err
-		}
-		self._sys:wakeup(priv)
+	local priv_o = self._command_wait[priv]
+	if priv_o then
+		priv_o.result = result
+		priv_o.msg = err
+		self._sys:wakeup(priv_o)
 	else
 		self._log:error("No result waitor for command!")
 	end

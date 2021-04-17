@@ -26,6 +26,7 @@ RELEASE_APP HJ/hebei
 RELEASE_APP HJ/jbsd
 RELEASE_APP HJ/chsdl
 RELEASE_APP HJ/treeland
+RELEASE_APP HJ/face_gate
 
 RELEASE_APP tools/frpc
 RELEASE_APP tools/network_uci
@@ -77,4 +78,3 @@ RELEASE_APP sim/tank
 RELEASE_APP sim/mp1_cems
 RELEASE_APP sim/ruiao_cems
 RELEASE_APP sim/event
-

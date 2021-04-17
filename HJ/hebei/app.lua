@@ -36,13 +36,23 @@ function app:on_init()
 		assert(level and log[level], 'Level is incorrect: '..level)
 		log[level](log, ...)
 	end)
+
+	self._command_wait = {}
+	self._command_token = 0
+
 	self._rs_map = {}
 
+	-- Register tags
 	local tags = require 'hebei.tags'
 	local exinfo = require 'hj212.tags.exinfo'
 	for k, v in pairs(tags) do
 		exinfo.add(k, v.desc, v.format, v.org_id, v.unit, v.cou_unit)
 	end
+
+	--- Register types
+	local types = require 'hj212.types'
+	types.COMMAND.HB_GATE_ADD_PERSON = 4024
+	types.COMMAND.HB_GATE_OPEN = 4022
 end
 
 local cmd = [[
@@ -297,11 +307,11 @@ function app:on_start()
 	if true then
 		local poll_list = {}
 		local station_prop = { name = "__STATION__", src_prop = 'INFO' }
-		local door_prop = { name = "__STATION.DOOR__", src_prop = 'INFO' }
+		local gate_prop = { name = "__STATION.GATE__", src_prop = 'INFO' }
 		poll_list[station_prop.name] = hjpoll:new(self._hisdb, self._station, station_prop, function(poll)
 			return self:create_station_info(poll)
 		end)
-		poll_list[door_prop.name] = hjpoll:new(self._hisdb, self._station, door_prop, function(poll)
+		poll_list[gate_prop.name] = hjpoll:new(self._hisdb, self._station, gate_prop, function(poll)
 			local obj = hjinfo:new(self._hisdb, poll, {}, false)
 			local r, err = obj:init_db()
 			if not r then
@@ -309,9 +319,9 @@ function app:on_start()
 				return nil, err
 			end
 			obj:set_value_callback(function(value, timestamp, quality)
-				self:upload_door_info(obj, value, timestamp, quality)
+				self:upload_gate_info(obj, value, timestamp, quality)
 			end)
-			self._door_info = obj
+			self._gate_info = obj
 			return obj
 		end)
 
@@ -319,8 +329,8 @@ function app:on_start()
 			info = {station_prop}
 		}
 
-		self._devs[map_dev_sn('STATION.DOOR')] = {
-			info = {door_prop}
+		self._devs[map_dev_sn('STATION.GATE')] = {
+			info = {gate_prop}
 		}
 
 		local sys_id = self._sys:id()
@@ -858,7 +868,7 @@ function app:upload_station_info(info, value, timestamp, quality)
 	end
 end
 
-function app:upload_door_info(info, value, timestamp, quality)
+function app:upload_gate_info(info, value, timestamp, quality)
 	if quality ~= 0 then
 		--- TODO:
 		return
@@ -1056,8 +1066,10 @@ function app:send_command(dev_sn, cmd, params, timeout)
 		return nil, 'Device not found!!'
 	end
 
-	local priv = {}
+	local priv = self._command_token
+	self._command_token = (self._command_token + 1) % 0xFFFF
 	self._command_wait[priv] = {}
+
 	local r, err = device:send_command(cmd, params or {}, priv)
 	if not r then
 		self._command_wait[priv] = nil
@@ -1065,7 +1077,7 @@ function app:send_command(dev_sn, cmd, params, timeout)
 		return nil, err
 	end
 
-	self._sys:sleep(timeout, priv)
+	self._sys:sleep(timeout, self._command_wait[priv])
 
 	local r = self._command_wait[priv]
 
@@ -1079,12 +1091,11 @@ function app:send_command(dev_sn, cmd, params, timeout)
 end
 
 function app:on_command_result(app_src, priv, result, err)
-	if self._command_wait[priv] then
-		self._command_wait[priv] = {
-			result = result,
-			msg = err
-		}
-		self._sys:wakeup(priv)
+	local priv_o = self._command_wait[priv]
+	if priv_o then
+		priv_o.result = result
+		priv_o.msg = err
+		self._sys:wakeup(priv_o)
 	else
 		self._log:error("No result waitor for command!")
 	end

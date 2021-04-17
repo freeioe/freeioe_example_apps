@@ -2,7 +2,7 @@ local date = require 'date'
 local base = require 'hj212.client.handler.base'
 local types = require 'hj212.types'
 
-local handler = base:subclass('hj212.client.handler.hb_door_add_persion')
+local handler = base:subclass('hj212.client.handler.hb_gate_add_persion')
 
 function handler:process(request)
 	local params = request:params()
@@ -27,7 +27,11 @@ function handler:process(request)
 	end
 
 	if info.i3310A and info.i3310D and info.i3310J and info.i3310I then
-		return self._client:on_door_add_persion(info, SFP == 1)
+		local name = string.match(info.i3310J, '//(.+)//')
+		if name then
+			info.i3310J = name
+		end
+		return self._client:on_gate_add_person(info, tonumber(SFP))
 	end
 
 	return nil, "Incorrect Request"

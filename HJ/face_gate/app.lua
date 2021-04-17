@@ -8,7 +8,7 @@ local urllib = require 'http.url'
 local restful = require 'eg_http.restful'
 local httpd = require 'eg_http.httpd'
 
-local app = base:subclass("FREEIOE.APP.OTHER.ENTRANCE_GUARD")
+local app = base:subclass("FREEIOE.APP.OTHER.FACE_GATE")
 app.static.API_VER = 9
 
 local function id_to_uuid(id)
@@ -19,7 +19,6 @@ local function id_to_uuid(id)
 	local fill = string.rep('0', 32 - id_len - 2)
 
 	local uuid = string.format('%02d%s%s', id_len, fill, id)
-	print(uuid)
 	return string.format('%s-%s-%s-%s-%s', uuid:sub(1, 8), uuid:sub(9, 12), uuid:sub(13, 16), uuid:sub(17, 20), uuid:sub(21))
 end
 
@@ -33,7 +32,6 @@ local super_id = '13810955224'
 
 function app:on_init()
 	local uuid = id_to_uuid(super_id)
-	print(uuid)
 	assert(string.len(uuid) == 36)
 	assert(uuid_to_id(uuid) == super_id)
 	self._devs = {}
@@ -50,7 +48,7 @@ function app:on_start()
 	conf.device = 'http://127.0.0.1:9880'
 
 	--- Default is with gateway sn prefix
-	local dev_sn = sys:id()..'.'..station..'.DOOR'
+	local dev_sn = sys:id()..'.'..station..'.GATE'
 
 	self:create_device(dev_sn)
 
@@ -95,22 +93,25 @@ function app:on_close(reason)
 end
 
 function app:on_command(app, sn, command, params)
-	if command == 'open_door' then
-		return self:open_door(params)
+	self._log:info('on_command', app, sn, command, cjson.encode(params))
+	local conf = self:app_conf()
+
+	if command == 'open_gate' then
+		return self:open_gate(conf.device_id, params)
 	end
 	if command == 'add_person' then
-		return self:add_person(params)
+		return self:add_person(conf.device_id, params)
 	end
 	if command == 'del_person' then
-		return self:del_person(params)
+		return self:del_person(conf.device_id, params)
 	end
 end
 
 function app:create_device(dev_sn)
 	local api = self:data_api()
 	local meta = api:default_meta()
-	meta.name = 'EntranceDoor'
-	meta.description = "Entrance Door device"
+	meta.name = 'Face Gate'
+	meta.description = "Face Gate device"
 	meta.series = 'X'
 	meta.inst = self:app_name()
 
@@ -120,17 +121,17 @@ function app:create_device(dev_sn)
 		{ name = 'verify_type', desc = 'Verify Type', vt='int'},
 		{ name = 'person_type', desc = 'Person Type', vt='int'},
 		{ name = 'verify_code', desc = 'Face, Card, token code', vt='string'},
-		{ name = 'open_time', desc = 'Door open time', vt='string'},
-		{ name = 'door_status', desc = 'Door status', vt='int'},
+		{ name = 'open_time', desc = 'Gate open time', vt='string'},
+		{ name = 'gate_status', desc = 'Gate status', vt='int'},
 		{ name = 'card_no', desc = 'Dorr status', vt='string'},
 		{ name = 'persion_id', desc = 'Persion ID', vt='string'},
 		{ name = 'persion_image', desc = 'Persion Image URL', vt='string'},
 		{ name = 'persion_name', desc = 'Persion Name', vt='string'},
 
-		{ name = 'info', desc = 'Door info', vt='string'}
+		{ name = 'info', desc = 'Gate info', vt='string'}
 	}
 	local commands = {
-		{ name = 'open_door', desc = 'Open door with access token' },
+		{ name = 'open_gate', desc = 'Open gate with access token' },
 		{ name = 'add_person', desc = 'Add person information' },
 		{ name = 'del_person', desc = 'Delete person information' }
 	}
@@ -291,7 +292,7 @@ function app:handle_http_req(method, path, header, query, body, response)
 		--[[
 		local pid = di.PersionID
 		if ot == 4 then
-			pid = self._door_token
+			pid = self._gate_token
 		end
 		if ot == 2 then
 			pid = di.RFIDCard
@@ -299,12 +300,12 @@ function app:handle_http_req(method, path, header, query, body, response)
 		]]--
 
 		local info = {
-			i3310A = self._door_sn,
+			i3310A = self._gate_sn,
 			i3310B = ot,
 			--i3310C = tonumber(di.Notes) or 1,
 			i3310D = di.Notes,
 			i3310E = ioe.time(), -- TODO: Convert time
-			i3310F = 1, -- TODO: Door status
+			i3310F = 1, -- TODO: Gate status
 			--i3310G = di.RFIDCard,
 			--i3310H = tostring(di.PersionID),
 			--i3310I = 'http://example.com/example.jpg', TODO: Upload picture
@@ -367,7 +368,7 @@ function app:subscribe(local_addr, local_port, device_id)
 	return true
 end
 
-function app:open_door(device_id, params)
+function app:open_gate(device_id, params)
 	local content = {
 		operator = 'OpenDoor',
 		info = {

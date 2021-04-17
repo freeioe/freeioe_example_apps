@@ -73,7 +73,7 @@ end
 
 function info:set_value(value, timestamp, quality)
 	assert(value ~= nil)
-	assert(timestamp ~= nil)
+	assert(timestamp ~= nil and type(timestamp) == 'number')
 
 	local new_value = {}
 	for info, val in pairs(value) do
@@ -99,7 +99,7 @@ function info:set_value(value, timestamp, quality)
 	assert( base.set_value(self, new_value, timestamp, quality) )
 
 	if not eq and self._value_callback then
-		self._value_callback(base.get_value(self))
+		self._value_callback(self:get_value())
 	end
 
 	return true

@@ -296,7 +296,10 @@ function client:process_socket_data()
 						self:log('error', "Missing request on session:"..session)
 					end
 				else
-					self:on_request(p)
+					-- Create coroutine for request handle
+					skynet.fork(function()
+						self:on_request(p)
+					end)
 				end
 			end
 		else
@@ -346,12 +349,16 @@ function client:on_command_day_data(stime, etime)
 	return self._conn:upload_hour_data(data)
 end
 
-function client:on_command_hb_add_person(info, SFP)
+function client:on_gate_add_person(info, SFP)
 	if SFP == 1 then
-		return self._conn:send_command('STATION.DOOR', 'add_person', info)
+		return self._conn:send_command('STATION.GATE', 'add_person', info)
 	else
-		return self._conn:send_command('STATION.DOOR', 'del_person', info)
+		return self._conn:send_command('STATION.GATE', 'del_person', info)
 	end
+end
+
+function client:on_gate_open(info)
+	return self._conn:send_command('STATION.GATE', 'open_gate', info)
 end
 
 return client 

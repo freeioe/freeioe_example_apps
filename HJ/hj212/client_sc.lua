@@ -296,7 +296,10 @@ function client:process_socket_data()
 						self:log('error', "Missing request on session:"..session)
 					end
 				else
-					self:on_request(p)
+					-- Create coroutine for request handle
+					skynet.fork(function()
+						self:on_request(p)
+					end)
 				end
 			end
 		else
