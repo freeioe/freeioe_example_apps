@@ -45,7 +45,9 @@ function app:on_start()
 
 	local station = conf.station or 'HJ212'
 
-	conf.device = 'http://127.0.0.1:9880'
+	if ioe.developer_mode() then
+		conf.device = 'http://127.0.0.1:9880'
+	end
 
 	--- Default is with gateway sn prefix
 	local dev_sn = sys:id()..'.'..station..'.GATE'
@@ -60,6 +62,8 @@ function app:on_start()
 	verify.init('/tmp/'..self:app_name())
 
 	self._api = restful:new(conf.device, 1000, nil, {'admin', 'admin'})
+
+	self._mn = conf.mn
 
 	return self:start_httpd(conf.port, conf.addr)
 end
@@ -95,6 +99,10 @@ end
 function app:on_command(app, sn, command, params)
 	self._log:info('on_command', app, sn, command, cjson.encode(params))
 	local conf = self:app_conf()
+
+	if params.i3310A ~= self._mn then
+		return nil, "Gate MN incorrect"
+	end
 
 	if command == 'open_gate' then
 		return self:open_gate(conf.device_id, params)

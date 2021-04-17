@@ -6,7 +6,7 @@
 		"default": "HJ212"
 	},
 	{
-		"name": "SN",
+		"name": "mn",
 		"desc": "门禁唯一编码",
 		"type": "string",
 		"default": "88888888"
