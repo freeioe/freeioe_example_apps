@@ -1,9 +1,5 @@
 [
 	{
-		"name": "serial_opt",
-		"type": "serial"
-	},
-	{
 		"name": "dev_sn",
 		"desc": "设备序列号",
 		"type": "string",
@@ -39,6 +35,10 @@
 			"WL_1A1": "wl_1a1_opt"
 		}
 	},	
+	{
+		"name": "serial",
+		"type": "serial"
+	},
 	{
 		"name": "wl_1a1_opt",
 		"desc": "WL_1A1 选项",

@@ -1,9 +1,5 @@
 [
 	{
-		"name": "serial_opt",
-		"type": "serial"
-	},
-	{
 		"name": "dev_sn",
 		"desc": "设备序列号",
 		"type": "string",
@@ -32,6 +28,10 @@
 		"desc": "Modbus 地址",
 		"type": "number",
 		"default": 1
+	},
+	{
+		"name": "serial",
+		"type": "serial"
 	},
 	{
 		"name": "ai_list",

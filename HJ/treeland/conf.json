@@ -1,9 +1,5 @@
 [
 	{
-		"name": "serial_opt",
-		"type": "serial"
-	},
-	{
 		"name": "dev_sn",
 		"desc": "设备序列号",
 		"type": "string",
@@ -45,5 +41,9 @@
 				"default": 1.4
 			}
 		]
+	},
+	{
+		"name": "serial",
+		"type": "serial"
 	}
 ]

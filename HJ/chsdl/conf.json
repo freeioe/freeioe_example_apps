@@ -1,9 +1,5 @@
 [
 	{
-		"name": "serial_opt",
-		"type": "serial"
-	},
-	{
 		"name": "dev_sn",
 		"desc": "设备序列号",
 		"type": "string",
@@ -34,6 +30,10 @@
 			"SCS_900UV": "scs_900uv_opt"
 		}
 	},	
+	{
+		"name": "serial",
+		"type": "serial"
+	},
 	{
 		"name": "scs_900uv_opt",
 		"desc": "PLC Data Channel",
