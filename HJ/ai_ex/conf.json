@@ -37,7 +37,7 @@
 		"name": "ai_list",
 		"desc": "AI Options",
 		"type": "table",
-		"child": [
+		"cols": [
 			{
 				"name": "channel",
 				"desc": "Channel ID (1-8)",
