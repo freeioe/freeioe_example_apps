@@ -45,6 +45,9 @@ local tag_names = {
 }
 
 local decode_dt = function(raw)
+	if string.sub(raw, 1, 4) == '3381' then
+		raw = '2014'..string.sub(5)
+	end
 	local time_raw = string.sub(raw, 1, 14)
 	return math.floor(date.diff(date(time_raw):toutc(), date(0)):spanseconds())
 end
