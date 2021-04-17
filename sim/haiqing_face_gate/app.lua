@@ -164,6 +164,9 @@ end
 
 function app:handle_http_req(method, path, header, query, body, response)
 	local log = self:log_api()
+	log:trace(path, body)
+
+	local path = string.lower(path)
 
 	if path == '/action/subscribe' then
 		local data, err = cjson.decode(body)
@@ -177,7 +180,42 @@ function app:handle_http_req(method, path, header, query, body, response)
 
 		return response(200, {
 			operator = 'Subscribe',
-			code=200,
+			code = 200,
+			info = {
+				Result="OK"
+			}
+		})
+	end
+	if path == '/action/addperson' then
+		local data, err = cjson.decode(body)
+
+		return response(200, {
+			operator = 'AddPerson',
+			code = 200,
+			info = {
+				Result="OK"
+			}
+		})
+	end
+
+	if path == '/action/deleteperson' then
+		local data, err = cjson.decode(body)
+
+		return response(200, {
+			operator = 'DeletePerson',
+			code = 200,
+			info = {
+				Result="OK"
+			}
+		})
+	end
+
+	if path == '/action/opendoor' then
+		local data, err = cjson.decode(body)
+
+		return response(200, {
+			operator = 'OpenDoor',
+			code = 200,
 			info = {
 				Result="OK"
 			}
