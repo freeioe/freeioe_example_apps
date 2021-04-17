@@ -29,7 +29,9 @@ function app:on_start()
 
 	self._dev = self._api:add_device(sn, meta, inputs)
 
-	local opt = {
+	local conf = self:app_conf()
+
+	local opt = conf.serial or {
 		port = '/dev/ttyS2',
 		baudrate = 9600,
 		data_bits = 8,
