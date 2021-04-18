@@ -122,8 +122,9 @@ function handler:process(request)
 				end
 			end
 		end
+		local now = os.time()
 		for k, v in pairs(ttlist) do
-			v.SampleTime = data_time
+			v.SampleTime = now --data_time
 			v.RtdSrc = v.RealOrigin
 			v.RealOrigin = nil
 			v.Mol = nil -- No include Mol value TODO:
