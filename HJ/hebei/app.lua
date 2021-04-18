@@ -489,8 +489,10 @@ function app:set_station_prop_rdata(props, value, timestamp, quality)
 end
 
 function app:set_station_prop_info(props, value, timestamp, quality)
+	--[[
 	local dt = value.DT or 0
 	value.DT = nil -- clean up DT in info data
+	]]--
 
 	local sys = self:sys_api()
 	local quality = quality ~= nil and quality or 0

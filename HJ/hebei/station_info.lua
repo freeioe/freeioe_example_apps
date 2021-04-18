@@ -1,7 +1,7 @@
 local base = require 'hjinfo'
-local hjbase = require 'hj212.client.info'
 local param_tag = require 'hj212.params.tag'
 local finder = require 'hj212.tags.finder'
+local copy = require 'hj212.utils.copy'
 
 local info = base:subclass('HJ212_HJ_STATION_INFO')
 
@@ -20,11 +20,11 @@ function info:set_conn_list(poll_list, status, timestamp, quality)
 	assert(tm <= timestamp)
 
 	local changed = false
+	local new_value = copy.deep(value)
 	for _, v in ipairs(poll_list) do
 		local key = v..'-i22004'
-		if value[key] ~= status then
-			print(key, station, timestamp, quality)
-			value[key] = status
+		if new_value[key] ~= status then
+			new_value[key] = status
 			changed = true
 		end
 	end
@@ -32,7 +32,9 @@ function info:set_conn_list(poll_list, status, timestamp, quality)
 		return
 	end
 
-	return self:set_value(value, timestamp, quality)
+	print('Connection status changed')
+
+	return self:set_value(new_value, timestamp, quality)
 end
 
 function info:set_mode(mode, timestamp, quality)
@@ -58,9 +60,10 @@ function info:update_value_by_key(key, val, timestamp, quality)
 		return
 	end
 
-	value[key] = val
+	local new_value = copy.deep(value)
+	new_value[key] = val
 
-	return self:set_value(value, timestamp, quality)
+	return self:set_value(new_value, timestamp, quality)
 end
 
 function info:get_format(info_name)
@@ -75,6 +78,11 @@ function info:get_format(info_name)
 	end
 
 	return nil
+end
+
+function info:set_value(value, timestamp, quality)
+	value.i23011 = value.i23011 or (value.i23001 * 1000)
+	base.set_value(self, value, timestamp, quality)
 end
 
 return info
