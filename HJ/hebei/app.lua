@@ -19,8 +19,8 @@ local hjinfo = require 'hjinfo'
 local station_info = require 'station_info'
 local siridb = require 'siridb.hisdb'
 
---- lua_HJ212_version: 2021-04-04
---  comment: Hard coded the O2 to 0.209 when it is closed to 0.21
+--- lua_HJ212_version: 2021-04-18
+--  comment: Fixed a few things for HeBei HJ
 
 --- 注册对象(请尽量使用唯一的标识字符串)
 local app = app_base:subclass("FREEIOE_HJ212_HeBei_APP")
