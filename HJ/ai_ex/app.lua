@@ -21,8 +21,8 @@ function app:on_init()
 	if ioe.developer_mode() then
 		conf.unit = 1
 		conf.serial = conf.serial or {
-			--port = "/tmp/ttyS3",
-			port = "/dev/ttyUSB1",
+			port = "/tmp/ttyS3",
+			--port = "/dev/ttyUSB1",
 			baudrate = 9600,
 			data_bits = 8,
 			parity = "NONE",
@@ -82,7 +82,12 @@ function app:on_start()
 	self._inputs = inputs
 	self._dev = self._api:add_device(sn, meta, inputs)
 
-	self._modbus = master:new('RTU', {link='serial', serial = conf.serial})
+
+	if ioe.developer_mode() then
+		self._modbus = master:new('TCP', {link='serial', serial = conf.serial})
+	else
+		self._modbus = master:new('RTU', {link='serial', serial = conf.serial})
+	end
 
 	--- 设定通讯口数据回调
 	self._modbus:set_io_cb(function(io, unit, msg)
