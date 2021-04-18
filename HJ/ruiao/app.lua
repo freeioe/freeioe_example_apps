@@ -139,7 +139,6 @@ function app:on_start()
 	conf.stations = conf.stations or {}
 
 	if ioe.developer_mode() and #conf.stations == 0 then
-		conf.channel_type = 'serial'
 		table.insert(conf.stations, {
 			name = 'station_1',
 			system = '31',
@@ -196,7 +195,7 @@ function app:on_start()
 	local dev_sn = sys_id..'.'..self:app_name()
 	self._dev = api:add_device(dev_sn, meta, inputs, nil, commands)
 
-	local opt = conf.serial_opt or {
+	local opt = conf.serial or {
 		port = "/tmp/ttyS1",
 		--port = "/dev/ttyUSB0",
 		baudrate = 9600
