@@ -243,8 +243,6 @@ function app:on_close(reason)
 		self._server:stop()
 	end
 	self._log:warning('Server closed')
-	-- Make sure all closed??
-	self._sys:sleep(3000)
 	return true
 end
 
