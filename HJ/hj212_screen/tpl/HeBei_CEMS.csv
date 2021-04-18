@@ -29,7 +29,6 @@ SETTING,Temp_Min,烟气温度量程下限,i23007,float,摄氏度,0
 SETTING,Pressure_Max,烟气压力量程上限,i23008,float,帕,5000
 SETTING,Pressure_Min,烟气压力量程下限,i23009,float,帕,-5000
 SETTING,Flow_Max,烟气流速量程,i23010,float,m/s,40
-SETTING,Ba_pa,本地大气压（河北）,i23011,float,帕,101.23
 SETTING,As,标准过量空气系数,,float,,1.7
 SETTING,Dust_Max,烟尘量程上限,i23012,float,摄氏度,100
 SETTING,Dust_Min,烟尘量程下限,i23013,float,摄氏度,0
