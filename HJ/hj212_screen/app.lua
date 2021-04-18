@@ -698,7 +698,7 @@ function app:publish_settings(settings)
 	}
 	--print(cjson.encode(data))
 
-	return self:publish('inputs/calc_para', cjson.encode(data), 1, true)
+	return self:publish('inputs/gcalc_para', cjson.encode(data), 1, true)
 end
 
 function app:on_publish_data_list(val_list)
@@ -775,7 +775,7 @@ function app:on_mqtt_message(mid, topic, payload, qos, retained)
 		return
 	end
 	if sub == 'calc_para' then
-		self:on_mqtt_params(data)
+		self:on_mqtt_params(data.datas)
 	else
 		self._log:error("MQTT recevied incorrect topic", t, sub)
 	end
@@ -800,7 +800,7 @@ function app:on_mqtt_params(settings)
 
 	local changed = false
 	for name, value in pairs(settings) do
-		local output = string.match('^TS_.(+)$') or ''
+		local output = string.match(name, '^TS_(.+)$') or ''
 		if output == 'post_CalcId' then
 			id = value
 		end
@@ -812,6 +812,7 @@ function app:on_mqtt_params(settings)
 			for _, v in ipairs(conf.settings) do
 				if v.name == output then
 					if v.value ~= value then
+						self._log:info("Change setting from", v.value, 'to', value)
 						changed = true
 					end
 					v.value = value
@@ -823,6 +824,8 @@ function app:on_mqtt_params(settings)
 				changed = true
 				table.insert(conf.settings, {name=output, value=value})
 			end
+		else
+			self._log:warning("Not settings for", output)
 		end
 	end
 	if changed then
