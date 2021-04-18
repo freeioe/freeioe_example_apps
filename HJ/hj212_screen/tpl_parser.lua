@@ -105,8 +105,8 @@ local function load_tpl(path, err_cb)
 				desc = v[3],
 				hj212 = string.len(v[4]) > 0 and v[4] or nil,
 				vt = string.len(v[5]) > 0 and v[5] or nil,
-				unit = string.len(v[6]) > 0 and v[6] or nil,
-				default = string.len(v[7]) > 0 and tonumber(v[7]) or 0
+				unit = string.len(v[6] or '') > 0 and v[6] or nil,
+				default = string.len(v[7] or '') > 0 and tonumber(v[7]) or 0
 			}
 			if valid_setting(setting, err_cb) then
 				table.insert(settings, setting)
