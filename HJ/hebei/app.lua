@@ -269,6 +269,9 @@ function app:on_start()
 				end
 				if type_name == 'SAMPLE' then
 					dev:set_input_prop(p_name, 'value', val.value, timestamp, quality)
+					if val.value_z then
+						dev:set_input_prop(p_name, 'value_z', val.value_z, timestamp, quality)
+					end
 				else
 					local val_str, err = cjson.encode(val)
 					if not val_str then
