@@ -84,8 +84,8 @@ function server:create_serial()
 
 	serial:start(function(data, err)
 		if not data then
+			log:error('Serial closed', err)
 			if self._client then
-				log:error('Serial closed', err)
 				self._client:close()
 			end
 			if not self._closing then
