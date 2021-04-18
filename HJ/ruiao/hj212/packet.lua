@@ -41,7 +41,7 @@ function pack.static.parse(raw, index, on_err, crc_func)
 		--print(raw)
 		local err = 'Stream length error, got:'..string.sub(raw, index + 4 + 2, index + 4 + 5)
 		on_err(err)
-		raw = string.sub(raw, index) -- trim data
+		raw = string.sub(raw, index + 1) -- trim data
 		return pack.static.parse(raw, 1, on_err, crc_func)
 	end
 
