@@ -26,8 +26,8 @@ SETTING,Kp,皮托管系数,i23004,float,,0.8
 SETTING,Humidity_Max,烟气湿度量程,i23005,float,%,40
 SETTING,Temp_Max,烟气温度量程上限,i23006,float,摄氏度,300
 SETTING,Temp_Min,烟气温度量程下限,i23007,float,摄氏度,0
-SETTING,Pressure_Max,烟气压力量程上限,i23008,float,千帕,5
-SETTING,Pressure_Min,烟气压力量程下限,i23009,float,千帕,-5
+SETTING,Pressure_Max,烟气压力量程上限,i23008,float,帕,5000
+SETTING,Pressure_Min,烟气压力量程下限,i23009,float,帕,-5000
 SETTING,Flow_Max,烟气流速量程,i23010,float,m/s,40
 SETTING,Ba_pa,本地大气压（河北）,i23011,float,帕,101.23
 SETTING,As,标准过量空气系数,,float,,1.7

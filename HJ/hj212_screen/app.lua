@@ -472,6 +472,7 @@ function app:publish_inputs()
 	for k, v in pairs(self._inputs_map) do
 		if value_map[k] then
 			data['GIO_'..k] = self._value_map[k].value
+			data['GIO_'..k..'_Z'] = self._value_map[k].value_z
 		else
 			--self._log:error('Input value not found', k)
 		end
@@ -511,6 +512,16 @@ function app:pack_key(app_src, device_sn, input, ...)
 	return mqtt_app.pack_key(self, app_src, device_sn, input, ...)
 end
 
+local props_map = {
+	value = true,
+	value_z = true,
+	RDATA = true,
+	INFO = true,
+	MIN = true,
+	HOUR = true,
+	DAY = true,
+}
+
 function app:on_publish_data(key, value, timestamp, quality)
 	local sn, input, prop = string.match(key, '^([^/]+)/([^/]+)/(.+)$')
 
@@ -518,11 +529,12 @@ function app:on_publish_data(key, value, timestamp, quality)
 	if not tpl_props then
 		return true
 	end
-	if prop ~= 'value' and prop ~= 'RDATA' and prop ~= 'INFO' and prop ~= 'MIN' and prop ~= 'HOUR' and prop ~= 'DAY' then
+	if not props_map[prop] then
+		print('prop not there', prop, props_map[prop])
 		return true
 	end
 
-	if prop ~= 'value' and type(value) == 'string' then
+	if prop ~= 'value' and prop ~= 'value_z' and type(value) == 'string' then
 		value = assert(cjson.decode(value))
 	end
 
@@ -530,13 +542,27 @@ function app:on_publish_data(key, value, timestamp, quality)
 		local tag = self._inputs_map[tpl_prop.name] or self._status_map[tpl_prop.name]
 		assert(tag, string.format("missing input map:%s", tpl_prop.name))
 
-		if prop ~= 'value' then
+		if prop == 'value' then
+			local val = self._value_map[tag.name]
+			if not val then
+				val = {}
+				self._value_map[tag.name] = val
+			end
+			val.value = value
+			val.timestamp = timestamp
+			self._dev:set_input_prop(tag.name, 'value', value, timestamp, quality)
+		elseif prop == 'value_z' then
+			local val = self._value_map[tag.name]
+			if not val then
+				val = {}
+				self._value_map[tag.name] = val
+			end
+			val.value_z = value
+			val.timestamp = timestamp
+		else
 			if quality == 0 and prop ~= 'INFO' then
 				self:publish_prop_data(tpl_prop.name, prop, value, timestamp)
 			end
-		else
-			self._value_map[tag.name] = {value = value, timestamp = timestamp}
-			self._dev:set_input_prop(tag.name, 'value', value, timestamp, quality)
 		end
 	end
 
