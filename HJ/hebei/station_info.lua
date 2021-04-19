@@ -17,7 +17,11 @@ function info:set_conn_list(poll_list, status, timestamp, quality)
 	assert(quality)
 
 	local value, tm = self:get_value()
-	assert(tm <= timestamp)
+	if not value then
+		value = {} --construct empty value
+	else
+		assert(tm <= timestamp)
+	end
 
 	local changed = false
 	local new_value = copy.deep(value)
@@ -31,8 +35,6 @@ function info:set_conn_list(poll_list, status, timestamp, quality)
 	if not changed then
 		return
 	end
-
-	print('Connection status changed')
 
 	return self:set_value(new_value, timestamp, quality)
 end
@@ -55,7 +57,12 @@ function info:update_value_by_key(key, val, timestamp, quality)
 	assert(quality)
 
 	local value, tm = self:get_value()
-	assert(tm <= timestamp)
+	if not value then
+		value = {} --construct empty value
+	else
+		assert(tm <= timestamp)
+	end
+
 	if value[key] == val then
 		return
 	end
@@ -81,7 +88,9 @@ function info:get_format(info_name)
 end
 
 function info:set_value(value, timestamp, quality)
-	value.i23011 = value.i23011 or (value.i23001 * 1000)
+	if value.i23001 then
+		value.i23011 = value.i23011 or (value.i23001 * 1000)
+	end
 	base.set_value(self, value, timestamp, quality)
 end
 
