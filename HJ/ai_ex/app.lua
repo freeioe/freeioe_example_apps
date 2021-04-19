@@ -142,11 +142,10 @@ function app:read_settings()
 
 	self._settings = ioe.env.wait('HJ212.SETTINGS', station)
 
-	if self._settings.NO ~= self._last_sno then
+	if self._settings.__time ~= self._last_stime then
 		log:info("Got HJ212 Settings! Value:")
 		log:info(cjson.encode(self._settings))
-		self._last_sn = self._settings.NO
-		-- TODO: Fire INFO
+		self._last_stime = self._settings.__time
 	end
 end
 

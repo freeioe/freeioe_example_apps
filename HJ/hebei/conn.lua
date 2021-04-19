@@ -165,10 +165,6 @@ function conn:on_output(app_src, sn, output, prop, value, timestamp)
 end
 
 function conn:fb_request(pn, need_ack, params, key)
-	if true then
-		return true
-	end
-
 	local r, request = pcall(require, 'hj212.request.'..pn)
 	if not r then
 		self:log('error', request)
