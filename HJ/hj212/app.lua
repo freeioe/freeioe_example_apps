@@ -71,6 +71,7 @@ function app:on_start()
 		-- conf.min_interval = 1
 		conf.local_timestamp = true
 		conf.using_siridb = true
+		conf.min_interval = 1
 	end
 
 	if string.len(conf.dev_id or '') <= 0 or string.len(conf.dev_id) > 24 then
@@ -150,7 +151,7 @@ function app:on_start()
 			table.insert(conf.servers, {
 				name = 'ministry',
 				host = '127.0.0.1',
-				port = 16005,
+				port = 16000,
 				passwd = '123456',
 				retry = 1,
 				resend = 'Yes',

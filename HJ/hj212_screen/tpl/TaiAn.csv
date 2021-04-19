@@ -18,6 +18,6 @@ STATUS,lteCCID,4G网络CCID,GW,ccid
 STATUS,AnalyzerStatus,AnalyzerStatus,GW.cems,status_MP1
 ,,,,
 TYPE,NAME,DESCRIPTION,HJ212 Name,VT
-SETTING,section_area,烟道截面积,a01016,float
-SETTING,filed_coefficient,速度场系数,Kv,float
-SETTING,local_Pressure,本地大气压,a01006,float
+SETTING,F,烟道截面积,a01016,float
+SETTING,Kv,速度场系数,,float,,1.414
+SETTING,Ba,本地大气压,i23001,float
