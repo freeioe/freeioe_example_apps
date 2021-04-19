@@ -3,7 +3,12 @@ return function(station, calc_str)
 	local calc = nil
 	local list = {}
 	for name, param in string.gmatch(calc_str, '([^>:]+)([^>]*)>?') do
-		param = param and param:sub(2)
+		if string.len(param) <= 1 then
+			param = nil
+		else
+			param = param:sub(2)
+		end
+
 		list[#list + 1] = {
 			name = name,
 			param = param,
