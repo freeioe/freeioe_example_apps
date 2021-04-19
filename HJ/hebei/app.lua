@@ -578,6 +578,9 @@ function app:on_run(tms)
 		end
 	end
 
+	local settings = ioe.env.get('HJ212.SETTINGS', conf.station)
+	self._station:set_settings(settings)
+
 	-- TODO: Update status
 
 	return 1000
