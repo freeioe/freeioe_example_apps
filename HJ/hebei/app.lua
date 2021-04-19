@@ -425,7 +425,14 @@ function app:create_station_info(poll)
 end
 
 function app:set_station_rs(sn, dev, value, timestamp, quality)
-	self._log:info("Meter state changed", sn, value, timestamp, quality)
+	local org = self._rs_map[sn] or {}
+	if org[1] == value and org[3] == quality then
+		-- Only update timestamp
+		org[2] = timestamp
+		return
+	end
+
+	self._log:info("Meter state changed", sn, value, timestamp, quality, org.value, org.timestamp, org.quality)
 	self._rs_map[sn] = { value, timestamp, quality }
 
 	if not self._station_info then
