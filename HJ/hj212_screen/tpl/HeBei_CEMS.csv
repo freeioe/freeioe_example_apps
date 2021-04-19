@@ -15,7 +15,8 @@ STATUS,countryStatus,县级平台状态,STATION.country,status,,
 STATUS,lteSignal,4G网络信号强度,GW,csq,,
 STATUS,lteStatus,4G网络拨号状态,FUNCTION,cloud_status,,
 STATUS,lteCCID,4G网络CCID,GW,ccid,,
-STATUS,AnalyzerStatus,AnalyzerStatus,GW.cems,status_MP1,,
+STATUS,AnalyzerStatus,分析仪状态,GW.cems.88888880000001,RS,,
+STATUS,AiStatus,AI扩展模块状态,GW.cems_ai,RS,,
 ,,,,,,
 TYPE,NAME,DESCRIPTION,HJ212 Name,VT,unit,Default
 SETTING,F,烟道截面积,a01016,float,平方米,1
