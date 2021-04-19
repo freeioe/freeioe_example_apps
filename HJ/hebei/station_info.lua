@@ -20,7 +20,7 @@ function info:set_conn_list(poll_list, status, timestamp, quality)
 	if not value then
 		value = {} --construct empty value
 	else
-		assert(tm <= timestamp)
+		--assert(tm <= timestamp)
 	end
 
 	local changed = false

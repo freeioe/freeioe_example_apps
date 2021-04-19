@@ -578,6 +578,7 @@ function app:on_run(tms)
 		end
 	end
 
+	local conf = self:app_conf()
 	local settings = ioe.env.get('HJ212.SETTINGS', conf.station)
 	self._station:set_settings(settings)
 
