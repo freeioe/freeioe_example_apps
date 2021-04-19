@@ -4,8 +4,8 @@ a01011,烟气流速,米/秒,float,cems_ai,a01011,,,,,,simple,,N/A,,,RDATA
 a01012,烟气温度,摄氏度,float,cems_ai,a01012,,,,,,simple,,N/A,,,RDATA
 a01013,烟气压力,千帕,float,cems_ai,a01013,0.001,,,,,simple,,N/A,,,RDATA
 a01014,烟气湿度,%,float,cems_ai,a01014,,,,,,simple,,N/A,,,RDATA
-a34013,烟尘,毫克/立方米,float,cems_ai,a34013,,,,N4.2,,,,,air.Cz:1.7,,RDATA
+a34013,烟尘,毫克/立方米,float,cems_ai,a34013,,,,N4.2,,,,,air.Cz,,RDATA
 a19001,氧气含量,%,float,cems.88888880000001,a19001,,,,,,simple,,N/A,,,RDATA
-a21026,二氧化硫,毫克/立方米,float,cems.88888880000001,a21026,,,,,,,,,air.Cz:1.7,,RDATA
-a21002,氮氧化物,毫克/立方米,float,cems.88888880000001,a21002,1.53,,,,,,,,air.Cz:1.7,,RDATA
+a21026,二氧化硫,毫克/立方米,float,cems.88888880000001,a21026,,,,,,,,,air.Cz,,RDATA
+a21002,氮氧化物,毫克/立方米,float,cems.88888880000001,a21002,1.53,,,,,,,,air.Cz,,RDATA
 a21005,一氧化碳,毫克/立方米,float,cems.88888880000001,a21002,,,,,,,,,,,RDATA
