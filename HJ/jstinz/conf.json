@@ -1,0 +1,88 @@
+[
+	{
+		"name": "dev_sn",
+		"desc": "设备序列号",
+		"type": "string",
+		"default": "COD"
+	},
+	{
+		"name": "loop_gap",
+		"desc": "采集间隔(Read Gap)",
+		"type": "number",
+		"default": 5000
+	},
+	{
+		"name": "unit",
+		"desc": "Modbus 地址",
+		"type": "number",
+		"default": 1
+	},
+	{
+		"name": "dev_type",
+		"desc": "设备型号",
+		"type": "dropdown",
+		"default": "CODcr_1001",
+		"values": [
+			"CODcr_1001"
+		],
+		"depends": {
+			"CODcr_1001": "codcr_1001_opt"
+		}
+	},	
+	{
+		"name": "serial",
+		"type": "serial"
+	},
+	{
+		"name": "codcr_1001_opt",
+		"desc": "CODcr_1001 选项",
+		"type": "section",
+		"child": [
+			{
+				"name": "fm_type",
+				"desc": "设备软件序号",
+				"type": "dropdown",
+				"values": [
+					"OLDER_10_05",
+					"NEWER_15_01"
+				]
+			},
+			{
+				"name": "mr_flow",
+				"desc": "流量量程Measuring Range of flow (m3/h)",
+				"type": "number",
+				"default": 100
+			},
+			{
+				"name": "mr_liquid_level",
+				"desc": "液位量程Measuring Range of Liquid Level (m)",
+				"type": "number",
+				"default": 10
+			},
+			{
+				"name": "mr_I1",
+				"desc": "I1量程Measuring Range of I1 (mA)",
+				"type": "number",
+				"default": 10
+			},
+			{
+				"name": "mr_I2",
+				"desc": "I2量程Measuring Range of I2 (mA)",
+				"type": "number",
+				"default": 10
+			},
+			{
+				"name": "mr_I3",
+				"desc": "I3量程Measuring Range of I3 (mA)",
+				"type": "number",
+				"default": 10
+			},
+			{
+				"name": "mr_I4",
+				"desc": "I4量程Measuring Range of I4 (mA)",
+				"type": "number",
+				"default": 10
+			}
+		]
+	}
+]
