@@ -5,13 +5,13 @@ return {
 		vt = "int",
 	},
 	{
-		name = "w01018",
-		desc = "化学需氧量",
+		name = "w21003",
+		desc = "氨氮",
 		vt = "float",
 		unit = "mg/L",
 	},
 	{
-		name = "w01018_raw",
+		name = "w21003_raw",
 		desc = "吸光度",
 		vt = "float",
 	},
@@ -56,6 +56,11 @@ return {
 		vt = "int",
 	},
 	{
+		name = "i13102",
+		desc = "截距",
+		vt = "float",
+	},
+	{
 		name = "i13104",
 		desc = "零点校准浓度",
 		vt = "float",
@@ -64,7 +69,7 @@ return {
 	{
 		name = "i13105",
 		desc = "零点校准原始值",
-		vt = "int",
+		vt = "float",
 	},
 	{
 		name = "i13107",
@@ -80,6 +85,11 @@ return {
 	{
 		name = "i13110",
 		desc = "量程校准原始值",
+		vt = "float",
+	},
+	{
+		name = "i13114",
+		desc = "测量间隔",
 		vt = "int",
 	},
 	{
@@ -88,13 +98,8 @@ return {
 		vt = "float",
 	},
 	{
-		name = "i13119",
-		desc = "校正因子(修正斜率)",
-		vt = "float",
-	},
-	{
-		name = "i13120",
-		desc = "修正因子(修正截距)",
+		name = "i13117",
+		desc = "斜率",
 		vt = "float",
 	},
 	{
@@ -105,6 +110,11 @@ return {
 	{
 		name = "i13122",
 		desc = "消解时长",
+		vt = "float",
+	},
+	{
+		name = "i13128",
+		desc = "标样核查间隔",
 		vt = "int",
 	},
 }

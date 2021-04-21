@@ -2,7 +2,7 @@ local ioe = require 'ioe'
 local base = require 'app.base'
 local master = require 'modbus.master.skynet'
 
-local app = base:subclass("FREEIOE_HJ_JSTINZ_APP")
+local app = base:subclass("FREEIOE_HJ_RAIPUN_APP")
 app.static.API_VER = 9
 
 ---
@@ -19,7 +19,7 @@ function app:on_init()
 			stop_bits = 1,
 			flow_control = "OFF"
 		}
-		conf.codcr_1001_opt = {
+		conf.nh_opt = {
 		}
 	end
 end
@@ -34,9 +34,9 @@ function app:on_start()
 	local sn = sys_id.."."..conf.dev_sn
 
 	local meta = self._api:default_meta()
-	meta.name = "JiangSu TINZ "..conf.dev_type
-	meta.manufacturer = "江苏天泽环保科技有限公司"
-	meta.description = "江苏天泽环保-"..conf.dev_type
+	meta.name = "NanJing RaiPun "..conf.dev_type
+	meta.manufacturer = "南京新锐鹏仪表科技有限公司"
+	meta.description = "南京新锐鹏仪表-"..conf.dev_type
 
 	local inputs = require(string.lower(conf.dev_type)..'.inputs')
 	local outputs = require(string.lower(conf.dev_type)..'.outputs')

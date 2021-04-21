@@ -3,7 +3,7 @@
 		"name": "dev_sn",
 		"desc": "设备序列号",
 		"type": "string",
-		"default": "COD"
+		"default": "NH"
 	},
 	{
 		"name": "loop_gap",
@@ -21,12 +21,12 @@
 		"name": "dev_type",
 		"desc": "设备型号",
 		"type": "dropdown",
-		"default": "CODcr_1001",
+		"default": "NH",
 		"values": [
-			"CODcr_1001"
+			"NH"
 		],
 		"depends": {
-			"CODcr_1001": "codcr_1001_opt"
+			"NH": "nh_opt"
 		}
 	},	
 	{
@@ -34,8 +34,8 @@
 		"type": "serial"
 	},
 	{
-		"name": "codcr_1001_opt",
-		"desc": "CODcr_1001 选项",
+		"name": "nh_opt",
+		"desc": "氨氮自动分析仪选项",
 		"type": "section",
 		"child": [
 		]

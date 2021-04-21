@@ -30,17 +30,20 @@ C-校准
 T-超限
 B-通讯异常
 ]]--
-local function covert_status(status)
+--[[
+0-关闭 1-运行 2-校准 3-维护 4-报警 5-反吹
+]]--
+local function convert_status(status)
 	if status == 0 then
-		return 0, 'N'
+		return 0, 'N', 1
 	elseif status >= 2 status <= 9 then
-		return 1, 'N',
+		return 1, 'N', 1
 	elseif status <= 12 then
-		return 4, 'D'
+		return 4, 'D', 4
 	elseif status >= 13 then
-		return 2, 'N'
+		return 2, 'N', 1
 	end
-	return 4, 'B'
+	return 4, 'B', 0
 end
 
 --[[
@@ -86,10 +89,10 @@ local function convert_datetime(d, pdu_data, index)
 
 	local t = os.time({
 		year = 2000 + year,
-		month = mon,
-		day = day,
-		hour = hour,
-		min = min
+		month = mon % 12,
+		day = day % 31,
+		hour = hour % 60,
+		min = min % 60,
 	})
 	print(os.date('%FT%T', t))
 
@@ -149,24 +152,28 @@ function worker:run(modbus)
 
 	local water_tm = convert_datetime(d, pdu_data, 9)
 
-	local status, flag, rs = convert_status(d:uint16(pdu_data, 19))
+	local status = d:uint16(pdu_data, 19)
+	local i12101, flag, rs = convert_status(status)
 
-	local alarm = convert_alarm(d:uint16(pdu_data, 21))
+	local alarm = d:uint16(pdu_data, 21)
+	local i12103 = convert_alarm(alarm)
+	local i12102 = i12103 == 0 and 0 or 1
 
 	local offset = d:float(pdu_data, 23)
 	local offset_r = d:float(pdu_data, 27)
 
 	local calib_tm = convert_datetime(d, pdu_data, 31)
-	local s1 = d:uint16(pdu_data, 41)
-	local s2 = d:uint16(pdu_data, 43)
+
+	local i13105 = d:uint16(pdu_data, 41)
+	local i13110 = d:uint16(pdu_data, 43)
 
 	local dtemp = d:uint16(pdu_data, 45)
 	local dtime = d:uint16(pdu_data, 47)
 
 	local up_tm = convert_datetime(d, pdu_data, 49)
 	local min, max = convert_range(d:uint16(pdu_data, 59))
-	local c1 = d:uint16(pdu_data, 61)
-	local c2 = d:uint16(pdu_data, 63)
+	local i13104 = d:uint16(pdu_data, 61)
+	local i13108 = d:uint16(pdu_data, 63)
 
 	local now = ioe.time()
 
@@ -187,13 +194,31 @@ function worker:run(modbus)
 		flag = flag
 	}, 0, now)
 
-	self._dev:set_input_prop('w01018', 'INFO', {
+	local info = {
+		i12101 = i12101,
+		i12102 = i12102,
+		i12103 = i12103,
+
+		-- Zero
+		i13101 = calib_tm,
+		i13104 = i13104,
+		i13105 = i13105,
+		-- Max
+		i13107 = calib_tm,
+		i13108 = i13108,
+		i13110 = i13110,
+
 		i13116 = max -- 当前量程
 		i13119 = offset_r,
 		i13120 = offset,
-		i13122 = dtemp,
-		i13123 = dtime / 60,
-	}, 0, now)
+		i13121 = dtemp,
+		i13122 = dtime / 60,
+	}
+	for k, v in pairs(info) do
+		self._dev:set_input_prop(k, 'value', v, 0, now)
+	end
+
+	self._dev:set_input_prop('w01018', 'INFO', info, 0, now)
 end
 
 return worker
