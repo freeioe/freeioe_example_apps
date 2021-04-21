@@ -24,10 +24,12 @@ RELEASE_APP HJ/hj212_server
 RELEASE_APP HJ/ai_ex
 RELEASE_APP HJ/ruiao
 RELEASE_APP HJ/hebei
-RELEASE_APP HJ/jbsd
-RELEASE_APP HJ/chsdl
-RELEASE_APP HJ/treeland
 RELEASE_APP HJ/face_gate
+RELEASE_APP HJ/jstinz
+RELEASE_APP HJ/raipun
+# RELEASE_APP HJ/jbsd
+# RELEASE_APP HJ/chsdl
+# RELEASE_APP HJ/treeland
 
 RELEASE_APP tools/frpc
 RELEASE_APP tools/network_uci
