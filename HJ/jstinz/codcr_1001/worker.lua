@@ -36,7 +36,7 @@ B-通讯异常
 local function convert_status(status)
 	if status == 0 then
 		return 0, 'N', 1
-	elseif status >= 2 status <= 9 then
+	elseif status >= 2 and status <= 9 then
 		return 1, 'N', 1
 	elseif status <= 12 then
 		return 4, 'D', 4
@@ -84,17 +84,25 @@ local function convert_datetime(d, pdu_data, index)
 	local hour = d:uint16(pdu_data, index + 5)
 	local min = d:uint16(pdu_data, index + 7)
 
-	local dt_str = string.format('20%02d-%02d-%02dT%02d:%02d:00', year % 100, mon % 12, day % 99, hour % 60, min % 60)
+	year = year % 100
+	mon = mon % 12
+	day = day % 31
+	hour = hour % 60
+	min = min % 60
+
+	--[[
+	local dt_str = string.format('20%02d-%02d-%02dT%02d:%02d:00', year, mon, day, hour, min)
 	print(dt_str, year, mon, day, hour, min)
+	]]--
 
 	local t = os.time({
 		year = 2000 + year,
-		month = mon % 12,
-		day = day % 31,
-		hour = hour % 60,
-		min = min % 60,
+		month = mon,
+		day = day,
+		hour = hour,
+		min = min,
 	})
-	print(os.date('%FT%T', t))
+	--print(os.date('%FT%T', t))
 
 	return t
 end
@@ -143,7 +151,9 @@ function worker:run(modbus)
 	end
 
 	local len = d:uint8(pdu, 2)
-	assert(len >= dlen * 2, SF("length issue :%d - %d", len, dlen * 2))
+	if len < dlen * 2 then
+		return SF("length issue :%d - %d", len, dlen * 2))
+	end
 
 	local pdu_data = string.sub(pdu, 3)
 
@@ -177,22 +187,22 @@ function worker:run(modbus)
 
 	local now = ioe.time()
 
-	self._dev:set_input_prop('sample_time', 'value', os.date('%FT%T', water_tm), 0, now)
-	self._dev:set_input_prop('calib_time', 'value', os.date('%FT%T', calib_tm), 0, now)
-	self._dev:set_input_prop('uptime', 'value', os.date('%FT%T', up_tm), 0, now)
+	self._dev:set_input_prop('sample_time', 'value', os.date('%FT%T', water_tm), now)
+	self._dev:set_input_prop('calib_time', 'value', os.date('%FT%T', calib_tm), now)
+	self._dev:set_input_prop('uptime', 'value', os.date('%FT%T', up_tm), now)
 
-	self._dev:set_input_prop('RS', 'value', rs, 0, now)
-	self._dev:set_input_prop('status', 'value', status, 0, now)
-	self._dev:set_input_prop('alarm', 'value', alarm, 0, now)
-	self._dev:set_input_prop('w01018_raw', 'value', cod_raw, 0, now)
+	self._dev:set_input_prop('RS', 'value', rs, now)
+	self._dev:set_input_prop('status', 'value', status, now)
+	self._dev:set_input_prop('alarm', 'value', alarm, now)
+	self._dev:set_input_prop('w01018_raw', 'value', cod_raw, now)
 
-	self._dev:set_input_prop('w01018', 'value', cod_val, 0, now)
+	self._dev:set_input_prop('w01018', 'value', cod_val, now)
 	self._dev:set_input_prop('w01018', 'RDATA', {
 		value = cod_val,
 		value_src = cod_raw,
 		timestamp = now,
 		flag = flag
-	}, 0, now)
+	}, now)
 
 	local info = {
 		i12101 = i12101,
@@ -208,17 +218,19 @@ function worker:run(modbus)
 		i13108 = i13108,
 		i13110 = i13110,
 
-		i13116 = max -- 当前量程
+		i13116 = max, -- 当前量程
 		i13119 = offset_r,
 		i13120 = offset,
 		i13121 = dtemp,
 		i13122 = dtime / 60,
 	}
 	for k, v in pairs(info) do
-		self._dev:set_input_prop(k, 'value', v, 0, now)
+		self._dev:set_input_prop(k, 'value', v, now)
 	end
 
-	self._dev:set_input_prop('w01018', 'INFO', info, 0, now)
+	self._dev:set_input_prop('w01018', 'INFO', info, now)
+
+	return true
 end
 
 return worker

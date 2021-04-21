@@ -25,11 +25,34 @@ local SF = string.format
 11 标样核查
 12~99 可扩展
 ]]--
-
 --[[
 i12101:
 0=空闲  1=做样  2=清洗  3=维护  4=故障 5=校准 6=标样核查
 --]]
+--[[
+HJ212-RS 0-关闭 1-运行 2-校准 3-维护 4-报警 5-反吹
+]]--
+local function convert_status(status)
+	if status == 0 or status == 1 then
+		return 0, 1
+	elseif status == 3 then
+		return 1, 1
+	elseif status == 4 then
+		return 3, 3
+	elseif status == 5 then
+		return 5, 1
+	elseif status == 6 then
+		return 4, 4
+	elseif status == 7 or status == 8 then
+		return 5, 2
+	elseif status == 10 then
+		return 5, 2
+	elseif status == 11 then
+		return 6, 2
+	end
+	return 4, 0
+end
+
 --[[
 HJ212 Flag:
 N-正常
@@ -41,28 +64,15 @@ C-校准
 T-超限
 B-通讯异常
 ]]--
---[[
-0-关闭 1-运行 2-校准 3-维护 4-报警 5-反吹
-]]--
-local function convert_status(status)
-	if status == 0 or status == 1 then
-		return 0, 'N', 1
-	elseif status == 3 then
-		return 1, 'N', 1
-	elseif status == 4 then
-		return 3, 'M', 3
-	elseif status == 5 then
-		return 5, 'N', 1
-	elseif status == 6 then
-		return 4, 'D', 4
-	elseif status == 7 or status == 8 then
-		return 5, 'C', 2
-	elseif status == 10 then
-		return 5, 'C', 2
-	elseif status == 11 then
-		return 6, 'C', 2
+local function convert_flag(flag, flag_o)
+	if flag_o == 'c' then
+		if flag == 'z' or flag == 's' then
+			return 'C'
+		end
+		return 'C'
+	else
+		return flag
 	end
-	return 4, 'B', 0
 end
 
 --[[
@@ -88,27 +98,28 @@ i12103:
 ]]--
 
 local function convert_alarm(alarm1, alarm2)
-	if alarm1 & (1 << (16 - 0)) then
+	print(alarm1, alarm2, 1 << 15, alarm1 & (1 << 15))
+	if alarm1 & (1 << (16 - 1)) ~= 0 then
 		return 1
-	elseif alarm1 & (1 << (16 - 1)) then
+	elseif alarm1 & (1 << (16 - 2)) ~= 0 then
 		return 4
-	elseif alarm1 & (1 << (16 - 2)) then
+	elseif alarm1 & (1 << (16 - 3)) ~= 0 then
 		return 2
-	elseif alarm1 & (1 << (16 - 3)) then
+	elseif alarm1 & (1 << (16 - 4)) ~= 0 then
 		return 3
-	elseif alarm1 & (1 << (16 - 5)) then
+	elseif alarm1 & (1 << (16 - 6)) ~= 0 then
 		return 10 -- TODO:
-	elseif alarm1 & (1 << (16 - 6)) then
+	elseif alarm1 & (1 << (16 - 7)) ~= 0 then
 		return 7
-	elseif alarm1 & (1 << (16 - 7)) then
+	elseif alarm1 & (1 << (16 - 8)) ~= 0 then
 		return 5
-	elseif alarm1 & (1 << (16 - 8)) then
+	elseif alarm1 & (1 << (16 - 8)) ~= 0 then
 		return 0
-	elseif alarm1 & (1 << (16 - 9)) then
+	elseif alarm1 & (1 << (16 - 10)) ~= 0 then
 		return 7
-	elseif alarm1 & (1 << (16 - 10)) then
+	elseif alarm1 & (1 << (16 - 11)) ~= 0 then
 		return 8
-	elseif alarm1 & (1 << (16 - 11)) then
+	elseif alarm1 & (1 << (16 - 12)) ~= 0 then
 		return 10
 	end
 
@@ -229,6 +240,7 @@ function worker:read_val(modbus)
 
 	local dtime = convert_datetime(pdu_data, 1)
 	local val = d:float(pdu_data, 11)
+	local flag_o = string.sub(pdu_data, 17, 17)
 	local flag = string.sub(pdu_data, 18, 18)
 
 	local raw, err = self:read_raw(modbus)
@@ -238,14 +250,15 @@ function worker:read_val(modbus)
 
 	local now = ioe.time()
 
-	self._dev:set_input_prop('w21003', 'value', val, 0, now)
-	self._dev:set_input_prop('w21003_raw', 'value', raw, 0, now)
+	self._dev:set_input_prop('w21003', 'value', val, now)
+	self._dev:set_input_prop('w21003_raw', 'value', raw, now)
 	self._dev:set_input_prop('w21003', 'RDATA', {
 		value = val,
 		value_src = raw,
-		flag = flag
+		flag = convert_flag(flag, flag_o),
 		timestamp = dtime -- TODO:
-	}, 0, now)
+	}, now)
+	self._dev:set_input_prop('sample_time', 'value', dtime, now)
 
 	return true
 end
@@ -277,8 +290,14 @@ function worker:read_state(modbus)
 
 	local pdu_data = string.sub(pdu, 3)
 
-	local status = d:uint16(pdu_data, 1)
-	local i12101, flag, rs = convert_status(status)
+	local status = d:uint32(pdu_data, 1)
+	local mode = d:uint16(pdu_data, 5)
+	local alarm1 = d:uint16(pdu_data, 9)
+	local alarm2 = d:uint16(pdu_data, 11) -- not used
+
+	local i12101, rs = convert_status(status)
+	local i12103 = convert_alarm(alarm1, alarm2)
+	local i12102 = i12103 == 0 and 0 or 1
 
 	local info, err = self:read_info(modbus)
 	if not info then
@@ -287,14 +306,21 @@ function worker:read_state(modbus)
 
 	local now = ioe.time()
 	for k, v in pairs(info) do
-		self._dev:set_input_prop(k, 'value', v, 0, now)
+		self._dev:set_input_prop(k, 'value', v, now)
 	end
 
 	info.i12101 = i12101
 	info.i12102 = i12102
 	info.i12103 = i12103
 
-	self._dev:set_input_prop('w21003', 'INFO', info, 0, now)
+	self._dev:set_input_prop('status', 'value', status, now)
+	self._dev:set_input_prop('alarm', 'value', alarm1, now)
+	self._dev:set_input_prop('RS', 'value', rs, now)
+
+	self._dev:set_input_prop('i12101', 'value', i12101, now)
+	self._dev:set_input_prop('i12103', 'value', i12103, now)
+
+	self._dev:set_input_prop('w21003', 'INFO', info, now)
 	return true
 end
 
@@ -342,6 +368,8 @@ function worker:read_info(modbus)
 	local kbrate = d:float(pdu_data, 57)
 	local i13128 = d:uint16(pdu_data, 61)
 
+	self._dev:set_input_prop('calib_time', 'value', calib_tm, now)
+
 	return {
 		i13101 = calib_tm,
 		i13102 = i13102,
@@ -353,7 +381,7 @@ function worker:read_info(modbus)
 		i13114 = i13114,
 		i13116 = i13116,
 		i13117 = i13117,
-		i13121 = i13131,
+		i13121 = i13121,
 		i13122 = i13122,
 		i13128 = i13128,
 	}

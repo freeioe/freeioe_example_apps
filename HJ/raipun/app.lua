@@ -13,7 +13,7 @@ function app:on_init()
 	if ioe.developer_mode() then
 		conf.serial = conf.serial or {
 			port = "/tmp/ttyS3",
-			baudrate = 9800,
+			baudrate = 9600,
 			data_bits = 8,
 			parity = "NONE",
 			stop_bits = 1,
@@ -47,7 +47,16 @@ function app:on_start()
 	self._dev = self._api:add_device(sn, meta, inputs, outputs)
 	self._worker = worker:new(self, conf.unit, self._dev, worker_opt)
 
-	self._modbus = master:new('RTU', {link='serial', serial = conf.serial})
+	if ioe.developer_mode() then
+		self._modbus = master:new('TCP', {link='serial', serial = conf.serial})
+	else 
+		self._modbus = master:new('RTU', {link='serial', serial = conf.serial})
+	end
+		--- 设定通讯口数据回调
+	self._modbus:set_io_cb(function(io, unit, msg)
+		self._dev:dump_comm(io, msg)
+	end)
+
 	return self._modbus:start()
 end
 
@@ -63,7 +72,10 @@ end
 function app:on_run(tms)
 	local conf = self:app_conf()
 
-	self._worker:run(self._modbus)
+	local r, err = self._worker:run(self._modbus)
+	if not r then
+		self._log:error(err)
+	end
 
 	return conf.loop_gap or 1000
 end

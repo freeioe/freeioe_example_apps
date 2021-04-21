@@ -1,7 +1,7 @@
 return {
 	{
 		name = "RS",
-		desc = "设备工作状态"
+		desc = "设备工作状态",
 		vt = "int",
 	},
 	{
@@ -16,18 +16,13 @@ return {
 		vt = "float",
 	},
 	{
-		name = "sample_time"
+		name = "sample_time",
 		desc = "取水时间",
 		vt = "string",
 	},
 	{
 		name = "calib_time",
 		desc = "仪器校正时间",
-		vt = "string",
-	},
-	{
-		name = "uptime"
-		desc = "上电时间",
 		vt = "string",
 	},
 	{
@@ -52,7 +47,7 @@ return {
 	},
 	{
 		name = "i13101",
-		desc = "零点校准时间"
+		desc = "零点校准时间",
 		vt = "int",
 	},
 	{
@@ -73,7 +68,7 @@ return {
 	},
 	{
 		name = "i13107",
-		desc = "量程校准时间"
+		desc = "量程校准时间",
 		vt = "int",
 	},
 	{
@@ -94,7 +89,7 @@ return {
 	},
 	{
 		name = "i13116",
-		desc = "当前量程（最大值)"
+		desc = "当前量程（最大值)",
 		vt = "float",
 	},
 	{
