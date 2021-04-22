@@ -391,9 +391,6 @@ function app:create_station_info(poll)
 		self:upload_station_info(self._station_info, value, timestamp, quality)
 	end)
 
-	local mode = ioe.mode()
-	self._station_info:set_mode(mode, ioe.time(), 0)
-
 	local poll_list = {}
 	for sn, val in pairs(self._rs_map) do
 		local dev = self._devs[sn]
@@ -715,15 +712,7 @@ function app:on_input(app_src, sn, input, prop, value, timestamp, quality)
 		return
 	end
 
-	local sys_id = self._sys:id()
-
-	if sn == sys_id then
-		if input == 'work_mode' then
-			self:on_sys_mode(prop, value, timestamp, quality)
-		end
-	end
-
-	local sys_id_prefix = sys_id..'.'
+	local sys_id_prefix = self._sys:id()..'.'
 	if string.find(sn, sys_id_prefix, 1, true) == 1 then
 		sn = string.sub(sn, string.len(sys_id_prefix) + 1)
 	end
@@ -776,14 +765,6 @@ function app:on_input(app_src, sn, input, prop, value, timestamp, quality)
 			self:set_station_prop_info(inputs, value, timestamp, quality)
 		end
 	end
-end
-
-function app:on_sys_mode(prop, value, timestamp, quality)
-	if prop ~= 'value' then
-		return
-	end
-
-	self._station_info:set_mode(value, timestamp, quality)
 end
 
 function app:save_samples()

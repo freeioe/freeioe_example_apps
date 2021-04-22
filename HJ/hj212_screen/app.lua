@@ -105,10 +105,10 @@ function app:on_start()
 	self._tpl = tpl
 
 	local inputs = {
-		{ name = 'station', desc = 'Station name', vt = 'string'},
-		{ name = 'station_type', desc = 'Station type', vt = 'string'},
-		{ name = 'app_inst', desc = 'Station app instance name', vt = 'string'},
-		{ name = 'info', desc = 'Station settings info tag', vt = 'string'},
+		{ name = 'station', desc = '站名', vt = 'string'},
+		{ name = 'station_type', desc = '类型', vt = 'string'},
+		{ name = 'app_inst', desc = 'HJ212应用实例名', vt = 'string'},
+		{ name = 'info', desc = '站信息', vt = 'string'},
 	}
 	local value_map = {
 		station = { value = conf.station },
@@ -117,7 +117,9 @@ function app:on_start()
 	}
 	local outputs = {}
 	local inputs_map = {}
-	local status_map = {}
+	local status_map = {
+		station_status = { name = 'station_status', desc = '数采仪工作状态' }
+	}
 	local settings_map = {}
 	local devs = {}
 	local stats = {}
@@ -158,6 +160,14 @@ function app:on_start()
 			desc = string.format('[%s]%s', v.input, v.desc),
 		}
 	end
+
+	table.insert(tpl.status, {
+		name = 'station_status',
+		desc = '数采仪工作状态',
+		sn = '___not_exits',
+		input = '___not_exits',
+	})
+
 	for _, v in ipairs(tpl.status) do
 		map_dev(v)
 		status_map[v.name] = v
@@ -224,6 +234,7 @@ function app:on_start()
 	self._dev_inputs = inputs
 
 	sys:timeout(10, function()
+		self:read_station_status()
 		self:read_tags()
 	end)
 
@@ -259,6 +270,10 @@ function app:on_settings_updated(fire_info)
 			info[v.hj212] = val.value
 		end
 		data[v.name] = val.value
+	end
+	info.i22001 = 0
+	if self._value_map.station_status then
+		info.i22001 = self._value_map.station_status.value
 	end
 
 	ioe.env.set('HJ212.SETTINGS', conf.station, data)
@@ -425,10 +440,21 @@ function app:on_run(tms)
 		end
 	end
 
+	self:read_station_status()
+
 	self:publish_status()
 	self:publish_inputs()
 
 	return 1000
+end
+
+function app:read_station_status()
+	local mode = ioe.mode()
+	if mode == 0 then
+		self._value_map['station_status'] = { value = 3, timestamp = ioe.time() }
+	else
+		self._value_map['station_status'] = { value = 0, timestamp = ioe.time() }
+	end
 end
 
 --[[
@@ -776,6 +802,8 @@ function app:on_mqtt_message(mid, topic, payload, qos, retained)
 	end
 	if sub == 'calc_para' then
 		self:on_mqtt_params(data.datas)
+	elseif sub == 'mode' then
+		self:on_mqtt_mode(data.datas)
 	else
 		self._log:error("MQTT recevied incorrect topic", t, sub)
 	end
@@ -835,6 +863,19 @@ function app:on_mqtt_params(settings)
 	end
 
 	return self:on_mqtt_result(id, true, 'Set output prop done')
+end
+
+function app:on_mqtt_mode(data)
+	local mode = data.mode
+	if mode ~= nil then
+		self._value_map['station_status'] = {value = mode, timestamp = ioe.time()}
+		if mode == 0 then
+			ioe.set_mode(1)
+		end
+		if mode == 3 then
+			ioe.set_mode(0)
+		end
+	end
 end
 
 function app:on_output(app_src, sn, output, prop, value, timestamp)

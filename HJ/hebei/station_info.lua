@@ -27,10 +27,6 @@ function info:set_conn_list(poll_list, status, timestamp, quality)
 	return self:set_value(value, timestamp, quality)
 end
 
-function info:set_mode(mode, timestamp, quality)
-	return self:set_value({i22001=mode}, timestamp, quality)
-end
-
 function info:set_alarm(alarm, timestamp, quality)
 	return self:set_value({
 		i22003 = alarm,

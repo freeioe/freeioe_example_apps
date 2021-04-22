@@ -156,7 +156,6 @@ function client:on_rdata(name, rdata, data_time)
 	local timestamp = rdata.SampleTime or data_time
 
 	if self:rdata_timestamp_reset() then
-		print('reset rdata timestamp', timestamp, ioe.time())
 		timestamp = ioe.time()
 	end
 
