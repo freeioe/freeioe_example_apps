@@ -802,7 +802,7 @@ function app:on_mqtt_message(mid, topic, payload, qos, retained)
 	end
 	if sub == 'calc_para' then
 		self:on_mqtt_params(data.datas)
-	elseif sub == 'mode' then
+	elseif sub == 'station_mode' then
 		self:on_mqtt_mode(data.datas)
 	else
 		self._log:error("MQTT recevied incorrect topic", t, sub)
