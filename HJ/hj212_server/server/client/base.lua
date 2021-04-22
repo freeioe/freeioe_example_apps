@@ -96,7 +96,7 @@ function client:set_option(opt)
 end
 
 function client:rdata_timestamp_reset()
-	return self._opt.rdata_timestamp_reset == true
+	return string.lower(self._opt.rdata_timestamp_reset or 'NO') == 'yes'
 end
 
 function client:timeout()

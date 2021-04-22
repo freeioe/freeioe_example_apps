@@ -71,8 +71,12 @@
 			{
 				"name": "rdata_timestamp_reset",
 				"desc": "Reset RDATA timestamp",
-				"type": "boolean",
-				"default": false
+				"type": "dropdown",
+				"default": "NO",
+				"values": [
+					"NO",
+					"YES"
+				]
 			},
 			{
 				"name": "rdata_interval",
