@@ -63,6 +63,7 @@ function app:create_station(client, system, dev_id, passwd, ver)
 	end
 
 	client:set_sn(dev_sn)
+	client:set_option(s.info)
 	client:set_dev(self._devs[dev_sn])
 
 	station:set_client(client)
@@ -167,6 +168,7 @@ function app:on_start()
 			passwd = '123456',
 			timeout = 5,
 			retry = 3,
+			rdata_timestamp_reset = true,
 			rdata_interval = 30, -- 30 seconds
 			min_interval = 10, -- 10 mins
 		})

@@ -69,14 +69,22 @@
 				"default": 3
 			},
 			{
+				"name": "rdata_timestamp_reset",
+				"desc": "Reset RDATA timestamp",
+				"type": "boolean",
+				"default": false
+			},
+			{
 				"name": "rdata_interval",
-				"desc": "RData Interval (second)",
+				"desc": "RData Interval",
+				"comment": "in Seconds",
 				"type": "number",
 				"default": 30
 			},
 			{
 				"name": "min_interval",
-				"desc": "Minutes Data Interval (minute)",
+				"desc": "Min Interval",
+				"comment": "in minutes",
 				"type": "number",
 				"default": 10
 			}

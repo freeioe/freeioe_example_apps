@@ -67,6 +67,7 @@ function client:initialize(server, pfuncs)
 	self._server = server
 	self._sn = nil
 	self._log = server:log_api()
+	self._opt = {}
 
 	self._meter_rs = types.RS.Normal
 
@@ -90,12 +91,20 @@ function client:set_sn(sn)
 	self._sn = sn
 end
 
+function client:set_option(opt)
+	self._opt = opt or {}
+end
+
+function client:rdata_timestamp_reset()
+	return self._opt.rdata_timestamp_reset == true
+end
+
 function client:timeout()
-	return 3000
+	return self._opt.timeout or 3000
 end
 
 function client:retry()
-	return 3
+	return self._opt.retry or 3
 end
 
 function client:set_dev(dev)
@@ -136,7 +145,7 @@ function client:on_disconnect()
 	return self._server:on_disconnect(self)
 end
 
-function client:on_rdata(name, rdata)
+function client:on_rdata(name, rdata, data_time)
 	if not self._rdata_map[name] then
 		self._inputs_changed = true
 		table.insert(self._inputs, create_poll_input(name))
@@ -144,10 +153,17 @@ function client:on_rdata(name, rdata)
 
 	table.insert(self._inputs_cov, name)
 
+	local timestamp = rdata.SampleTime or data_time
+
+	if self:rdata_timestamp_reset() then
+		print('reset rdata timestamp', timestamp, ioe.time())
+		timestamp = ioe.time()
+	end
+
 	self._rdata_map[name] = {
 		value = assert(rdata.Rtd),
 		value_z = rdata.ZsRtd,
-		timestamp = rdata.SampleTime,
+		timestamp = timestamp,
 		flag = rdata.Flag or self:rs_flag()
 	}
 end

@@ -33,7 +33,7 @@
 		"name": "min_interval",
 		"desc": "分钟数据上传周期（分钟）",
 		"type": "number",
-		"default": 10
+		"default": 1
 	},
 	{
 		"name": "servers",
@@ -79,6 +79,7 @@
 			{
 				"name": "resend",
 				"desc": "失败重试",
+				"comment": "开启后会启动数据缓存功能",
 				"type": "dropdown",
 				"default": "No",
 				"values": [
@@ -110,7 +111,7 @@
 	},
 	{
 		"name": "tpls",
-		"desc": "设备模板",
+		"desc": "污染物模板",
 		"type": "templates",
 		"limit": 1
 	},
@@ -143,17 +144,5 @@
 		"desc": "分钟/小时/天统计数据计算延迟（毫秒）",
 		"type": "number",
 		"default": 1000
-	},
-	{
-		"name": "local_timestamp",
-		"desc": "使用设备时间代替数据源的时间戳",
-		"type": "boolean",
-		"default": false
-	},
-	{
-		"name": "using_siridb",
-		"desc": "使用SIRIDB存储数据",
-		"type": "boolean",
-		"default": true
 	}
 ]

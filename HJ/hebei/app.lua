@@ -82,7 +82,6 @@ function app:on_start()
 	if os.getenv("IOE_DEVELOPER_MODE") then
 		-- conf.min_interval = 1
 		--conf.local_timestamp = true
-		--conf.using_siridb = true
 	end
 
 	if string.len(conf.dev_id or '') <= 0 or string.len(conf.dev_id) > 24 then
@@ -106,12 +105,8 @@ function app:on_start()
 		self._min_interval = 10
 	end
 	self._calc_delay = tonumber(conf.calc_delay) or 1000
-	self._local_timestamp = conf.local_timestamp or false
-	if self._local_timestamp then
-		log:warning("Using local timestamp instead of input value's source timestamp")
-	end
 
-	local max_duration = conf.using_siridb and 121 or 4
+	local max_duration = 121
 	local def_duration = math.abs(conf.duration or max_duration)
 	if def_duration > max_duration then
 		def_duration = max_duration
@@ -125,30 +120,20 @@ function app:on_start()
 	}
 
 	local db_folder = sysinfo.data_dir() .. "/db_" .. self._name
-	if not conf.using_siridb then
-		assert(false, "Only siridb supported")
-		--[[
-		self._hisdb = hisdb:new(db_folder, durations, def_duration)
+	self._hisdb = siridb:new(self._name, durations, def_duration)
+
+	local i = 1
+	local max_retry = 10
+	while true do
 		local r, err = self._hisdb:open()
-		if not r  then
+		if r then
+			break
+		end
+		log:error("Failed to open history database", err)
+		if i > max_retry then
 			return nil, err
 		end
-		]]--
-	else
-		local i = 1
-		local max_retry = 10
-		self._hisdb = siridb:new(self._name, durations, def_duration)
-		while true do
-			local r, err = self._hisdb:open()
-			if r then
-				break
-			end
-			log:error("Failed to open history database", err)
-			if i > max_retry then
-				return nil, err
-			end
-			self._sys:sleep(1000)
-		end
+		self._sys:sleep(1000)
 	end
 
 	conf.servers = conf.servers or {}
@@ -168,7 +153,7 @@ function app:on_start()
 				port = 16000,
 				passwd = '123456',
 				retry = 1,
-				resend = 'Yes',
+				resend = 'No',
 			})
 		end
 	end
@@ -460,7 +445,6 @@ function app:set_station_prop_value(props, value, timestamp, quality)
 	for _, v in ipairs(props) do
 		if not v.src_prop or string.lower(v.src_prop) == 'value' then
 			local val = (v.rate and v.rate ~= 1) and value * v.rate or value
-			timestamp = self._local_timestamp and sys:time() or timestamp
 
 			local flag = quality ~= 0 and types.FLAG.Connection or nil
 			local val_z = nil
@@ -482,7 +466,6 @@ function app:set_station_prop_rdata(props, value, timestamp, quality)
 		if v.src_prop == 'RDATA' then
 			local val = (v.rate and v.rate ~= 1) and value.value * v.rate or value.value
 			local val_z = (v.rate and v.rate ~= 1 and value.value_z ~= nil) and value.value_z * v.rate or value.value_z
-			timestamp = self._local_timestamp and sys:time() or timestamp
 			local ex_vals = nil
 			if value.value_src then
 				ex_vals = {
@@ -779,8 +762,6 @@ function app:on_input(app_src, sn, input, prop, value, timestamp, quality)
 			value = {}
 		end
 	end
-
-	timestamp = self._local_timestamp and self._sys:time() or timestamp
 
 	if prop == 'value' then
 		if input == 'RS' then

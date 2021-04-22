@@ -16,11 +16,11 @@ local csv_tpl = require 'csv_tpl'
 local conn = require 'conn'
 local hjpoll = require 'hjpoll'
 local hjinfo = require 'hjinfo'
-local hisdb = require 'hisdb.hisdb'
+--local hisdb = require 'hisdb.hisdb'
 local siridb = require 'siridb.hisdb'
 
---- lua_HJ212_version: 2021-04-04
---  comment: Hard coded the O2 to 0.209 when it is closed to 0.21
+--- lua_HJ212_version: 2021-04-18
+--  comment: Fixed a few things for HeBei HJ
 
 --- 注册对象(请尽量使用唯一的标识字符串)
 local app = app_base:subclass("FREEIOE_HJ212_APP")
@@ -69,8 +69,6 @@ function app:on_start()
 
 	if os.getenv("IOE_DEVELOPER_MODE") then
 		-- conf.min_interval = 1
-		conf.local_timestamp = true
-		conf.using_siridb = true
 		conf.min_interval = 1
 	end
 
@@ -95,12 +93,8 @@ function app:on_start()
 		self._min_interval = 10
 	end
 	self._calc_delay = tonumber(conf.calc_delay) or 1000
-	self._local_timestamp = conf.local_timestamp or false
-	if self._local_timestamp then
-		log:warning("Using local timestamp instead of input value's source timestamp")
-	end
 
-	local max_duration = conf.using_siridb and 121 or 4
+	local max_duration = 121 --- in months
 	local def_duration = math.abs(conf.duration or max_duration)
 	if def_duration > max_duration then
 		def_duration = max_duration
@@ -114,27 +108,21 @@ function app:on_start()
 	}
 
 	local db_folder = sysinfo.data_dir() .. "/db_" .. self._name
-	if not conf.using_siridb then
-		self._hisdb = hisdb:new(db_folder, durations, def_duration)
+
+	self._hisdb = siridb:new(self._name, durations, def_duration)
+
+	local i = 1
+	local max_retry = 10
+	while true do
 		local r, err = self._hisdb:open()
-		if not r  then
+		if r then
+			break
+		end
+		log:error("Failed to open history database", err)
+		if i > max_retry then
 			return nil, err
 		end
-	else
-		local i = 1
-		local max_retry = 10
-		self._hisdb = siridb:new(self._name, durations, def_duration)
-		while true do
-			local r, err = self._hisdb:open()
-			if r then
-				break
-			end
-			log:error("Failed to open history database", err)
-			if i > max_retry then
-				return nil, err
-			end
-			self._sys:sleep(1000)
-		end
+		self._sys:sleep(1000)
 	end
 
 	conf.servers = conf.servers or {}
@@ -154,8 +142,8 @@ function app:on_start()
 				port = 16000,
 				passwd = '123456',
 				retry = 1,
-				resend = 'Yes',
-				version = '2017',
+				resend = 'No',
+				version = '2005',
 				value_tpl = 'TaiAn',
 			})
 		end
@@ -257,6 +245,9 @@ function app:on_start()
 				end
 				if type_name == 'SAMPLE' then
 					dev:set_input_prop(p_name, 'value', val.value, timestamp, quality)
+					if val.value_z then
+						dev:set_input_prop(p_name, 'value_z', val.value_z, timestamp, quality)
+					end
 				else
 					local val_str, err = cjson.encode(val)
 					if not val_str then
@@ -355,7 +346,6 @@ function app:set_station_prop_value(props, value, timestamp, quality)
 	for _, v in ipairs(props) do
 		if not v.src_prop or string.lower(v.src_prop) == 'value' then
 			local val = (v.rate and v.rate ~= 1) and value * v.rate or value
-			timestamp = self._local_timestamp and sys:time() or timestamp
 
 			local flag = quality ~= 0 and types.FLAG.Connection or nil
 			local val_z = nil
@@ -377,7 +367,6 @@ function app:set_station_prop_rdata(props, value, timestamp, quality)
 		if v.src_prop == 'RDATA' then
 			local val = (v.rate and v.rate ~= 1) and value.value * v.rate or value.value
 			local val_z = (v.rate and v.rate ~= 1 and value.value_z ~= nil) and value.value_z * v.rate or value.value_z
-			timestamp = self._local_timestamp and sys:time() or timestamp
 
 			local r, err = self._station:set_poll_value(v.name, val, timestamp, val_z, v.flag, quality)
 			if not r then
@@ -468,6 +457,12 @@ function app:on_run(tms)
 			self:save_samples()
 		end
 	end
+
+	local conf = self:app_conf()
+	local settings = ioe.env.get('HJ212.SETTINGS', conf.station)
+	self._station:set_settings(settings)
+
+	-- TODO: Update status
 
 	return 1000
 end
@@ -610,9 +605,17 @@ function app:on_input(app_src, sn, input, prop, value, timestamp, quality)
 		return
 	end
 
-	local sys_id = self._sys:id()..'.'
-	if string.find(sn, sys_id, 1, true) == 1 then
-		sn = string.sub(sn, string.len(sys_id) + 1)
+	local sys_id = self._sys:id()
+
+	if sn == sys_id then
+		if input == 'work_mode' then
+			self:on_sys_mode(prop, value, timestamp, quality)
+		end
+	end
+
+	local sys_id_prefix = sys_id..'.'
+	if string.find(sn, sys_id_prefix, 1, true) == 1 then
+		sn = string.sub(sn, string.len(sys_id_prefix) + 1)
 	end
 	if string.len(sn) == 0 then
 		return
@@ -650,8 +653,6 @@ function app:on_input(app_src, sn, input, prop, value, timestamp, quality)
 		end
 	end
 
-	timestamp = self._local_timestamp and self._sys:time() or timestamp
-
 	if prop == 'value' then
 		if input == 'RS' then
 			self:set_station_rs(sn, dev, value, timestamp, quality)
@@ -665,6 +666,14 @@ function app:on_input(app_src, sn, input, prop, value, timestamp, quality)
 			self:set_station_prop_info(inputs, value, timestamp, quality)
 		end
 	end
+end
+
+function app:on_sys_mode(prop, value, timestamp, quality)
+	if prop ~= 'value' then
+		return
+	end
+
+	--self._station_info:set_mode(value, timestamp, quality)
 end
 
 function app:save_samples()
