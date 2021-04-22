@@ -168,7 +168,7 @@ function app:on_start()
 			passwd = '123456',
 			timeout = 5,
 			retry = 3,
-			rdata_timestamp_reset = true,
+			rdata_timestamp_reset = 'YES',
 			rdata_interval = 30, -- 30 seconds
 			min_interval = 10, -- 10 mins
 		})
