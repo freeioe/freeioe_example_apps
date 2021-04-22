@@ -1,4 +1,3 @@
-local cjson = require 'cjson.safe'
 local tbl_equals = require 'utils.table.equals'
 local calc_parser = require 'calc.parser'
 
@@ -93,7 +92,10 @@ function info:set_value(value, timestamp, quality)
 	end
 
 	local org_value, org_tm, org_q = self:get_value()
-	local eq = tbl_equals(org_value, value, true)
+	local eq = tbl_equals(org_value, new_value, true)
+
+	--local cjson = require 'cjson.safe'
+	--print(eq, cjson.encode(org_value), cjson.encode(new_value))
 
 	if not eq or (self._db and self._db:samples_size() == 0) then
 		self._db:push(new_value, timestamp, quality)

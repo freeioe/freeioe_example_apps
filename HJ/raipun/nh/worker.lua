@@ -98,7 +98,7 @@ i12103:
 ]]--
 
 local function convert_alarm(alarm1, alarm2)
-	print(alarm1, alarm2, 1 << 15, alarm1 & (1 << 15))
+	--print(alarm1, alarm2, 1 << 15, alarm1 & (1 << 15))
 	if alarm1 & (1 << (16 - 1)) ~= 0 then
 		return 1
 	elseif alarm1 & (1 << (16 - 2)) ~= 0 then
@@ -145,7 +145,7 @@ local function convert_datetime(pdu_data, index)
 		hour = hour,
 		min = min
 	})
-	print(os.date('%FT%T', t))
+	--print(os.date('%FT%T', t))
 
 	return t
 end

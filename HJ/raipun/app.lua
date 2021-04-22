@@ -12,7 +12,7 @@ function app:on_init()
 
 	if ioe.developer_mode() then
 		conf.serial = conf.serial or {
-			port = "/tmp/ttyS3",
+			port = "/tmp/ttyS4",
 			baudrate = 9600,
 			data_bits = 8,
 			parity = "NONE",

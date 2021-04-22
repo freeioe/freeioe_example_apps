@@ -7,7 +7,10 @@ local info = base:subclass('HJ212_HJ_STATION_INFO')
 
 function info:set_conn(poll_id, status, timestamp, quality)
 	local status = tonumber(status) == 0 and 0 or 1
-	return self:update_value_by_key(poll_id .. '-i22004', status, timestamp, quality)
+	local val = {
+		[poll_id..'-i22004'] = status
+	}
+	return self:set_value(val, timestamp, quality)
 end
 
 function info:set_conn_list(poll_list, status, timestamp, quality)
@@ -16,61 +19,23 @@ function info:set_conn_list(poll_list, status, timestamp, quality)
 	assert(timestamp)
 	assert(quality)
 
-	local value, tm = self:get_value()
-	if not value then
-		value = {} --construct empty value
-	else
-		--assert(tm <= timestamp)
-	end
-
-	local changed = false
-	local new_value = copy.deep(value)
+	local value = {}
 	for _, v in ipairs(poll_list) do
-		local key = v..'-i22004'
-		if new_value[key] ~= status then
-			new_value[key] = status
-			changed = true
-		end
-	end
-	if not changed then
-		return
+		value[v..'-i22004'] = status
 	end
 
-	return self:set_value(new_value, timestamp, quality)
+	return self:set_value(value, timestamp, quality)
 end
 
 function info:set_mode(mode, timestamp, quality)
-	return self:update_value_by_key('i22001', mode, timestamp, quality)
+	return self:set_value({i22001=mode}, timestamp, quality)
 end
 
 function info:set_alarm(alarm, timestamp, quality)
-	return self:update_value_by_key('i22003', mode, timestamp, quality)
-end
-
-function info:set_alarm_new(alarm, timestamp, quality)
-	return self:update_value_by_key('i22005', mode, timestamp, quality)
-end
-
-function info:update_value_by_key(key, val, timestamp, quality)
-	assert(val)
-	assert(timestamp)
-	assert(quality)
-
-	local value, tm = self:get_value()
-	if not value then
-		value = {} --construct empty value
-	else
-		assert(tm <= timestamp)
-	end
-
-	if value[key] == val then
-		return
-	end
-
-	local new_value = copy.deep(value)
-	new_value[key] = val
-
-	return self:set_value(new_value, timestamp, quality)
+	return self:set_value({
+		i22003 = alarm,
+		i22005 = alarm
+	}, timestamp, quality)
 end
 
 function info:get_format(info_name)
@@ -91,7 +56,16 @@ function info:set_value(value, timestamp, quality)
 	if value.i23001 then
 		value.i23011 = value.i23011 or (value.i23001 * 1000)
 	end
-	base.set_value(self, value, timestamp, quality)
+
+	local org = self:get_value()
+
+	for k, v in pairs(org or {}) do
+		if value[k] == nil then
+			value[k] = v
+		end
+	end
+
+	return base.set_value(self, value, timestamp, quality)
 end
 
 return info

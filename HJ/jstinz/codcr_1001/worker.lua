@@ -152,7 +152,7 @@ function worker:run(modbus)
 
 	local len = d:uint8(pdu, 2)
 	if len < dlen * 2 then
-		return SF("length issue :%d - %d", len, dlen * 2))
+		return SF("length issue :%d - %d", len, dlen * 2)
 	end
 
 	local pdu_data = string.sub(pdu, 3)
