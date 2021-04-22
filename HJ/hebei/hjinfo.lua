@@ -110,7 +110,7 @@ function info:set_value(value, timestamp, quality)
 	return true
 end
 
-local A_INFO_STATE = {'i12007', 'i12008', 'i12009'}
+local A_INFO_STATE = {'i12001', 'i12002', 'i12003', 'i12007', 'i12008', 'i12009'}
 local W_INFO_STATE = {'i12101', 'i12102', 'i12103'}
 
 function info:info_data(value, timestamp, quality)
@@ -127,7 +127,7 @@ function info:info_data(value, timestamp, quality)
 		status[k] = v
 	end
 	local state = {}
-	for _, v in ipairs(A_INFO_STATE) do
+	for _, v in ipairs(INFO_STATE) do
 		state[v] = status[v]
 		status[v] = nil
 	end
