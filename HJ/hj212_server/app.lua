@@ -140,7 +140,7 @@ function app:on_start()
 	conf.stations = conf.stations or {}
 
 	if ioe.developer_mode() and #conf.stations == 0 then
-		conf.channel_type = 'serial'
+		--conf.channel_type = 'serial'
 		table.insert(conf.stations, {
 			name = 'station_1',
 			system = '31',

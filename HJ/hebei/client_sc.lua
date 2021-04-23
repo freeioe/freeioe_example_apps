@@ -305,6 +305,15 @@ function client:process_socket_data()
 			end
 			if left and string.len(left) > 0 then
 				table.insert(self._buf, 1, left)
+				if p then
+					-- Continue to process
+					skynet.sleep(1)
+				else
+					--- Wait for data
+					self._buf_wait = {}
+					skynet.sleep(1000, self._buf_wait)
+					self._buf_wait = nil
+				end
 			end
 		else
 			self._buf_wait = {}

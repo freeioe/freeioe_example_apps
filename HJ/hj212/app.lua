@@ -774,7 +774,7 @@ function app:diff_data(data, diff_hour)
 	for _, v in ipairs(data) do
 		local dt = v:data_time()
 		dt = dt + (diff_hour * 3600)
-		print(v:data_time(), diff_hour, dt)
+		self._log:warning('diff_data', v:data_time(), diff_hour, dt)
 		v:set_data_time(dt)
 	end
 	return data

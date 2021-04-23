@@ -140,13 +140,15 @@ function app:on_start()
 	if os.getenv("IOE_DEVELOPER_MODE") then
 		if #conf.servers == 0 then
 			--[[
-			table.insert(conf.servers, {
-			name = 'city',
-			host = '127.0.0.1',
-			port = 6000,
-			passwd = '123456',
-			})
 			]]--
+			table.insert(conf.servers, {
+				name = 'city',
+				host = '127.0.0.1',
+				port = 16005,
+				passwd = '123456',
+				retry = 1,
+				resend = 'No',
+			})
 			table.insert(conf.servers, {
 				name = 'ministry',
 				host = '127.0.0.1',

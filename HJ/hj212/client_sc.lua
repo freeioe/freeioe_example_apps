@@ -156,6 +156,7 @@ function client:send_nowait(raw_data)
 end
 
 function client:connect_proc()
+	self._buf = {} --- Cleanup buffer data
 	local connect_gap = 100 -- one second
 	while not self._closing do
 		self._connection_wait = {}
@@ -302,8 +303,17 @@ function client:process_socket_data()
 					end)
 				end
 			end
-			if left and string.len(left) then
+			if left and string.len(left) > 0 then
 				table.insert(self._buf, 1, left)
+				if p then
+					-- Continue to process
+					skynet.sleep(1)
+				else
+					--- Wait for data
+					self._buf_wait = {}
+					skynet.sleep(1000, self._buf_wait)
+					self._buf_wait = nil
+				end
 			end
 		else
 			self._buf_wait = {}
