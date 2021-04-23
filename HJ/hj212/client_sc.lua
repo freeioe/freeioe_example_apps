@@ -283,7 +283,7 @@ function client:process_socket_data()
 			local data = table.concat(self._buf)
 			self._buf = {}
 
-			local p, reply = self:process(data)
+			local p, reply, left = self:process(data)
 			if p then
 				local session = p:session()
 				if reply then
@@ -301,6 +301,9 @@ function client:process_socket_data()
 						self:on_request(p)
 					end)
 				end
+			end
+			if left and string.len(left) then
+				table.insert(self._buf, 1, left)
 			end
 		else
 			self._buf_wait = {}
