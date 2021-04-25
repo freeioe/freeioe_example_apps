@@ -170,6 +170,7 @@ end
 function worker:run(modbus)
 	local r, err = self:read_val(modbus)
 	if not r then
+		self:invalid_dev()
 		return nil, err
 	end
 
@@ -179,6 +180,20 @@ function worker:run(modbus)
 end
 
 function worker:invalid_dev()
+	local now = ioe.time()
+
+	self._dev:set_input_prop('status', 'value', -1, now, -1)
+	self._dev:set_input_prop('alarm', 'value', -1, now, -1)
+	self._dev:set_input_prop('RS', 'value', 0, now, -1)
+
+	self._dev:set_input_prop('w21003', 'value', 0, now, -1)
+	self._dev:set_input_prop('w21003_raw', 'value', 0, now, -1)
+	self._dev:set_input_prop('w21003', 'RDATA', {
+		value = 0,
+		value_src = 0,
+		flag = 'B',
+		timestamp = now
+	}, now, -1)
 end
 
 function worker:read_raw(modbus)
