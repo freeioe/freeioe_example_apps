@@ -4,6 +4,7 @@ local data_pack = require 'modbus.data.pack'
 local data_unpack = require 'modbus.data.unpack'
 local date = require 'date'
 local ioe = require 'ioe'
+local retry = require 'utils.retry'
 
 local worker = class("CODcr_1001.worker")
 
@@ -164,7 +165,7 @@ function worker:read_val(modbus)
 	if not req then
 		return nil, err
 	end
-	local pdu, err = modbus:request(self._unit, req, 1000)
+	local pdu, err = retry(3, modbus.request, modbus, self._unit, req, 1000)
 	if not pdu then
 		return nil, err
 	end
