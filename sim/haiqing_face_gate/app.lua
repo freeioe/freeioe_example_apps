@@ -249,6 +249,7 @@ end
 
 function app:fire_verify()
 	local sub = self._subscribe
+	assert(sub)
 	local content = {
 		operator = 'VerifyPush',
 		info = {

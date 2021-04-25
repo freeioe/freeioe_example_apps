@@ -154,6 +154,7 @@ function app:start_httpd(port, ip)
 	if self._httpd_socket then
 		return true
 	end
+	self._log:info("Listen on "..port)
 	local id, err = socket.listen(ip or "0.0.0.0", port)
 	if not id then
 		return nil, err
