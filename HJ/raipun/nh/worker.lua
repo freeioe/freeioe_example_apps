@@ -127,7 +127,7 @@ local function convert_alarm(alarm1, alarm2)
 end
 
 local function bcd_num(pdu_data, index)
-	return bcd.decode(string.sub(pdu_data, index, index + 1))
+	return bcd.decode(string.sub(pdu_data, index, index))
 end
 
 local function convert_datetime(pdu_data, index)
@@ -143,7 +143,8 @@ local function convert_datetime(pdu_data, index)
 		month = mon,
 		day = day,
 		hour = hour,
-		min = min
+		min = min,
+		sec = sec
 	})
 	--print(os.date('%FT%T', t))
 
