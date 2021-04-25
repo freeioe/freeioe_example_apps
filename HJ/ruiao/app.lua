@@ -56,14 +56,15 @@ function app:create_station(client, system, dev_id, passwd, ver)
 	end
 
 	local dev_sn = assert(s.sn)
+	local dev = self._devs[dev_sn]
 
-	if not self._devs[dev_sn] then
-		local dev = self:create_device(dev_sn, s.info)
+	if not dev then
+		dev = self:create_device(dev_sn, s.info)
 		self._devs[dev_sn] = dev
 	end
 
 	client:set_sn(dev_sn)
-	client:set_dev(self._devs[dev_sn])
+	client:set_dev(dev)
 
 	station:set_client(client)
 
@@ -91,11 +92,7 @@ function app:on_client_disconnect(client)
 	self._clients[sn] = nil
 
 	if self._devs[sn] then
-		--[[
-		local api = self:data_api()
-		api:del_device(self._devs[sn])
-		self._devs[sn] = nil
-		]]--
+		-- TODO:
 	end
 
 	for k, v in pairs(self._stations) do

@@ -68,12 +68,13 @@ function client:initialize(server, pfuncs)
 	self._sn = nil
 	self._log = server:log_api()
 
-	self._meter_rs = types.RS.Normal
+	self._meter_rs = nil -- unknown
 
 	self._rdata_map = {}
 	self._inputs = {
 		{ name = 'RS', desc = 'Meter state', vt = 'int' },
 	}
+	self._inputs_changed = true
 	self._inputs_cov = {}
 
 	self._info_map = {}
@@ -128,10 +129,13 @@ function client:on_station_create(system, dev_id, passwd, ver)
 end
 
 function client:on_disconnect()
+	local now = ioe.time()
 	self._meter_rs = nil
+	self._dev:set_input_prop('RS', 'value', types.RS.Stoped, now, -1)
+
 	for name, rdata in pairs(self._rdata_map) do
-		self._dev:set_input_prop(name, 'value', rdata.value, ioe.time(), -1)
-		self._dev:set_input_prop(name, 'RDATA', rdata, ioe.time(), -1)
+		self._dev:set_input_prop(name, 'value', rdata.value, now, -1)
+		self._dev:set_input_prop(name, 'RDATA', cjson.encode(rdata), now, -1)
 	end
 	return self._server:on_disconnect(self)
 end
@@ -151,6 +155,11 @@ function client:on_rdata(name, rdata)
 		timestamp = rdata.SampleTime,
 		flag = rdata.Flag or self:rs_flag()
 	}
+
+	if not self._meter_rs and (not rdata.Flag or rdata.Flag == 'N') then
+		self._meter_rs = types.RS.Normal
+		self._dev:set_input_prop('RS', 'value', self._meter_rs)
+	end
 end
 
 function client:on_info(name, info_list, no_cov)
@@ -182,6 +191,7 @@ function client:on_run()
 	if self._inputs_changed then
 		self._inputs_changed = nil
 		self._dev:mod(self._inputs)
+		self._dev:set_input_prop('RS', 'value', self._meter_rs ~= nil and self._meter_rs or types.RS.Stoped)
 	end
 
 	for _, name in ipairs(self._inputs_cov) do
@@ -206,8 +216,9 @@ function client:on_run()
 end
 
 function client:set_meter_rs(rs, fire_rdata)
+	assert(rs)
 	self._meter_rs = rs
-	self._dev:set_input_prop('RS', 'value', rs)
+	self._dev:set_input_prop('RS', 'value', self._meter_rs)
 
 	if fire_rdata then
 		for name, rdata in pairs(self._rdata_map) do
