@@ -82,8 +82,8 @@ local function convert_datetime(d, pdu_data, index)
 	local year = d:uint16(pdu_data, index)
 	local mon = d:uint16(pdu_data, index + 2)
 	local day = d:uint16(pdu_data, index + 4)
-	local hour = d:uint16(pdu_data, index + 5)
-	local min = d:uint16(pdu_data, index + 7)
+	local hour = d:uint16(pdu_data, index + 6)
+	local min = d:uint16(pdu_data, index + 8)
 
 	year = year % 100
 	mon = mon % 12
@@ -160,7 +160,7 @@ end
 function worker:read_val(modbus)
 	local func = 0x03
 	local addr = 0
-	local dlen = 32
+	local dlen = 34
 	local req, err = self._pdu:make_request(func, addr, dlen)
 	if not req then
 		return nil, err
@@ -202,16 +202,16 @@ function worker:read_val(modbus)
 
 	local calib_tm = convert_datetime(d, pdu_data, 31)
 
-	local i13105 = d:uint16(pdu_data, 41)
-	local i13110 = d:uint16(pdu_data, 43)
+	local i13110 = d:uint16(pdu_data, 41)
+	local i13105 = d:uint16(pdu_data, 43)
 
 	local dtemp = d:uint16(pdu_data, 45)
 	local dtime = d:uint16(pdu_data, 47)
 
 	local up_tm = convert_datetime(d, pdu_data, 49)
 	local min, max = convert_range(d:uint16(pdu_data, 59))
-	local i13104 = d:uint16(pdu_data, 61)
-	local i13108 = d:uint16(pdu_data, 63)
+	local i13104 = d:float(pdu_data, 61)
+	local i13108 = d:float(pdu_data, 65)
 
 	local now = ioe.time()
 
