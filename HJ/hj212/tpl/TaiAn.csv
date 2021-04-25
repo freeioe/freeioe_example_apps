@@ -9,4 +9,3 @@ a34013,烟尘,毫克/立方米,float,cems.MP1,01,,,,N4.2,,,,,SRC,,RDATA
 a21026,二氧化硫,毫克/立方米,float,cems.MP1,02,,,,,,,,,SRC,,RDATA
 a21002,氮氧化物,毫克/立方米,float,cems.MP1,03,,,,,,,,,SRC,,RDATA
 Kv,速度场系数,,float,STATION.SETTINGS,Kv,,,,,,simple,N,N/A,,,
-i21002,测试,,string,cems.MP1,03,,,,,,,,,SRC,,RDATA

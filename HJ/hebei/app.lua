@@ -214,7 +214,7 @@ function app:on_start()
 	local no_hisdb = conf.no_hisdb
 	for sn, d in pairs(tpl.devs) do
 		local dev = {
-			RS = {} -- Handle the meter connection status
+			RS = {} -- Handle the meter run status
 		}
 		local poll_list = {}
 		for _, prop in ipairs(d) do
@@ -408,7 +408,7 @@ function app:create_station_info(poll)
 	return self._station_info
 end
 
-function app:set_station_rs(sn, dev, value, timestamp, quality)
+function app:set_meter_rs(sn, dev, value, timestamp, quality)
 	local org = self._rs_map[sn] or {}
 	if org[1] == value and org[3] == quality then
 		-- Only update timestamp
@@ -517,9 +517,10 @@ function app:read_polls()
 				local value, timestamp, quality = dev_api:get_input_prop(input, 'value')
 				if value then
 					if input == 'RS' then
-						self:set_station_rs(sn, dev, value, timestamp, quality)
+						self:set_meter_rs(sn, dev, value, timestamp, quality)
+					else
+						self:set_station_prop_value(polls, value, timestamp, quality)
 					end
-					self:set_station_prop_value(polls, value, timestamp, quality)
 				else
 					--self._log:error("Cannot read input value", sn, input)
 				end
@@ -756,9 +757,10 @@ function app:on_input(app_src, sn, input, prop, value, timestamp, quality)
 
 	if prop == 'value' then
 		if input == 'RS' then
-			self:set_station_rs(sn, dev, value, timestamp, quality)
+			self:set_meter_rs(sn, dev, value, timestamp, quality)
+		else
+			self:set_station_prop_value(inputs, value, timestamp, quality)
 		end
-		self:set_station_prop_value(inputs, value, timestamp, quality)
 	else
 		if prop == 'RDATA' then
 			self:set_station_prop_rdata(inputs, value, timestamp, quality)

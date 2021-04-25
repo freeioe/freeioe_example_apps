@@ -260,7 +260,9 @@ function conn:convert_version(data)
 		--print(id, poll:hj2005_id())
 		assert(poll)
 		id = poll:hj2005_id() or id
-		new_data[#new_data + 1] = v:clone(id)
+		local new_v = v:clone(id)
+		new_v:remove('SampleTime')
+		new_data[#new_data + 1] = new_v
 	end
 	return new_data
 end
