@@ -33,7 +33,7 @@ i12101:
 HJ212-RS 0-关闭 1-运行 2-校准 3-维护 4-报警 5-反吹
 ]]--
 local function convert_status(status)
-	if status == 0 or status == 1 then
+	if status == 1 or status == 2 then
 		return 0, 1
 	elseif status == 3 then
 		return 1, 1
@@ -45,6 +45,8 @@ local function convert_status(status)
 		return 4, 4
 	elseif status == 7 or status == 8 then
 		return 5, 2
+	elseif status == 9 then
+		return 0, 1
 	elseif status == 10 then
 		return 5, 2
 	elseif status == 11 then
@@ -274,7 +276,7 @@ function worker:read_val(modbus)
 		flag = convert_flag(flag, flag_o),
 		timestamp = dtime -- TODO:
 	}, now)
-	self._dev:set_input_prop('sample_time', 'value', dtime, now)
+	self._dev:set_input_prop('sample_time', 'value', os.date('%FT%T', dtime), now)
 
 	return true
 end
@@ -384,7 +386,7 @@ function worker:read_info(modbus)
 	local kbrate = d:float(pdu_data, 57)
 	local i13128 = d:uint16(pdu_data, 61)
 
-	self._dev:set_input_prop('calib_time', 'value', calib_tm, now)
+	self._dev:set_input_prop('calib_time', 'value', os.date('%FT%T', calib_tm), now)
 
 	return {
 		i13101 = calib_tm,
