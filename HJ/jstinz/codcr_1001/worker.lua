@@ -202,8 +202,8 @@ function worker:read_val(modbus)
 
 	local calib_tm = convert_datetime(d, pdu_data, 31)
 
-	local i13110 = d:uint16(pdu_data, 41)
-	local i13105 = d:uint16(pdu_data, 43)
+	local i13105 = d:uint16(pdu_data, 41)
+	local i13110 = d:uint16(pdu_data, 43)
 
 	local dtemp = d:uint16(pdu_data, 45)
 	local dtime = d:uint16(pdu_data, 47)
