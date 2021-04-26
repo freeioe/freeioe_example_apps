@@ -91,6 +91,7 @@ function app:on_start()
 		local zn = string.format('firewall.@zone[%d].name', i)
 		local r, err = self:uci_get(zn)
 		if not r then
+			self._log:info("Creating lan1proxy Firewall.Zone")
 			self:uci_add('firewall', 'zone', {
 				name = 'lan1proxy',
 				input = 'ACCEPT',
@@ -102,7 +103,7 @@ function app:on_start()
 			firewall_changes = true
 			break
 		end
-		if r.name == 'lan1proxy' then
+		if r == 'lan1proxy' then
 			break
 		end
 		i = i + 1
@@ -136,6 +137,7 @@ function app:on_start()
 		local zn = string.format('firewall.@redirect[%d].name', i)
 		local r, err = self:uci_get(zn)
 		if not r then
+			self._log:info("Creating lan1proxy Firewall.Redirect")
 			self:uci_add('firewall', 'redirect', {
 				target = 'DNAT',
 				name = 'lan1mqtt',
@@ -160,6 +162,7 @@ function app:on_start()
 	local socat_changes = false
 	local ret, err = self:uci_get('socat.lan1proxy')
 	if not ret then
+		self._log:info("Creating lan1proxy in Socat CFG")
 		self:uci_set('socat.lan1proxy', 'socat', {
 			enable = '1',
 			SocatOptions = '-d -d TCP-LISTEN:8181,fork,bind=200.200.200.100 TCP4:ioe.thingsroot.com:80'
@@ -169,6 +172,7 @@ function app:on_start()
 
 	local ret, err = self:uci_get('socat.lan1mqtt')
 	if not ret then
+		self._log:info("Creating lan1mqtt in Socat CFG")
 		self:uci_set('socat.lan1mqtt', 'socat', {
 			enable = '1',
 			SocatOptions = '-d -d TCP-LISTEN:3883,fork,bind=200.200.200.100 TCP4:ioe.thingsroot.com:1883'
