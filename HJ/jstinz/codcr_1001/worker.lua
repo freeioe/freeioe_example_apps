@@ -14,7 +14,7 @@ local SF = string.format
 --[[
 0：待机状态  2：水样加入  3：试剂B加入  4：试剂A加入
 5：试剂C加入  6：正在加热  7：正在冷却  8：预冲洗 
-9：正在排液   13：设备异常 13：测量完清洗
+9：正在排液   13：设备异常 14：测量完清洗
 ]]--
 --[[
 i12101:
@@ -39,9 +39,9 @@ local function convert_status(status)
 		return 0, 'N', 1
 	elseif status >= 2 and status <= 9 then
 		return 1, 'N', 1
-	elseif status <= 12 then
+	elseif status == 13 then
 		return 4, 'D', 4
-	elseif status >= 13 then
+	elseif status == 14 then
 		return 2, 'N', 1
 	end
 	return 4, 'B', 0
