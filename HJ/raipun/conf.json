@@ -38,6 +38,16 @@
 		"desc": "氨氮自动分析仪选项",
 		"type": "section",
 		"child": [
+			{
+				"name": "status_type",
+				"desc": "工作状态数据位",
+				"type": "dropdown",
+				"default": "16BITS",
+				"values": [
+					"16BITS",
+					"32BITS"
+				]
+			}
 		]
 	}
 ]

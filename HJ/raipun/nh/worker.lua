@@ -308,8 +308,14 @@ function worker:read_state(modbus)
 
 	local pdu_data = string.sub(pdu, 3)
 
-	local status = d:uint32(pdu_data, 1)
-	local mode = d:uint16(pdu_data, 5)
+	local status = 0
+	if not self._conf.status_type or self._conf.status_type == '16BITS' then
+		status = d:uint16(pdu_data, 1)
+	else
+		status = d:uint32(pdu_data, 1)
+	end
+
+	local mode = d:uint32(pdu_data, 5)
 	local alarm1 = d:uint16(pdu_data, 9)
 	local alarm2 = d:uint16(pdu_data, 11) -- not used
 
