@@ -12,7 +12,7 @@ local lfs = require 'lfs'
 local disk = require 'disk'
 
 local app = class("FREEIOE_SYS_APP_CLASS")
-app.static.API_VER = 4
+app.static.API_VER = 11
 
 function app:initialize(name, sys, conf)
 	self._name = name
@@ -50,6 +50,9 @@ function app:start()
 			end
 			if command == 'update_mode' then
 				return self:update_mode(param)
+			end
+			if command == 'enable_cache' then
+				return self:enable_cache(param)
 			end
 			self._log:trace('on_command', app_src, sn, command, param)
 			return true, "eee"
@@ -273,6 +276,10 @@ function app:start()
 		{
 			name = "update_mode",
 			desc = "Update work mode",
+		},
+		{
+			name = "enable_cache",
+			desc = "Disable cloud upload cache",
 		},
 	}
 
@@ -650,6 +657,15 @@ function app:update_mode(param)
 	return self:auth_pwd(param, function()
 		ioe.set_mode(mode)
 		return true, "Work mode has been updated to "..mode
+	end)
+end
+
+function app:enable_cache(param)
+	local enable = tonumber(param.enable)
+
+	return self:auth_pwd(param, function()
+		ioe.set_data_cache(enable)
+		return true, "Data cache has been updated to "..enable
 	end)
 end
 
