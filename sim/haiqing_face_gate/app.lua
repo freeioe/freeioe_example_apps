@@ -13,7 +13,7 @@ app.static.API_VER = 9
 
 function app:on_init()
 	self._devs = {}
-	self._subscribe = false
+	self._subscribe = nil
 end
 
 function app:on_start()
@@ -28,7 +28,8 @@ end
 function app:on_run(tms)
 	local log = self:log_api()
 
-	if self._subscribe then
+	if self._subscribe ~= nil then
+		assert(self._subscribe)
 		self:fire_heartbeat()
 		self:fire_verify()
 		return 5000 -- five seconds
@@ -249,7 +250,6 @@ end
 
 function app:fire_verify()
 	local sub = self._subscribe
-	assert(sub)
 	local content = {
 		operator = 'VerifyPush',
 		info = {
