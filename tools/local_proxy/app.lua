@@ -36,6 +36,11 @@ end
 
 function app:uci_get(section)
 	local info, err = sysinfo.exec('uci get '..section)
+
+	if info and  string.sub(info, -1) == '\n' then
+		info = string.sub(info, 1, -2)
+	end
+
 	if not info or string.len(info) == 0 then
 		return nil, err
 	end
