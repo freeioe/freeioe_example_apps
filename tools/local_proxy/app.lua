@@ -117,6 +117,7 @@ function app:on_start()
 			self:uci_add('firewall', 'redirect', {
 				target = 'DNAT',
 				name = 'lan1proxy',
+				proto = 'tcp',
 				src = 'lan1proxy',
 				src_dport = '80',
 				dest = 'lan',
@@ -141,6 +142,7 @@ function app:on_start()
 			self:uci_add('firewall', 'redirect', {
 				target = 'DNAT',
 				name = 'lan1mqtt',
+				proto = 'tcp',
 				src = 'lan1proxy',
 				src_dport = '1883',
 				dest = 'lan',
