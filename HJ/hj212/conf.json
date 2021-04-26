@@ -144,5 +144,11 @@
 		"desc": "分钟/小时/天统计数据计算延迟（毫秒）",
 		"type": "number",
 		"default": 1000
+	},
+	{
+		"name": "online_check_ip",
+		"desc": "在线检测IP",
+		"type": "string",
+		"default": ""
 	}
 ]

@@ -24,8 +24,8 @@ local siridb = require 'siridb.hisdb'
 
 --- 注册对象(请尽量使用唯一的标识字符串)
 local app = app_base:subclass("FREEIOE_HJ212_APP")
---- 设定应用最小运行接口版本, 7 has new api and lua5.4???
-app.static.API_VER = 7
+--- 设定应用最小运行接口版本, 11 has online check
+app.static.API_VER = 11
 
 function app:on_init()
 	self._devs = {}
@@ -70,6 +70,7 @@ function app:on_start()
 	if os.getenv("IOE_DEVELOPER_MODE") then
 		-- conf.min_interval = 1
 		conf.min_interval = 1
+		conf.online_check_ip = "127.0.0.1"
 	end
 
 	if string.len(conf.dev_id or '') <= 0 or string.len(conf.dev_id) > 24 then
@@ -77,6 +78,12 @@ function app:on_start()
 	end
 
 	self:check_timezone(conf)
+	if conf.online_check_ip and string.len(conf.online_check_ip) > 0 then
+		local r, err = ioe.set_online_check_ip(conf.online_check_ip)
+		if not r then
+			log:error("Set online check failed")
+		end
+	end
 
 	conf.station = conf.station or 'HJ212'
 	self._last_samples_save = sys:now()
