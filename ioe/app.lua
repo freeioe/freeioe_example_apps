@@ -661,11 +661,11 @@ function app:update_mode(param)
 end
 
 function app:enable_cache(param)
-	local enable = tonumber(param.enable)
+	local enable = param.enable == true or tonumber(param.enable) == 1
 
 	return self:auth_pwd(param, function()
 		ioe.set_data_cache(enable)
-		return true, "Data cache has been updated to "..enable
+		return true, enable and "Data cache enabled!!" or "Data cache disabled!!"
 	end)
 end
 
