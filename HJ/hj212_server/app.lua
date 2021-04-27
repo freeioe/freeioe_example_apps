@@ -136,7 +136,7 @@ function app:on_start()
 	conf.port = tonumber(conf.port or '') or 6000
 	conf.stations = conf.stations or {}
 
-	if ioe.developer_mode() and #conf.stations == 0 then
+	if ioe.developer_mode() then
 		conf.channel_type = 'serial'
 		table.insert(conf.stations, {
 			name = 'station_1',

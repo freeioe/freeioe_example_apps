@@ -187,7 +187,7 @@ function client:process_socket_data()
 			local data = table.concat(self._buf)
 			self._buf = {}
 
-			local p, reply = self:process(data)
+			local p, reply, left = self:process(data)
 			if p then
 				local session = p:session()
 				if reply then
@@ -200,6 +200,18 @@ function client:process_socket_data()
 					end
 				else
 					self:on_request(p)
+				end
+			end
+			if left and string.len(left) > 0 then
+				table.insert(self._buf, 1, left)
+				if p then
+					-- Continue to process
+					skynet.sleep(1)
+				else
+					--- Wait for data
+					self._buf_wait = {}
+					skynet.sleep(1000, self._buf_wait)
+					self._buf_wait = nil
 				end
 			end
 		end
