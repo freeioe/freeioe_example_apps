@@ -140,11 +140,13 @@ end
 function client:on_disconnect()
 	local now = ioe.time()
 	self._meter_rs = nil
-	self._dev:set_input_prop('RS', 'value', types.RS.Stoped, now, -1)
+	if self._dev then
+		self._dev:set_input_prop('RS', 'value', types.RS.Stoped, now, -1)
 
-	for name, rdata in pairs(self._rdata_map) do
-		self._dev:set_input_prop(name, 'value', rdata.value, now, -1)
-		self._dev:set_input_prop(name, 'RDATA', cjson.encode(rdata), now, -1)
+		for name, rdata in pairs(self._rdata_map) do
+			self._dev:set_input_prop(name, 'value', rdata.value, now, -1)
+			self._dev:set_input_prop(name, 'RDATA', cjson.encode(rdata), now, -1)
+		end
 	end
 	return self._server:on_disconnect(self)
 end
