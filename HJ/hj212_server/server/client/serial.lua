@@ -158,7 +158,7 @@ function client:process_serial_data()
 	while not self._closing and self._serial do
 		if #self._buf == 0 then
 			self._buf_wait = {}
-			self._sys:sleep(1000, self._buf_wait)
+			self._sys:sleep(10000, self._buf_wait)
 			self._buf_wait = nil
 		else
 			local data = table.concat(self._buf)
@@ -183,11 +183,11 @@ function client:process_serial_data()
 				table.insert(self._buf, 1, left)
 				if p then
 					-- Continue to process
-					skynet.sleep(1)
+					self._sys:sleep(10)
 				else
 					--- Wait for data
 					self._buf_wait = {}
-					skynet.sleep(1000, self._buf_wait)
+					self._sys:sleep(10000, self._buf_wait)
 					self._buf_wait = nil
 				end
 			end
