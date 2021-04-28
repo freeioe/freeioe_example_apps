@@ -3,13 +3,13 @@
 		"name": "dev_sn",
 		"desc": "设备序列号",
 		"type": "string",
-		"default": "WL_1A1"
+		"default": "cems"
 	},
 	{
 		"name": "loop_gap",
 		"desc": "采集间隔(Read Gap)",
 		"type": "number",
-		"default": 1000
+		"default": 5000
 	},
 	{
 		"name": "unit",
@@ -24,10 +24,11 @@
 		"default": "SCS_900UV",
 		"values": [
 			"SCS_900UV",
+			"SCS_900UV_PLC",
 			"SCS_900CPM"
 		],
 		"depends": {
-			"SCS_900UV": "scs_900uv_opt"
+			"SCS_900UV_PLC": "scs_900uv_plc_opt"
 		}
 	},	
 	{
@@ -35,92 +36,45 @@
 		"type": "serial"
 	},
 	{
-		"name": "scs_900uv_opt",
-		"desc": "PLC Data Channel",
+		"name": "scs_900uv_plc_opt",
+		"desc": "PLC 数据设定选项",
 		"type": "section",
 		"child": [
 			{
-				"name": "enable_plc",
-				"desc": "Enable PLC Reading",
-				"type": "boolean",
-				"default": false
+				"name": "station",
+				"desc": "HJ212 站名",
+				"type": "string",
+				"default": "HJ212"
 			},
 			{
-				"name": "a_s",
-				"desc": "",
+				"name": "humidity_prefix",
+				"desc": "湿度量程前缀",
+				"type": "string",
+				"default": "Humidity"
+			},
+			{
+				"name": "dust_prefix",
+				"desc": "烟尘量程前缀",
+				"type": "string",
+				"default": "Dust"
+			},
+			{
+				"name": "pressure_prefix",
+				"desc": "压力量程前缀",
 				"type": "number",
-				"default": 1.4
+				"default": "Pressure"
 			},
 			{
-				"name": "unit",
-				"desc": "Modbus 地址",
-				"type": "number",
-				"default": 1
+				"name": "temp_prefix",
+				"desc": "温度量程前缀",
+				"type": "string",
+				"default": "Temp"
 			},
 			{
-				"name": "plc_serial",
-				"desc": "PLC Serial",
-				"type": "serial"
-			},
-			{
-				"name": "wet_low",
-				"desc": "Wet Range Low",
-				"type": "number",
-				"default": 0
-			},
-			{
-				"name": "wet_high",
-				"desc": "Wet Range High",
-				"type": "number",
-				"default": 100
-			},
-			{
-				"name": "dust_low",
-				"desc": "Dust range low",
-				"type": "number",
-				"default": 0
-			},
-			{
-				"name": "dust_high",
-				"desc": "Dust range high",
-				"type": "number",
-				"default": 1000
-			},
-			{
-				"name": "pa_low",
-				"desc": "Diff pressure low",
-				"type": "number",
-				"default": 0
-			},
-			{
-				"name": "pa_high",
-				"desc": "Diff pressure high",
-				"type": "number",
-				"default": 100
-			},
-			{
-				"name": "temp_low",
-				"desc": "Temperature low",
-				"type": "number",
-				"default": -30
-			},
-			{
-				"name": "temp_high",
-				"desc": "Temperature high",
-				"type": "number",
-				"default": 100
-			},
-			{
-				"name": "pa_s_low",
-				"desc": "Static pressure low",
-				"type": "number",
-				"default": -30
-			},
-			{
-				"name": "pa_s_high",
-				"desc": "Static pressure high",
-				"type": "number",
-				"default": 100
+				"name": "delta_pressure_prefix",
+				"desc": "差压开方量程前缀",
+				"type": "string",
+				"default": "DeltaP"
 			}
 		]
 	}
