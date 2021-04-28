@@ -1,0 +1,32 @@
+[
+	{
+		"name": "sn_prefix",
+		"desc": "设备序列号前缀",
+		"type": "string",
+		"default": "yxk"
+	},
+	{
+		"name": "serial",
+		"desc": "串口设定",
+		"type": "serial"
+	},
+	{
+		"name": "devs",
+		"desc": "设备列表",
+		"type": "table",
+		"cols": [
+			{
+				"name": "no",
+				"desc": "设备编号",
+				"type": "number",
+				"default": 1
+			},
+			{
+				"name": "name",
+				"desc": "设备名称",
+				"type": "string",
+				"default": "1#"
+			}
+		]
+	}
+]
