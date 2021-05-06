@@ -665,7 +665,7 @@ function app:enable_cache(param)
 
 	return self:auth_pwd(param, function()
 		ioe.set_data_cache(enable)
-		return true, enable and "Data cache enabled!!" or "Data cache disabled!!"
+		return true, enable and "Data cache enabled!! Restart is needed!" or "Data cache disabled!!"
 	end)
 end
 
