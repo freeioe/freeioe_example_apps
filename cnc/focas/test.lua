@@ -47,6 +47,7 @@ end
 local ret = conn_call("connect", { ip = "192.168.0.200", port = 8193, timeout=5 })
 local handle = ret.handle
 
+conn_call("rdcurrent", {handle=handle})
 conn_call("actf", {handle=handle})
 conn_call("acts", {handle=handle})
 conn_call("acts2", {handle=handle, index=-1})

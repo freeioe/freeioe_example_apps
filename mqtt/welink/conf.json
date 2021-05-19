@@ -1,0 +1,165 @@
+[
+	{
+		"name": "host",
+		"desc": "服务器地址",
+		"type": "string",
+		"default":"iot.weiling.qq.com"
+	},
+	{
+		"name": "port",
+		"desc": "M端口",
+		"type": "number",
+		"default": 18831
+	},
+	{
+		"name": "pname",
+		"desc": "产品名称",
+		"type": "string",
+		"default": "FreeIOE"
+	},
+	{
+		"name": "pid",
+		"desc": "产品PID",
+		"type": "string",
+		"default": "1701001132"
+	},
+	{
+		"name": "srv_pub_key",
+		"desc": "服务器公钥",
+		"type": "text",
+		"default": "99213644F0F7EB64992DAD9AFF59A1215CDFC00F7C620D08646C7537962F8D1A8A1CE9C04F435E5ACF36893BC5BEB81E22A83894847052BD8832EB02A89161BB"
+	},
+	{
+		"name": "dev_pub_key",
+		"desc": "设备签名公钥",
+		"type": "text",
+		"default": "ADD3C87A7380313971C44B18C31A13B2697FC93E562CA7C5A66863AAC3046E8CC71BF53F16EA2DA6E0ECA08E4AFA702F942ACE1FC110BBE3DCB73BE248F97A53"
+	},
+	{
+		"name": "dev_pri_key",
+		"desc": "设备签名私钥",
+		"type": "text",
+		"default": "269D0736F3464E16B1E692E6FCDFD57DB2EFF5A9C01F01B72A69DBBE87A5207E"
+	},
+	{
+		"name": "sm4iv",
+		"desc": "SM4向量参数",
+		"type": "string",
+		"default": "9G44eKBX76pXXsl0"
+	},
+	{
+		"name": "options",
+		"desc": "数据传输选项",
+		"type": "section",
+		"child": [
+			{
+				"name": "period",
+				"desc": "上送周期(秒)",
+				"type": "number",
+				"default": 60
+			},
+			{
+				"name": "ttl",
+				"desc": "最大数据间隔(秒)",
+				"type": "number",
+				"default": 300
+			},
+			{
+				"name": "data_upload_dpp",
+				"desc": "最大打包数量",
+				"type": "number",
+				"default": 1024
+			},
+			{
+				"name": "enable_data_cache",
+				"desc": "开启断线缓存",
+				"type": "boolean",
+				"default": false
+			}
+		]
+	},
+	{
+		"name": "fake_devices",
+		"desc": "设备列表",
+		"type": "fake_section"
+	},
+	{
+		"name": "devs",
+		"desc": "需要上传的设备列表",
+		"type": "table",
+		"cols": [
+			{
+				"name": "sn",
+				"desc": "设备序号",
+				"type": "string"
+			}
+		]
+	},
+	{
+		"name": "fake_options_ex",
+		"desc": "高级选项",
+		"type": "fake_section"
+	},
+	{
+		"name": "has_options_ex",
+		"desc": "开启高级选项",
+		"type": "dropdown",
+		"values": [
+			"no",
+			"yes"
+		],
+		"depends": {
+			"no": "_no_options_ex",
+			"yes": "options_ex"
+		}
+	},
+	{
+		"name": "options_ex",
+		"desc": "高级选项",
+		"type": "section",
+		"child": [
+			{
+				"name": "disable_data",
+				"desc": "禁止数据上送",
+				"type": "boolean",
+				"default": false
+			},
+			{
+				"name": "upload_event",
+				"desc": "事件上送(最小等级)",
+				"type": "number",
+				"default": 0
+			},
+			{
+				"name": "disable_output",
+				"desc": "禁止设备输出",
+				"type": "boolean",
+				"default": false
+			},
+			{
+				"name": "disable_command",
+				"desc": "禁止设备指令",
+				"type": "boolean",
+				"default": false
+			},
+			{
+				"name": "disable_devices",
+				"desc": "禁止设备信息上送",
+				"type": "boolean",
+				"default": false
+			},
+			{
+				"name": "disable_data_em",
+				"desc": "禁止上送紧急数据",
+				"type": "boolean",
+				"default": false
+			},
+			{
+				"name": "disable_compress",
+				"desc": "禁止压缩(调试使用)",
+				"type": "boolean",
+				"default": false
+			}
+		]
+	}
+]
