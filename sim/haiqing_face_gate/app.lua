@@ -3,6 +3,7 @@ local cjson = require 'cjson.safe'
 local ioe = require 'ioe'
 local base = require 'app.base'
 local socket = require 'skynet.socket'
+local crypt = require 'skynet.crypt'
 local sockethelper = require 'http.sockethelper'
 local urllib = require 'http.url'
 local restful = require 'http.restful'
@@ -249,7 +250,25 @@ function app:fire_heartbeat()
 end
 
 function app:fire_verify()
+	local sys = self:sys_api()
+	local path = sys:app_dir()..'/images/test.jpg'
+	local f, err = io.open(path, 'r')
+	if not f then
+		self._log:error(err)
+		return
+	end
+	local img_c = f:read('*a')
+	f:close()
+
+	local data = crypt.base64encode(img_c)
+	local picinfo = 'data:image/jpeg;base64,'..data
+	print(string.len(picinfo))
+
 	local sub = self._subscribe
+	if not sub then 
+		return
+	end
+
 	local content = {
 		operator = 'VerifyPush',
 		info = {
@@ -281,7 +300,10 @@ function app:fire_verify()
 			RFIDCard = '',
 			Sendintime = 1,
 		},
-		SnapPic = 'data:image/jpeg;base64,QUFBCg==',
+		--SanpPic = 'data:image/jpeg;base64,QUFBCg==',
+		SanpPic = picinfo, 
+		RegisteredPic = picinfo, 
+		RegisteredPic2 = picinfo, 
 	}
 	local status, body = self._api:post('/Subscribe/Verify', {}, content, 'application/json')
 	if not status or status ~= 200 then
