@@ -118,6 +118,8 @@ function app:watch_client_socket(sock, addr)
 			self._port:write(data)
 		end
 	end
+
+	self._peers[sock] = nil
 end
 
 function app:start_listen()
