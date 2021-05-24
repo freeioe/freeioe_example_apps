@@ -1,0 +1,18 @@
+[
+	{
+		"name": "serial",
+		"desc": "串口",
+		"type": "serial"
+	},
+	{
+		"name": "tcp_server",
+		"desc": "TCP服务器设定",
+		"type": "tcp_server"
+	},
+	{
+		"name": "kick_same_ip",
+		"desc": "相同IP来源踢掉之前的连接",
+		"type": "boolean",
+		"default": false
+	}
+]
