@@ -40,6 +40,7 @@ function client:register(sn)
 	local pid = assert(self._pid)
 	local lic = assert(self._crypt:sm2_sign(sn))
 	local lic_hex = basexx.to_hex(lic)
+
 	local reg_data = cjson.encode({
 		sn = sn,
 		lic = lic_hex,

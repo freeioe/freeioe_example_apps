@@ -1,6 +1,5 @@
 local class = require 'middleclass'
 local basexx = require 'basexx'
-local b64 = require 'crypt.b64'
 local sm = require 'crypt.sm'
 
 local crypt = class('welink.crypt')
@@ -13,7 +12,6 @@ function crypt:initialize(pname, pid, srv_pub_key, dev_pub_key, dev_pri_key)
 	local dev_pri_path = base_dir..'/dev_pri.pem'
 
 	self._sm = sm({})
-	self._b64 = b64({})
 
 	self._sm.sm2key_write(srv_pub_key, srv_pub_path)
 	self._sm.sm2key_write(dev_pub_key, dev_pub_path, dev_pri_key, dev_pri_path)

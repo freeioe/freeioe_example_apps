@@ -67,7 +67,11 @@ function app:on_start()
 			if self._socket then
 				self._socket_sent = self._socket_sent + string.len(data)
 				self._dev:dump_comm('SOCKET-OUT', data)
-				socket.write(self._socket, data)
+				--socket.write(self._socket, data)
+				local r, err = pcall(socket.write, self._socket, data)
+				if not r then
+					self._log:error("Write to socket error:", err)
+				end
 			end
 		else
 			self._log:error(err)
