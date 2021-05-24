@@ -59,6 +59,7 @@ RELEASE_APP tsdb/bench
 # Others
 RELEASE_APP dlt645
 RELEASE_APP other/dtu 
+RELEASE_APP other/dtu_m
 RELEASE_APP other/oliver_355_monitor
 RELEASE_APP other/logger
 
