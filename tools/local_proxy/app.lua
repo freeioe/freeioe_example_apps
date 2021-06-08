@@ -79,7 +79,7 @@ function app:on_start()
 		self:uci_set('network.lan1proxy', 'interface', {
 			ifname = 'br-lan',
 			proto = 'static',
-			ipaddr = '200.200.200.100',
+			ipaddr = '10.200.200.100',
 			netmask = '255.255.255.0'
 		})
 		sysinfo.exec('/etc/init.d/network reload')

@@ -55,7 +55,7 @@ function app:on_start()
 		self:uci_set('network.lan1scr', 'interface', {
 			ifname = 'br-lan',
 			proto = 'static',
-			ipaddr = '200.200.200.245',
+			ipaddr = '10.200.200.200',
 			netmask = '255.255.255.0'
 		})
 		sysinfo.exec([[uci set network.lan.ifname="eth0 eth1 symbridge"]])

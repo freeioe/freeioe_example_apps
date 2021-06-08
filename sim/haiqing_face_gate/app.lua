@@ -251,7 +251,7 @@ end
 
 function app:fire_verify()
 	local sys = self:sys_api()
-	local path = sys:app_dir()..'/images/test.jpg'
+	local path = sys:app_dir()..'/images/test.bmp'
 	local f, err = io.open(path, 'r')
 	if not f then
 		self._log:error(err)
