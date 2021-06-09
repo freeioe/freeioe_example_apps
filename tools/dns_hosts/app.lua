@@ -8,7 +8,25 @@ local hosts_file = '/etc/hosts'
 
 function app:on_start()
 	local sys = self:sys_api()
+	local conf = self:app_conf()
+
 	sys:sleep(3000)
+
+	if conf.local_proxy then
+		self:init_proxy_net()
+		local found = false
+		for _, dns in pairs(conf.dns) do
+			if dns.domain == 'ioe.thingsroot.com' or dns.domain == 'thingsroot.com' then
+				found = true
+			end
+		end
+		if not found then
+			table.insert(conf.dns, {
+				domain = 'ioe.thingsrot.com',
+				ip = '10.200.200.100'
+			})
+		end
+	end
 
 	self:clean_dns()
 	return self:write_dns()
@@ -73,6 +91,60 @@ function app:on_run(tms)
 	end
 
 	return 1000 * 5 -- five seconds
+end
+
+function app:uci_get(section)
+	local info, err = sysinfo.exec('uci show '..section)
+	if not info or string.len(info) == 0 then
+		return nil, err
+	end
+
+	return info
+end
+
+function app:uci_set(section, name, value)
+	sysinfo.exec('uci set '..section..'='..name)
+	for k,v in pairs(value) do
+		if type(v) ~= 'table' then
+			sysinfo.exec('uci set '..section..'.'..k..'=\''..tostring(v)..'\'')
+		else
+			sysinfo.exec('uci add_list '..section..'.'..k..'=\''..tostring(v)..'\'')
+		end
+	end
+	sysinfo.exec('uci commit')
+end
+
+function app:uci_add(config, section, value)
+	sysinfo.exec('uci add '..config..' '..section)
+	local key = string.format('%s.@%s[-1]', config, section)
+	for k,v in pairs(value) do
+		if type(v) ~= 'table' then
+			sysinfo.exec('uci set '..key..'.'..k..'=\''..tostring(v)..'\'')
+		else
+			sysinfo.exec('uci add_list '..key..'.'..k..'=\''..tostring(v)..'\'')
+		end
+	end
+	sysinfo.exec('uci commit')
+end
+
+
+function app:init_proxy_net()
+	local ret, err = self:uci_get('network.lan1scr')
+	if not ret then
+		self:uci_set('network.lan1scr', 'interface', {
+			ifname = 'br-lan',
+			proto = 'static',
+			ipaddr = '10.200.200.200',
+			netmask = '255.255.255.0'
+		})
+		sysinfo.exec([[uci set network.lan.ifname="eth0 eth1 symbridge"]])
+		sysinfo.exec([[uci set network.net1.ifname='br-lan']])
+		sysinfo.exec([[uci set network.net1.proto='dhcp']])
+		sysinfo.exec([[uci delete network.net1.netmask]])
+		sysinfo.exec([[uci delete network.net1.ipaddr]])
+		sysinfo.exec('uci commit')
+		sysinfo.exec('/etc/init.d/network reload')
+	end
 end
 
 return app

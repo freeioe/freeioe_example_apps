@@ -1,5 +1,11 @@
 [
 	{
+		"name": "local_proxy",
+		"desc": "开启冬笋云代理",
+		"type": "boolean",
+		"default": true
+	},
+	{
 		"name": "dns",
 		"desc": "DNS 列表(DNS HOST List)",
 		"type": "table",
