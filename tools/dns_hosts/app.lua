@@ -1,4 +1,3 @@
-local lfs = require 'lfs'
 local base = require 'app.base'
 local sysinfo = require 'utils.sysinfo'
 
@@ -32,6 +31,7 @@ function app:on_start()
 	self:clean_dns()
 	return self:write_dns()
 end
+
 function app:on_close(reason)
 	return self:clean_dns()
 end
@@ -47,7 +47,7 @@ function app:write_dns()
 		--print(line)
 		local ip, domains = string.match(line, '^([^%s#]+)%s+(.+)$')
 		if ip and domains then
-			local comment_index = string.find(domains, '#', 1, true) 
+			local comment_index = string.find(domains, '#', 1, true)
 			if comment_index then
 				domains = string.sub(domains, 1, comment_index - 1)
 			end
@@ -87,8 +87,7 @@ end
 function app:on_run(tms)
 	local r, err = self:write_dns()
 	if not r then
-		log = self:log_api()
-		log:error("Failed to write dns hosts file "..hosts_file)
+		self._log:error("Failed to write dns hosts file "..hosts_file)
 	end
 
 	return 1000 * 5 -- five seconds
@@ -160,30 +159,31 @@ end
 
 function app:init_proxy_net_new()
 	local eths = {}
-	for i = 0, 10, do
+	for i = 0, 10 do
 		local name = self:uci_get(string.format('network.@device[%d].name', i))
 		if name == 'br-lan' then
-		local ports = self:uci_get(string.format('network.@device[%d].ports', i))
-		if string.sub(ports, -4) == 'eth0' then
-			eths = {'eth0', 'eth1'}
-			break
-		end
-		if string.match(ports, 'eth0%s+') then
-			local eth1_found = false
+			local ports = self:uci_get(string.format('network.@device[%d].ports', i))
+			if string.sub(ports, -4) == 'eth0' then
+				eths = {'eth0', 'eth1'}
+				break
+			end
+			if string.match(ports, 'eth0%s+') then
+				local eth1_found = false
+				for dev in string.gmatch(ports, "%w+") do
+					table.insert(eths, dev)
+					if dev == 'eth1' then
+						eth1_found = true
+					end
+				end
+				if not eth1_found then
+					table.insert(eths, 'eth1')
+				end
+				break
+			end
+			--- insert all device ports into eths
 			for dev in string.gmatch(ports, "%w+") do
 				table.insert(eths, dev)
-				if dev == 'eth1' then
-					eth1_found = true
-				end
 			end
-			if not eth1_found then
-				table.insert(eths, 'eth1')
-			end
-			break
-		end
-		--- insert all device ports into eths
-		for dev in string.gmatch(ports, "%w+") do
-			table.insert(eths, dev)
 		end
 	end
 
