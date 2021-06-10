@@ -1,5 +1,6 @@
 local lfs = require 'lfs'
 local base = require 'app.base'
+local sysinfo = require 'utils.sysinfo'
 
 local app = base:subclass("FREEIOE.APP.TOOLS.DNS_HOSTS")
 app.static.API_VER = 9
