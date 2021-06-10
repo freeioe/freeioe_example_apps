@@ -19,7 +19,9 @@ function app:uci_set(section, name, value)
 		if type(v) ~= 'table' then
 			sysinfo.exec('uci set '..section..'.'..k..'=\''..tostring(v)..'\'')
 		else
-			sysinfo.exec('uci add_list '..section..'.'..k..'=\''..tostring(v)..'\'')
+			for _, vv in ipairs(v) do
+				sysinfo.exec('uci add_list '..section..'.'..k..'=\''..tostring(vv)..'\'')
+			end
 		end
 	end
 	sysinfo.exec('uci commit')
@@ -32,7 +34,9 @@ function app:uci_add(config, section, value)
 		if type(v) ~= 'table' then
 			sysinfo.exec('uci set '..key..'.'..k..'=\''..tostring(v)..'\'')
 		else
-			sysinfo.exec('uci add_list '..key..'.'..k..'=\''..tostring(v)..'\'')
+			for _, vv in ipairs(v) do
+				sysinfo.exec('uci add_list '..key..'.'..k..'=\''..tostring(vv)..'\'')
+			end
 		end
 	end
 	sysinfo.exec('uci commit')
