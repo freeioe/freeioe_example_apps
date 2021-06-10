@@ -23,7 +23,7 @@ function app:on_start()
 		end
 		if not found then
 			table.insert(conf.dns, {
-				domain = 'ioe.thingsrot.com',
+				domain = 'ioe.thingsroot.com',
 				ip = '10.200.200.100'
 			})
 		end
