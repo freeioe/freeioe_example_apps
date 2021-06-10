@@ -95,7 +95,12 @@ function app:on_run(tms)
 end
 
 function app:uci_get(section)
-	local info, err = sysinfo.exec('uci show '..section)
+	local info, err = sysinfo.exec('uci get '..section)
+
+	if info and  string.sub(info, -1) == '\n' then
+		info = string.sub(info, 1, -2)
+	end
+
 	if not info or string.len(info) == 0 then
 		return nil, err
 	end
@@ -132,20 +137,71 @@ end
 function app:init_proxy_net()
 	local ret, err = self:uci_get('network.lan1scr')
 	if not ret then
-		self:uci_set('network.lan1scr', 'interface', {
-			ifname = 'br-lan',
-			proto = 'static',
-			ipaddr = '10.200.200.200',
-			netmask = '255.255.255.0'
-		})
-		sysinfo.exec([[uci set network.lan.ifname="eth0 eth1 symbridge"]])
-		sysinfo.exec([[uci set network.net1.ifname='br-lan']])
-		sysinfo.exec([[uci set network.net1.proto='dhcp']])
-		sysinfo.exec([[uci delete network.net1.netmask]])
-		sysinfo.exec([[uci delete network.net1.ipaddr]])
-		sysinfo.exec('uci commit')
-		sysinfo.exec('/etc/init.d/network reload')
+		local lan_dev = self:uci_get('network.lan.device')
+		if lan_dev and string.find(lan_dev, 'br-lan', 1, true) then
+			self:init_proxy_net_new()
+		else
+			self:init_proxy_net_old()
+		end
 	end
+end
+
+function app:init_proxy_net_old()
+	self:uci_set('network.lan1scr', 'interface', {
+		ifname = 'br-lan',
+		proto = 'static',
+		ipaddr = '10.200.200.200',
+		netmask = '255.255.255.0'
+	})
+	sysinfo.exec([[uci set network.lan.ifname="eth0 eth1 symbridge"]])
+	sysinfo.exec('uci commit')
+	sysinfo.exec('/etc/init.d/network reload')
+end
+
+function app:init_proxy_net_new()
+	local eths = {}
+	for i = 0, 10, do
+		local name = self:uci_get(string.format('network.@device[%d].name', i))
+		if name == 'br-lan' then
+		local ports = self:uci_get(string.format('network.@device[%d].ports', i))
+		if string.sub(ports, -4) == 'eth0' then
+			eths = {'eth0', 'eth1'}
+			break
+		end
+		if string.match(ports, 'eth0%s+') then
+			local eth1_found = false
+			for dev in string.gmatch(ports, "%w+") do
+				table.insert(eths, dev)
+				if dev == 'eth1' then
+					eth1_found = true
+				end
+			end
+			if not eth1_found then
+				table.insert(eths, 'eth1')
+			end
+			break
+		end
+		--- insert all device ports into eths
+		for dev in string.gmatch(ports, "%w+") do
+			table.insert(eths, dev)
+		end
+	end
+
+	self:uci_add('network', 'device', {
+		name = 'br-lan1scr',
+		['type'] = 'bridge',
+		ports = eths
+	})
+
+	self:uci_set('network.lan1scr', 'interface', {
+		device = 'br-lan1scr',
+		proto = 'static',
+		ipaddr = '10.200.200.200',
+		netmask = '255.255.255.0'
+	})
+
+	sysinfo.exec('uci commit')
+	sysinfo.exec('/etc/init.d/network reload')
 end
 
 return app

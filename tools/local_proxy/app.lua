@@ -73,16 +73,39 @@ function app:uci_add(config, section, value)
 	sysinfo.exec('uci commit')
 end
 
+function app:create_lan1proxy_old()
+	self:uci_set('network.lan1proxy', 'interface', {
+		ifname = 'br-lan',
+		proto = 'static',
+		ipaddr = '10.200.200.100',
+		netmask = '255.255.255.0'
+	})
+	sysinfo.exec('/etc/init.d/network reload')
+end
+
+function app:create_lan1proxy_new()
+	self:uci_set('network.lan1proxy', 'interface', {
+		device = 'br-lan',
+		proto = 'static',
+		ipaddr = '10.200.200.100',
+		netmask = '255.255.255.0'
+	})
+	sysinfo.exec('/etc/init.d/network reload')
+end
+
+function app:create_lan1proxy()
+	local lan_dev = self:uci_get('network.lan.device')
+	if lan_dev and string.find(lan_dev, 'br-lan', 1, true) then
+		return self:create_lan1proxy_new()
+	else
+		return self:create_lan1proxy_old()
+	end
+end
+
 function app:on_start()
 	local ret, err = self:uci_get('network.lan1proxy')
 	if not ret then
-		self:uci_set('network.lan1proxy', 'interface', {
-			ifname = 'br-lan',
-			proto = 'static',
-			ipaddr = '10.200.200.100',
-			netmask = '255.255.255.0'
-		})
-		sysinfo.exec('/etc/init.d/network reload')
+		self:create_lan1proxy()
 	end
 
 	local firewall_changes = false
@@ -98,7 +121,7 @@ function app:on_start()
 				output = 'ACCEPT',
 				forward = 'ACCEPT',
 				network = 'lan1proxy',
-				subnet = '200.200.200.100/24'
+				subnet = '10.200.200.100/24'
 			})
 			firewall_changes = true
 			break
@@ -121,7 +144,7 @@ function app:on_start()
 				src = 'lan1proxy',
 				src_dport = '80',
 				dest = 'lan',
-				dest_ip = '200.200.200.100',
+				dest_ip = '10.200.200.100',
 				dest_port = '8181'
 			})
 			firewall_changes = true
@@ -146,7 +169,7 @@ function app:on_start()
 				src = 'lan1proxy',
 				src_dport = '1883',
 				dest = 'lan',
-				dest_ip = '200.200.200.100',
+				dest_ip = '10.200.200.100',
 				dest_port = '3883'
 			})
 			firewall_changes = true
@@ -167,7 +190,7 @@ function app:on_start()
 		self._log:info("Creating lan1proxy in Socat CFG")
 		self:uci_set('socat.lan1proxy', 'socat', {
 			enable = '1',
-			SocatOptions = '-d -d TCP-LISTEN:8181,fork,bind=200.200.200.100 TCP4:ioe.thingsroot.com:80'
+			SocatOptions = '-d -d TCP-LISTEN:8181,fork,bind=10.200.200.100 TCP4:ioe.thingsroot.com:80'
 		})
 		socat_changes = true
 	end
@@ -177,7 +200,7 @@ function app:on_start()
 		self._log:info("Creating lan1mqtt in Socat CFG")
 		self:uci_set('socat.lan1mqtt', 'socat', {
 			enable = '1',
-			SocatOptions = '-d -d TCP-LISTEN:3883,fork,bind=200.200.200.100 TCP4:ioe.thingsroot.com:1883'
+			SocatOptions = '-d -d TCP-LISTEN:3883,fork,bind=10.200.200.100 TCP4:ioe.thingsroot.com:1883'
 		})
 		socat_changes = true
 	end
