@@ -167,11 +167,7 @@ function app:init_proxy_net_new()
 		local name = self:uci_get(string.format('network.@device[%d].name', i))
 		if name == 'br-lan' then
 			local ports = self:uci_get(string.format('network.@device[%d].ports', i))
-			if string.sub(ports, -4) == 'eth0' then
-				eths = {'eth0', 'eth1'}
-				break
-			end
-			if string.match(ports, 'eth0%s+') then
+			if string.sub(ports, -4) == 'eth0' or string.match(ports, 'eth0%s+') then
 				local eth1_found = false
 				for dev in string.gmatch(ports, "%w+") do
 					table.insert(eths, dev)
