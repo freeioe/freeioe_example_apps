@@ -23,19 +23,12 @@ Modbus TCP/RTU 网关
 Modbus 数据发布应用（Slave模式), 将FreeIOE网关设备数据通过Modbus协议进行发布，方便其他应用或设备通过Modbus协议获取数据
 
 
-## OPCUA 应用
+## HJ 212-2017、HJ/T212-2005 环境保护
 
-### OPCUA 服务器
+中华人民共和国国家环境保护标准，适用于：
 
-应用创建OPCUA服务器，将设备数据发布到OPCUA服务器
-
-### OPCUA 客户端
-
-应用连接到其他OPCUA服务器程序/设备，将数据发布到OPCUA服务器
-
-### OPCUA 数据采集应用
-
-应用连接到OPCUA设备/软件(服务器)，从OPCUA设备/软件读取数据
+* 污染物在线自动检测数据采集传输仪(数采仪) (HJ477-2009)
+* 环境(XXX)连续自动检测系统/采样器
 
 
 ## MQTT 应用
@@ -55,14 +48,20 @@ Modbus 数据发布应用（Slave模式), 将FreeIOE网关设备数据通过Modb
 ### Huawei Cloud
 
 
-## CNC
+## OPCUA 应用
 
-### 发那科机床数据采集(Fanuc Focas协议)
+### OPCUA 服务器
 
+应用创建OPCUA服务器，将设备数据发布到OPCUA服务器
 
-## DLT645
+### OPCUA 客户端
 
-通过DLT 645协议读取电表数据
+应用连接到其他OPCUA服务器程序/设备，将数据发布到OPCUA服务器
+
+### OPCUA 数据采集应用
+
+应用连接到OPCUA设备/软件(服务器)，从OPCUA设备/软件读取数据
+
 
 ## PLC
 
@@ -81,5 +80,15 @@ Ethernet IP/CIP 协议通讯方式获取 PLC数据 (如AB PLC, OMRON PLC)
 ### OMRON
 
 Hostlink协议（未完善，不可用)
+
+
+## CNC
+
+### 发那科机床数据采集(Fanuc Focas协议)
+
+
+## DLT645
+
+通过DLT 645协议读取电表数据
 
 

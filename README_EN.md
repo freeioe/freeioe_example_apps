@@ -23,21 +23,6 @@ Modbus TCP/RTU gateway
 Modbus Slave mode application, which provide the data to other software via modbus protocol
 
 
-## OPCUA Applications
-
-### OPCUA Server
-
-This application creates an opcua server, which offer all devices data from FreeIOE
-
-### OPCUA Client
-
-This application connect to an exists opcua server, then create device nodes and provide data from FreeIOE
-
-### OPCUA Client data collection
-
-This application connect to an device/software which is opcua server, reads the selected node's data value to FreeIOE
-
-
 ## MQTT Applications
 
 Those application are MQTT client application
@@ -54,15 +39,31 @@ Those application are MQTT client application
 
 ### Huawei Cloud
 
-
-## CNC
-
-### Fanuc Focas application
+### WeLink Cloud
 
 
-## DLT645
+## HJ 212-2017、HJ/T212-2005
 
-Reading Meter devices data via dlt645 protocol
+HJ ENVIRONMENTAL PROTECTION STANDARD OF THE PEOPLE’S REPUBLIC OF CHINA
+
+* Data acquisition and transmission equipment of pollution emission auto monitoring system (HJ 477-2009)
+* Continuous Automated Monitoring System for XXXX, which based on HJ 212 protocol
+
+
+## OPCUA Applications
+
+### OPCUA Server
+
+This application creates an opcua server, which offer all devices data from FreeIOE
+
+### OPCUA Client
+
+This application connect to an exists opcua server, then create device nodes and provide data from FreeIOE
+
+### OPCUA Client data collection
+
+This application connect to an device/software which is opcua server, reads the selected node's data value to FreeIOE
+
 
 ## PLC
 
@@ -81,3 +82,14 @@ PLCs which support MITSUBISHI MELSEC protocol
 ### OMRON
 
 Hostlink protocol (not implemented yet)
+
+
+## CNC
+
+### Fanuc Focas application
+
+
+## DLT645
+
+Reading Meter devices data via dlt645 protocol
+
