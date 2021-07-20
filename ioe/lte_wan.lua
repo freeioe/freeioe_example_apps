@@ -97,6 +97,11 @@ function lte_wan:inputs()
 				vt = "string",
 			},
 			{
+				name = 'imei'
+				desc = '4G module IMEI',
+				vt = "string",
+			},
+			{
 				name = 'csq',
 				desc = 'GPRS/LTE sginal strength',
 				vt = "int",
@@ -224,9 +229,11 @@ function lte_wan:start(dev)
 
 				if str then
 					local info = cjson.decode(str) or {}
-					local ccid = info.ccid
-					if ccid then
-						self._dev:set_input_prop('ccid', "value", ccid)
+					if info.ccid then
+						self._dev:set_input_prop('ccid', "value", info.ccid)
+					end
+					if info.cgsn then
+						self._dev:set_input_prop('imei', "value", info.cgsn)
 					end
 					local csq = tonumber(info.csq) or 0
 					self._dev:set_input_prop('csq', "value", csq)
