@@ -1,0 +1,80 @@
+[
+	{
+		"name": "instance",
+		"desc": "实例ID",
+		"type": "string",
+		"default": "dfin95yp7ad20fsj"
+	},
+	{
+		"name": "host",
+		"desc": "接入地址",
+		"type": "string",
+		"default":"http://180.76.145.103:8372"
+	},
+	{
+		"name": "product_key",
+		"desc": "ProductKey",
+		"type": "string",
+		"default": "xsf202"
+	},
+	{
+		"name": "device_name",
+		"desc": "DeviceName",
+		"type": "string",
+		"default": "IDIDIDIDID"
+	},
+	{
+		"name": "device_secret",
+		"desc": "设备密钥",
+		"type": "string",
+		"default": "kicwspa16q84h9bp"
+	},
+	{
+		"name": "options",
+		"desc": "数据传输选项",
+		"type": "section",
+		"child": [
+			{
+				"name": "period",
+				"desc": "上送周期(秒)",
+				"type": "number",
+				"default": 60
+			},
+			{
+				"name": "ttl",
+				"desc": "最大数据间隔(秒)",
+				"type": "number",
+				"default": 300
+			},
+			{
+				"name": "data_upload_dpp",
+				"desc": "最大打包数量",
+				"type": "number",
+				"default": 1024
+			},
+			{
+				"name": "enable_data_cache",
+				"desc": "开启断线缓存",
+				"type": "boolean",
+				"default": false
+			}
+		]
+	},
+	{
+		"name": "fake_devices",
+		"desc": "设备列表",
+		"type": "fake_section"
+	},
+	{
+		"name": "devs",
+		"desc": "需要上传的设备列表",
+		"type": "table",
+		"cols": [
+			{
+				"name": "sn",
+				"desc": "设备序号",
+				"type": "string"
+			}
+		]
+	},
+]
