@@ -6,7 +6,7 @@
 		"default": "dfin95yp7ad20fsj"
 	},
 	{
-		"name": "host",
+		"name": "addr",
 		"desc": "接入地址",
 		"type": "string",
 		"default":"http://180.76.145.103:8372"
@@ -76,5 +76,5 @@
 				"type": "string"
 			}
 		]
-	},
+	}
 ]

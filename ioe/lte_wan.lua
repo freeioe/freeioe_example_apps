@@ -97,7 +97,7 @@ function lte_wan:inputs()
 				vt = "string",
 			},
 			{
-				name = 'imei'
+				name = 'imei',
 				desc = '4G module IMEI',
 				vt = "string",
 			},

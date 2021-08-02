@@ -8,7 +8,11 @@ local basexx = require 'basexx'
 local api = class("BAIDU_IOT_HTTP_API")
 
 function api:initialize(sys, instance, addr, product_key, device_name, device_secret)
-	assert(host and port and appid)
+	assert(instance)
+	assert(addr)
+	assert(product_key)
+	assert(device_name)
+	assert(device_secret)
 	self._sys = sys
 	self._instance = instance
 	self._addr = addr
@@ -24,7 +28,7 @@ function api:post(url, body, sign_s, expire_time)
 		"expiryTime: "..expire_time
 	}
 	if sign_s then
-		header[#header + 1] = "signature "..sign_s
+		header[#header + 1] = "signature: "..sign_s
 	end
 
 	local easy_handle = lcurl.easy()
@@ -54,6 +58,7 @@ function api:post(url, body, sign_s, expire_time)
 	end
 
 	local str = table.concat(result)
+	print(str)
 	return cjson.decode(str)
 end
 
@@ -82,7 +87,7 @@ function api:auth()
 	local sign_s = self:sign(path, expire_time, body_str)
 	local url = self._addr..path	
 
-	return self:post(url, body_str, sign_s)
+	return self:post(url, body_str, sign_s, expire_time)
 end
 
 return api

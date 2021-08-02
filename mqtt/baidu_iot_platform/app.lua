@@ -8,14 +8,16 @@ local app = mqtt_app:subclass("BAIDU_YUN_MQTT_APP")
 --- 设定应用最小运行接口版本(目前版本为5,为了以后的接口兼容性)
 app.static.API_VER = 5
 
-function app:on_init(name, sys, conf)
+function app:on_init()
+	local sys = self:sys_api()
+	local conf = self:app_conf()
 	self._mqtt_topic_prefix = 'things/'..conf.product_key..'/'..conf.device_name
 	self._http_auth = http_auth:new(sys, conf.instance, conf.addr, conf.product_key, conf.device_name, conf.device_secret)
 end
 
 function app:mqtt_auth()
 	local r, err = self._http_auth:auth()
-	if not r and r.content then
+	if r and r.content then
 		local content = r.content
 		local mqtt_id = content.clientId
 		local mqtt_host = content.broker
