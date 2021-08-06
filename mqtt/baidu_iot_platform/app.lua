@@ -118,7 +118,7 @@ function app:on_mqtt_connect_ok()
 	self:subscribe('thing.'..c.product_key..'/'..c.device_name..'/command/invoke', 1) -- 可写属性更新
 	self:subscribe('thing.'..c.product_key..'/'..c.device_name..'/response/c2d', 1) -- 云端调用响应
 
-	return self:publish(self._mqtt_topic_prefix.."/status", cjson.encode({device=mqtt_id, status="ONLINE"}), 1, true)
+	--return self:publish(self._mqtt_topic_prefix.."/status", cjson.encode({device=mqtt_id, status="ONLINE"}), 1, true)
 end
 
 function app:on_mqtt_message(mid, data, qos, retained)
