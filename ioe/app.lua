@@ -298,7 +298,7 @@ function app:start()
 	self._dev:cov({ttl=60})
 
 	if leds.cloud then
-		if not self:check_symlink() then
+		if not self:has_symlink() then
 			leds.cloud:brightness(0)
 		end
 	end
@@ -457,7 +457,7 @@ function app:check_time_diff()
 	self._dev:fire_event(event.LEVEL_FATAL, event.EVENT_SYS, "Time diff found!", data, os_time)
 end
 
-function app:check_symlink()
+function app:has_symlink()
 	if self._symlink == nil then
 		if lfs.attributes("/etc/rc.d/S22symlink", 'mode') then
 			self._symlink = true
@@ -484,7 +484,7 @@ function app:check_cloud_status()
 	end
 
 	--- Skip cloud led control if symlink is there
-	if self:check_symlink() then
+	if self:has_symlink() then
 		return
 	end
 
