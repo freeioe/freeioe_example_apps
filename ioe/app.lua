@@ -459,7 +459,8 @@ end
 
 function app:has_symlink()
 	if self._symlink == nil then
-		if lfs.attributes("/etc/rc.d/S22symlink", 'mode') then
+		if lfs.attributes("/etc/rc.d/S22symlink", 'mode')
+			or lfs.attributes("/etc/rc.d/S99symlink", 'mode') then
 			self._symlink = true
 		else
 			self._symlink = false
