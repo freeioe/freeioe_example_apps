@@ -298,7 +298,9 @@ function app:start()
 	self._dev:cov({ttl=60})
 
 	if leds.cloud then
-		leds.cloud:brightness(0)
+		if not self:check_symlink() then
+			leds.cloud:brightness(0)
+		end
 	end
 
 	self._sys:fork(function()
