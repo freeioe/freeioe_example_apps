@@ -156,7 +156,7 @@ end
 
 --- For signal strength
 function lte_wan:lte_strength(csq)
-	if self._app:check_symlink() then
+	if self._app:has_symlink() then
 		return
 	end
 	if not self._led_control then
