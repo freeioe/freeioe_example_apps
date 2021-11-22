@@ -33,6 +33,7 @@ RELEASE_APP opcua/symlink
 
 # MQTT Cloud connectors
 RELEASE_APP mqtt/thingsroot
+RELEASE_APP mqtt/mqtt_local
 RELEASE_APP mqtt/aliyun
 RELEASE_APP mqtt/baidu
 RELEASE_APP mqtt/huawei
