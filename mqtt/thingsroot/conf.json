@@ -66,6 +66,12 @@
 		"type": "section",
 		"child": [
 			{
+				"name": "disable_cov",
+				"desc": "不使用变化传输",
+				"type": "boolean",
+				"default": false
+			},
+			{
 				"name": "period",
 				"desc": "上送周期(秒)",
 				"type": "number",

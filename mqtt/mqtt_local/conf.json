@@ -1,0 +1,68 @@
+[
+	{
+		"name": "mqtt",
+		"desc": "服务器信息",
+		"type": "section",
+		"child":[
+			{
+				"name": "server",
+				"desc": "MQTT地址",
+				"type": "string",
+				"default":"127.0.0.1"
+			},
+			{
+				"name": "port",
+				"desc": "MQTT端口",
+				"type": "number",
+				"default": 1883
+			},
+			{
+				"name": "username",
+				"desc": "MQTT用户",
+				"type": "string",
+				"default":"mqtt"
+			},
+			{
+				"name": "password",
+				"desc": "MQTT密码(留空使用标准规则)",
+				"type": "string",
+				"default":"passwd"
+			},
+			{
+				"name": "client_id",
+				"desc": "客户端ID(默认为网关序列号)",
+				"type": "string"
+			}
+		]
+	},
+	{
+		"name": "options",
+		"desc": "数据传输选项",
+		"type": "section",
+		"child": [
+			{
+				"name": "period",
+				"desc": "上送周期(秒)",
+				"type": "number",
+				"default": 5
+			}
+		]
+	},
+	{
+		"name": "fake_devices",
+		"desc": "设备列表",
+		"type": "fake_section"
+	},
+	{
+		"name": "devs",
+		"desc": "需要上传的设备列表",
+		"type": "table",
+		"cols": [
+			{
+				"name": "sn",
+				"desc": "设备序号",
+				"type": "string"
+			}
+		]
+	}
+]
