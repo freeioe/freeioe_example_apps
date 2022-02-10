@@ -104,16 +104,16 @@ Ufz6X3tVVErVVc7UUfzSnupHj1M2h4rzlQ3oqHoAEnXcJmV4f/Pf/6FW
 	conf.tls_client_cert_path = self:text2file(conf.mqtt.client_cert, 'client_cert.crt')
 	conf.tls_client_key_path = self:text2file(conf.mqtt.client_key, 'client_key.crt')
 
-	self._enable_devices = {}
+	self._allowed_devicess = {}
 	for _, v in ipairs(conf.devs or {}) do
 		if not valid_device_sn(v.sn) then
-			log:error("Device SN is not valid", v.sn)
+			log:error("Invalid device SN", v.sn)
 		end
 
 		if v.sn and string.len(v.sn) > 0 then
-			self._enable_devices[v.sn] = true
+			self._allowed_devicess[v.sn] = true
 		else
-			log:warning("Device missing sn in conf.devs item")
+			log:warning("Device SN missing in conf.devs item")
 		end
 	end
 
@@ -130,7 +130,7 @@ Ufz6X3tVVErVVc7UUfzSnupHj1M2h4rzlQ3oqHoAEnXcJmV4f/Pf/6FW
 	--[[
 	--- DEBUG
 	self._disable_compress = true
-	self._enable_devices[sys_id] = true
+	self._allowed_devicess[sys_id] = true
 	]]--
 
 	--- 基础类初始化
@@ -146,7 +146,7 @@ function app:pack_key(app_src, device_sn, ...)
 	end
 
 	--- if deivce not in allowed list
-	if not self._enable_devices[device_sn] then
+	if not self._allowed_devicess[device_sn] then
 		return
 	end
 
@@ -192,7 +192,7 @@ function app:on_event(app, sn, level, type_, info, data, timestamp)
 	if self._disable_event then
 		return true
 	end
-	if not self._enable_devices[sn] then
+	if not self._allowed_devicess[sn] then
 		return true
 	end
 
@@ -229,7 +229,7 @@ function app:on_publish_devices(devices)
 		return true
 	end
 	local new_devices = {}
-	for k, v in pairs(self._enable_devices) do
+	for k, v in pairs(self._allowed_devicess) do
 		if v then
 			new_devices[k] = devices[k]
 		end
@@ -303,7 +303,7 @@ function app:on_mqtt_output(topic, id, data)
 	if self._disable_output then
 		return self:on_mqtt_result(id, false, 'Device output disabled!')
 	end
-	if not self._enable_devices[data.device] then
+	if not self._allowed_devicess[data.device] then
 		return self:on_mqtt_result(id, false, 'Device not allowed!')
 	end
 
@@ -333,7 +333,7 @@ function app:on_mqtt_command(topic, id, data)
 	if self._disable_command then
 		return self:on_mqtt_result(id, false, 'Device command disabled!')
 	end
-	if not self._enable_devices[data.device] then
+	if not self._allowed_devicess[data.device] then
 		return self:on_mqtt_result(id, false, 'Device not allowed!')
 	end
 

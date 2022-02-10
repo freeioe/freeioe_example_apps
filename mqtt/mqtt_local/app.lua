@@ -50,13 +50,13 @@ function app:initialize(name, sys, conf)
 
 	for _, v in ipairs(conf.devs or {}) do
 		if not valid_device_sn(v.sn) then
-			log:error("Device SN is not valid", v.sn)
+			log:error("Invalid device SN", v.sn)
 		end
 
 		if v.sn and string.len(v.sn) > 0 then
 			self._enabled_devices[v.sn] = true
 		else
-			log:warning("Device missing sn in conf.devs item")
+			log:warning("Device sn missing in conf.devs item")
 		end
 	end
 

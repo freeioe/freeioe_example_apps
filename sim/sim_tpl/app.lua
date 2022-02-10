@@ -111,18 +111,33 @@ function app:gen_device_data(dev)
 	local log = self:log_api()
 	local now = sys:now() // 1000
 	for _, v in ipairs(dev.inputs) do
+		sys:sleep(math.random(1, 100))
 		if v.last == nil or math.abs(now - v.last) > v.freq then
 			local r, val = pcall(v.method_func)
 			--log:debug(v.name, v.method, r, val)
 			if not r then
 				log:error(val)
 			else
-				v.last_value = v.base + val
-				dev.dev:set_input_prop(v.name, 'value', v.last_value)
+				if v.inc == 1 then
+					v.last_value = (v.last_value or v.base) + val
+				else
+					v.last_value = v.base + val
+				end
+				dev.dev:set_input_prop(v.name, 'value', v.last_value, nil, -99)
+				dev.dev:set_input_prop(v.name, 'RDATA', {
+					value = v.last_value,
+					flag = 'C',
+					timestamp = ioe.time(),
+				}, nil, -99)
 			end
 			v.last = now
 		else
-			dev.dev:set_input_prop(v.name, 'value', v.last_value)
+			dev.dev:set_input_prop(v.name, 'value', v.last_value, nil, -99)
+			dev.dev:set_input_prop(v.name, 'RDATA', {
+				value = v.last_value,
+				flag = 'C',
+				timestamp = ioe.time(),
+			}, nil, -99)
 		end
 	end
 end

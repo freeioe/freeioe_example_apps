@@ -44,6 +44,7 @@ local function load_tpl(name, err_cb)
 				prop.base = tonumber(v[7] or '0') or 0
 				prop.method = string.len(v[8] or '') > 0 and v[8] or 'RANDOM()'
 				prop.freq = tonumber(v[9] or '1') or 1
+				prop.inc = tonumber(v[10] or '0') or 0
 
 				if valid_prop(prop, err_cb) then
 					props[#props + 1] = prop
