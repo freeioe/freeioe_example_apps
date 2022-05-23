@@ -143,17 +143,21 @@ end
 function app:read_tags()
 	local api = self:data_api()
 	local props = self._tpl.props
+	local devs = {}
 	for _, v in pairs(props) do
-		local dev_api = api:get_device(v.sn)
-		if dev_api then
-			for input, props in pairs(dev) do
-				local value, timestamp, quality = dev_api:get_input_prop(input, 'value')
-				if value ~= nil and quality == 0 then
-					self._log:debug("Input value got", sn, input, value, timestamp)
+		local dev_api = devs[v.sn]
+		if not dev_api then
+			dev_api = api:get_device(v.sn)
+			devs[v.sn] = dev_api
+		end
 
-					local key = v.sn..'/'..input
-					self._cov:handle(key, value, timestamp, quality)
-				end
+		if dev_api then
+			local value, timestamp, quality = dev_api:get_input_prop(v.name, 'value')
+			if value ~= nil and quality == 0 then
+				self._log:debug("Input value got", v.sn, v.name, value, timestamp)
+
+				local key = v.sn..'/'..v.name
+				self._cov:handle(key, value, timestamp, quality)
 			end
 		else
 			self._log:error("Failed to find device", sn)
