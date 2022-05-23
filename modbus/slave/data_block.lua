@@ -65,6 +65,10 @@ function block:write(input, value)
 			return nil, err
 		end
 
+		if fc == 0x03 or fc == 0x04 then
+			addr = addr * 2
+		end
+
 		local index = addr + offset -- addresss start from zore
 
 		if input.dt == 'string' then

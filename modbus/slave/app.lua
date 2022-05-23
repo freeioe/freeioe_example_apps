@@ -190,7 +190,7 @@ end
 
 function app:handle_fc_0x01(dev, response, addr, len)
 	local block = dev.block
-	self._log:trace('READ[0x01]', addr, len)
+	--self._log:trace('READ[0x01]', addr, len)
 	local data = block:read(0x01, addr, len)
 	local pdu = self._response:pack(0x01, string.len(data), data)
 	return response(pdu)
@@ -198,7 +198,7 @@ end
 
 function app:handle_fc_0x02(dev, response, addr, len)
 	local block = dev.block
-	self._log:trace('READ[0x02]', addr, len)
+	--self._log:trace('READ[0x02]', addr, len)
 	local data = block:read(0x02, addr, len)
 	local pdu = self._response:pack(0x01, string.len(data), data)
 	return response(pdu)
@@ -206,16 +206,16 @@ end
 
 function app:handle_fc_0x03(dev, response, addr, len)
 	local block = dev.block
-	self._log:trace('READ[0x03]', addr, len)
-	local data = block:read(0x03, addr, len * 2)
+	--self._log:trace('READ[0x03]', addr, len)
+	local data = block:read(0x03, addr * 2, len * 2)
 	local pdu = self._response:pack(0x03, string.len(data), data)
 	return response(pdu)
 end
 
 function app:handle_fc_0x04(dev, response, addr, len)
 	local block = dev.block
-	self._log:trace('READ[0x04]', addr, len)
-	local data = block:read(0x04, addr, len * 2)
+	--self._log:trace('READ[0x04]', addr, len)
+	local data = block:read(0x04, addr * 2, len * 2)
 	local pdu = self._response:pack(0x04, string.len(data), data)
 	return response(pdu)
 end
