@@ -144,11 +144,13 @@ function app:on_start()
 
 	--- 设定通讯口数据回调
 	self._modbus:set_io_cb(function(io, unit, msg)
+		--[[
 		if conf.ascii then
 			self._log:trace(io, msg)
 		else
 			self._log:trace(io, basexx.to_hex(msg))
 		end
+		]]--
 		local dev = nil
 		for _, v in ipairs(self._devs) do
 			if v.unit == unit then
@@ -159,8 +161,9 @@ function app:on_start()
 		--- 输出通讯报文
 		
 		if dev then
-			self._sys:dump_comm(dev.sn, io, msg)
+			dev:dump_comm(io, msg)
 		else
+			self._log:error('No dev for unit:'..unit)
 			self._sys:dump_comm(sys_id, io, msg)
 		end
 	end)
