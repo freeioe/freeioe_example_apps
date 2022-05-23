@@ -11,6 +11,7 @@ RELEASE_APP ioe
 # modbus
 RELEASE_APP modbus/master
 RELEASE_APP modbus/slave
+RELEASE_APP modbus/slave_one_unit
 RELEASE_APP modbus/gateway
 RELEASE_APP modbus/smc
 
