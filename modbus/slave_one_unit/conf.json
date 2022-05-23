@@ -1,0 +1,47 @@
+[
+	{
+		"name": "channel_type",
+		"desc": "通讯类型",
+		"type": "dropdown",
+		"default": "serial",
+		"values": [
+			{
+				"name": "TCP服务器",
+				"value": "socket"
+			},
+			{
+				"name": "串口",
+				"value": "serial"
+			}
+		],
+		"depends": {
+			"socket": "socket_opt",
+			"serial": "serial_opt"
+		}
+	},
+	{
+		"name": "ascii",
+		"desc": "使用ASCII协议(仅支持串口通讯)",
+		"type": "boolean",
+		"default": false
+	},
+	{
+		"name": "unit",
+		"desc": "本机地址",
+		"type": "number",
+		"default": 1
+	},
+	{
+		"name": "socket_opt",
+		"type": "tcp_server"
+	},
+	{
+		"name": "serial_opt",
+		"type": "serial"
+	},
+	{
+		"name": "tpls",
+		"desc": "设备模板",
+		"type": "templates"
+	}
+]

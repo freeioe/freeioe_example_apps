@@ -1,0 +1,11 @@
+COMMENT,name,description,series,,,,,,,,
+META,HJ212,FreeIOE环保数采仪,T-100,,,,,,,,
+,,,,,,,,,,,
+COMMENT,sn,name,description,unit,RW,encode type,function_code,data_address,rate,offset,string_length
+PROP,GW.HJ212,w00000,流量,升/秒,RW,float,3,0,1,,
+PROP,GW.HJ212,w01001,PH,,RW,float,3,2,1,,
+PROP,GW.HJ212,w01018,化学需氧量,毫克/升,RW,float,3,4,1,,
+PROP,GW.HJ212,w21001,总氮,毫克/升,RW,float,3,6,1,,
+PROP,GW.HJ212,w21003,氨氮,毫克/升,RW,float,3,8,1,,
+PROP,GW,mem_total,流量,升/秒,RW,double,3,100,1,,
+PROP,GW,mem_used,PH,,RW,double,3,104,1,,
