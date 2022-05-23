@@ -15,7 +15,7 @@ local cov = require 'cov'
 --- 注册对象(请尽量使用唯一的标识字符串)
 local app = base_app:subclass("MODBUS_LUA_SLAVE_APP")
 --- 设定应用最小运行接口版本
-app.static.API_VER = 5
+app.static.API_VER = 10
 
 --- 应用启动函数
 function app:on_start()

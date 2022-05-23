@@ -3,7 +3,7 @@ META,HJ212,FreeIOE环保数采仪,T-100,,,,,,,,
 ,,,,,,,,,,,
 COMMENT,name,description,unit,RW,data type,vt,function_code,data_address,rate,offset,write_function_code
 PROP,a00000,废气 ,立方米/秒,RW,float,float,3,0,1,,
-PROP,a00000,烟气流速 ,米/秒,RW,float,float,3,2,1,,
+PROP,a01011,烟气流速 ,米/秒,RW,float,float,3,2,1,,
 PROP,a01012 ,烟气温度 ,摄氏度,RW,float,float,3,4,1,,
 PROP,a01013,烟气压力 ,千帕,RW,float,float,3,6,1,,
 PROP,a01014 ,烟气湿度,%,RW,float,float,3,8,1,,
