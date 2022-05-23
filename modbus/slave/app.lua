@@ -161,7 +161,7 @@ function app:on_start()
 		--- 输出通讯报文
 		
 		if dev then
-			dev:dump_comm(io, msg)
+			dev.dev:dump_comm(io, msg)
 		else
 			self._log:error('No dev for unit:'..unit)
 			self._sys:dump_comm(sys_id, io, msg)
