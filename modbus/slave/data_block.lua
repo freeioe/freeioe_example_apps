@@ -52,7 +52,7 @@ function block:write(input, value)
 			rd = string.char(dv)
 		end
 
-		self._log:trace('BIT write index:'..index..' data:'..basexx.to_hex(rd))
+		-- self._log:trace('BIT write index:'..index..' data:'..basexx.to_hex(rd))
 		self._data[fc] = bd..rd..ed
 	else
 		local dpack = self._pack
@@ -83,7 +83,7 @@ function block:write(input, value)
 		local bd = string.sub(d, 1, index)
 		local ed = string.sub(d, index + string.len(data) + 1)
 		--
-		self._log:trace('FC'..fc..' write index:'..index..' data:'..basexx.to_hex(data))
+		-- self._log:trace('FC'..fc..' write index:'..index..' data:'..basexx.to_hex(data))
 		self._data[fc] = bd..data..ed
 	end
 

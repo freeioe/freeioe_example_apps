@@ -11,6 +11,7 @@ local conf_helper = require 'app.conf_helper'
 local base_app = require 'app.base'
 local basexx = require 'basexx'
 local cov = require 'cov'
+local ioe = require 'ioe'
 
 --- 注册对象(请尽量使用唯一的标识字符串)
 local app = base_app:subclass("MODBUS_LUA_SLAVE_APP")
@@ -30,20 +31,32 @@ function app:on_start()
 	local sys_id = self._sys:id()
 
 	local config = self._conf or {}
-	--[[
-	config.devs = config.devs or {
-		{ unit = 1, name = 'bms01', sn = 'xxx-xx-1', tpl = 'bms' },
-		{ unit = 2, name = 'bms02', sn = 'xxx-xx-2', tpl = 'bms2' }
-	}
-	]]--
 
 	--- 获取云配置
+	--[[ // Disable fetch confiruation from cloud for now TODO:
+	--
 	if not config.devs or config.cnf then
 		if not config.cnf then
 			config = 'CNF000000002.1' -- loading cloud configuration CNF000000002 version 1
 		else
 			config = config.cnf .. '.' .. config.ver
 		end
+	end
+	]]--
+
+	if ioe.developer_mode() then
+		config.channel_type = 'socket'
+		config.socket_opt = {
+			host = "0.0.0.0",
+			port = 1503,
+			nodelay = true
+		}
+		config.devs =  {
+			{ unit = 1, name = 'test01', sn = 'HJ212', tpl = 'test' },
+		}
+		config.tpls = {
+			{ name = 'test', id = 'aodesai', ver = 1 },
+		}
 	end
 
 	local helper = conf_helper:new(self._sys, config)
@@ -111,10 +124,11 @@ function app:on_start()
 
 	--- 获取配置
 	local conf = helper:config()
+
 	conf.channel_type = conf.channel_type or 'socket'
 	if conf.channel_type == 'socket' then
 		conf.opt = conf.socket_opt or {
-			host = "127.0.0.1",
+			host = "0.0.0.0",
 			port = 1503,
 			nodelay = true
 		}
@@ -250,16 +264,19 @@ function app:handle_cov_data(key, value, timestamp, quality)
 	local sn, input = string.match(key, '^([^/]+)/(.+)$')
 	for _, dev in ipairs(self._devs) do
 		if dev.sn == sn or dev.dev_sn == sn then
+			--self._log:trace('GOT DATA', sn, input, value, timestamp, quality)
 			local block = dev.block
 			for _, v in ipairs(dev.inputs) do
 				if input == v.name then
-					--print('write value to block', v.name, value)
+					-- print('write value to block', v.name, value)
 					local r, err = block:write(v, value)
 					if not r then
 						self._log:debug('Value write failed!', err)
 					end
 				end
 			end
+		else
+			self._log:error(key, value, timestamp, quality)
 		end
 	end
 end
