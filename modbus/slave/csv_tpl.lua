@@ -2,6 +2,12 @@ local ftcsv = require 'ftcsv'
 
 local tpl_dir = 'tpl/'
 
+local WRITE_FUNC_MAP = {}
+WRITE_FUNC_MAP[0x01] = 0x05
+WRITE_FUNC_MAP[0x02] = 0x05
+WRITE_FUNC_MAP[0x03] = 0x06
+WRITE_FUNC_MAP[0x04] = 0x06
+
 local valid_dt = {
 	int8 = true,
 	uint8 = true,
