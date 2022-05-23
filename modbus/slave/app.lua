@@ -59,7 +59,7 @@ function app:on_start()
 		assert(v.sn and v.name and v.unit and v.tpl)
 
 		--- 生成设备的序列号
-		local dev_sn = sys_id.."."..v.sn
+		local dev_sn = sys_id.."."..self:app_name().."."..v.sn
 		self._log:debug("Loading template file", v.tpl)
 		local tpl, err = csv_tpl.load_tpl(v.tpl, function(...) self._log:error(...) end)
 		if not tpl then
