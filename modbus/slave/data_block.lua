@@ -1,9 +1,11 @@
 local class = require 'middleclass'
+local basexx = require 'basexx'
 
 local block = class('MODBUS_APP_DATA_BLOCK')
 
-function block:initialize(data_pack, max_lens)
+function block:initialize(data_pack, max_lens, log)
 	self._pack = data_pack
+	self._log = log
 	self._data = {}
 	self._data[0x01] = string.rep('\0', 10240)
 	self._data[0x02] = string.rep('\0', 10240)
@@ -50,6 +52,7 @@ function block:write(input, value)
 			rd = string.char(dv)
 		end
 
+		self._log:trace('BIT write index:'..index..' data:'..basexx.to_hex(rd))
 		self._data[fc] = bd..rd..ed
 	else
 		local dpack = self._pack
@@ -76,6 +79,7 @@ function block:write(input, value)
 		local bd = string.sub(d, 1, index)
 		local ed = string.sub(d, index + string.len(data) + 1)
 		--
+		self._log:trace('FC'..fc..' write index:'..index..' data:'..basexx.to_hex(data))
 		self._data[fc] = bd..data..ed
 	end
 
