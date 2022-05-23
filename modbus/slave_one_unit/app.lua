@@ -23,12 +23,13 @@ function app:on_start()
 	end, {})
 	self._cov:start()
 
-	local log = self._log
+	local log = self:log_api()
+	local sys = self:sys_api()
 
-	csv_tpl.init(self._sys:app_dir())
+	csv_tpl.init(sys:app_dir())
 
 	---获取设备序列号和应用配置
-	local sys_id = self._sys:id()
+	local sys_id = sys:id()
 	--- Mapping 
 	local function map_dev_sn(sn)
 		if sn == 'GW' then
@@ -123,10 +124,10 @@ function app:on_start()
 		--- 输出通讯报文
 		if self._unit == tonumber(unit) then
 			local dev_sn = sys_id.."."..self:app_name()
-			self._sys:dump_comm(dev_sn, io, msg)
+			sys:dump_comm(dev_sn, io, msg)
 		else
 			self._log:error('No dev for unit:'..unit)
-			self._sys:dump_comm(sys_id, io, msg)
+			sys:dump_comm(sys_id, io, msg)
 		end
 	end)
 
@@ -232,7 +233,6 @@ function app:on_close(reason)
 end
 
 function app:handle_cov_data(key, value, timestamp, quality)
-	local sys_id = self._sys:id()
 	local sn, input = string.match(key, '^([^/]+)/(.+)$')
 
 	local props = self._tpl.props
