@@ -58,8 +58,6 @@ function app:on_start()
 	for _, v in ipairs(helper:devices()) do
 		assert(v.sn and v.name and v.unit and v.tpl)
 
-		--- 生成设备的序列号
-		local dev_sn = sys_id.."."..self:app_name().."."..v.sn
 		self._log:debug("Loading template file", v.tpl)
 		local tpl, err = csv_tpl.load_tpl(v.tpl, function(...) self._log:error(...) end)
 		if not tpl then
@@ -100,7 +98,8 @@ function app:on_start()
 
 			table.insert(self._devs, {
 				unit = tonumber(v.unit) or 0,
-				sn = dev_sn,
+				sn = v.sn,
+				dev_sn = sys_id.."."..v.sn,
 				dev = dev,
 				tpl = tpl,
 				inputs = tpl_inputs,
@@ -161,7 +160,8 @@ function app:on_start()
 		--- 输出通讯报文
 		
 		if dev then
-			self._sys:dump_comm(dev.sn, io, msg)
+			local dev_sn = sys_id.."."..self:app_name().."."..dev.sn
+			self._sys:dump_comm(dev_sn, io, msg)
 		else
 			self._log:error('No dev for unit:'..unit)
 			self._sys:dump_comm(sys_id, io, msg)
@@ -242,9 +242,10 @@ function app:on_close(reason)
 end
 
 function app:handle_cov_data(key, value, timestamp, quality)
+	local sys_id = self._sys:id()
 	local sn, input = string.match(key, '^([^/]+)/(.+)$')
 	for _, dev in ipairs(self._devs) do
-		if dev.sn == sn then
+		if dev.sn == sn or dev.dev_sn == sn then
 			local block = dev.block
 			for _, v in ipairs(dev.inputs) do
 				if input == v.name then
@@ -265,7 +266,7 @@ function app:on_input(app_src, sn, input, prop, value, timestamp, quality)
 	end
 
 	for _, dev in ipairs(self._devs) do
-		if dev.sn == sn then
+		if dev.sn == sn or dev.dev_sn == sn then
 			local key = sn..'/'..input
 			self._cov:handle(key, value, timestamp, quality)
 		end
