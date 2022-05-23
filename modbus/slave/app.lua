@@ -99,7 +99,7 @@ function app:on_start()
 			local block = data_block:new(self._data_pack, self._data_unpack)
 
 			table.insert(self._devs, {
-				unit = v.unit,
+				unit = tonumber(v.unit) or 0,
 				sn = dev_sn,
 				dev = dev,
 				tpl = tpl,
@@ -153,7 +153,7 @@ function app:on_start()
 		]]--
 		local dev = nil
 		for _, v in ipairs(self._devs) do
-			if v.unit == unit then
+			if tonumber(v.unit) == tonumber(unit) then
 				dev = v
 				break
 			end
