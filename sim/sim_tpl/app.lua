@@ -110,6 +110,7 @@ function app:gen_device_data(dev)
 	local sys = self:sys_api()
 	local log = self:log_api()
 	local now = sys:now() // 1000
+	local quality = 0 -- -99
 	for _, v in ipairs(dev.inputs) do
 		sys:sleep(math.random(1, 100))
 		if v.last == nil or math.abs(now - v.last) > v.freq then
@@ -123,21 +124,21 @@ function app:gen_device_data(dev)
 				else
 					v.last_value = v.base + val
 				end
-				dev.dev:set_input_prop(v.name, 'value', v.last_value, nil, -99)
+				dev.dev:set_input_prop(v.name, 'value', v.last_value, nil, quality)
 				dev.dev:set_input_prop(v.name, 'RDATA', {
 					value = v.last_value,
 					flag = 'C',
 					timestamp = ioe.time(),
-				}, nil, -99)
+				}, nil, quality)
 			end
 			v.last = now
 		else
-			dev.dev:set_input_prop(v.name, 'value', v.last_value, nil, -99)
+			dev.dev:set_input_prop(v.name, 'value', v.last_value, nil, quality)
 			dev.dev:set_input_prop(v.name, 'RDATA', {
 				value = v.last_value,
 				flag = 'C',
 				timestamp = ioe.time(),
-			}, nil, -99)
+			}, nil, quality)
 		end
 	end
 end
