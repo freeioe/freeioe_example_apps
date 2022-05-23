@@ -132,7 +132,32 @@ function app:on_start()
 
 	self._modbus:start()
 
+	sys:timeout(10, function()
+		self:read_tags()
+	end)
+
 	return true
+end
+
+function app:read_tags()
+	local api = self:data_api()
+	local props = self._tpl.props
+	for _, v in pairs(props) do
+		local dev_api = api:get_device(v.sn)
+		if dev_api then
+			for input, props in pairs(dev) do
+				local value, timestamp, quality = dev_api:get_input_prop(input, 'value')
+				if value ~= nil and quality == 0 then
+					self._log:debug("Input value got", sn, input, value, timestamp)
+
+					local key = v.sn..'/'..input
+					self._cov:handle(key, value, timestamp, quality)
+				end
+			end
+		else
+			self._log:error("Failed to find device", sn)
+		end
+	end
 end
 
 function app:handle_pdu(response, fc, ...)
@@ -229,8 +254,8 @@ function app:on_input(app_src, sn, input, prop, value, timestamp, quality)
 	if quality ~= 0 or prop ~= 'value' then
 		return
 	end
-
-	local props = self._tpl.props
+	-- avoid nil ipairs
+	local props = self._tpl and self._tpl.props or {}
 
 	for _, v in ipairs(props) do
 		if v.sn == sn and v.name == input then
