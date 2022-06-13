@@ -28,11 +28,26 @@ function my_app:on_command(app, sn, command, params)
 		else
 			return false, "not supported cloud"
 		end
+
 		local sys = self:sys_api()
 		sys:cfg_call('SAVE') -- save configuration
 		--- abort process
 		ioe.abort()
 	end
+
+	if command == 'reset' then
+		log:info('Reset cloud to default')
+		ioe.set_cloud_host(nil)
+		ioe.set_pkg_host_url(nil)
+		ioe.set_cnf_host_url(nil)
+		ioe.set_pkg_ver(nil)
+
+		local sys = self:sys_api()
+		sys:cfg_call('SAVE') -- save configuration
+		--- abort process
+		ioe.abort()
+	end
+
 	return false, "There is no output handler"
 end
 
@@ -55,7 +70,8 @@ function my_app:on_start()
 		{name="pkg_url", desc="Cloud pkg url", vt="string"}
 	}
 	local commands = {
-		{name="switch", desc="Switch cloud(thingsroot, kooiot)"}
+		{name="switch", desc="Switch cloud(thingsroot, kooiot)"},
+		{name="reset", desc="Reset cloud settings to default"}
 	}
 
 	local meta = self._api:default_meta()
