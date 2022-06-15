@@ -13,20 +13,28 @@ end
 function my_app:on_command(app, sn, command, params)
 	local log = self:log_api()
 	if command == 'switch' then
-		if params.cloud == 'thingsroot' then
-			log:info('Switch to thingsroot cloud')
-			ioe.set_cloud_host('ioe.thingsroot.com')
-			ioe.set_pkg_host_url('ioe.thingsroot.com')
-			ioe.set_cnf_host_url('ioe.thingsroot.com')
-			ioe.set_pkg_ver(1)
-		elseif params.cloud == 'kooiot' then
-			log:info('Switch to kooiot cloud')
-			ioe.set_cloud_host('iot.kooiot.in')
-			ioe.set_pkg_host_url('iot.kooiot.in:81')
-			ioe.set_cnf_host_url('iot.kooiot.in:81')
-			ioe.set_pkg_ver(2)
+		if type(params.cloud) == 'string' then
+			if params.cloud == 'thingsroot' then
+				log:info('Switch to thingsroot cloud')
+				ioe.set_cloud_host('ioe.thingsroot.com')
+				ioe.set_pkg_host_url('ioe.thingsroot.com')
+				ioe.set_cnf_host_url('ioe.thingsroot.com')
+			elseif params.cloud == 'kooiot' then
+				log:info('Switch to kooiot cloud')
+				ioe.set_cloud_host('iot.kooiot.in')
+				ioe.set_pkg_host_url('iot.kooiot.in:81')
+				ioe.set_cnf_host_url('iot.kooiot.in:81')
+			else
+				return false, "not supported cloud"
+			end
 		else
-			return false, "not supported cloud"
+			local cld = params.cloud
+			if cld.host and cld.pkg and cld.cnf then
+				log:info('Switch to cloud: ', cld.host, cld.pkg, cld.cnf)
+				ioe.set_cloud_host(cld.host)
+				ioe.set_pkg_host_url(cld.pkg)
+				ioe.set_cnf_host_url(cld.cnf)
+			end
 		end
 
 		local sys = self:sys_api()
@@ -40,7 +48,6 @@ function my_app:on_command(app, sn, command, params)
 		ioe.set_cloud_host(nil)
 		ioe.set_pkg_host_url(nil)
 		ioe.set_cnf_host_url(nil)
-		ioe.set_pkg_ver(nil)
 
 		local sys = self:sys_api()
 		sys:cfg_call('SAVE') -- save configuration
@@ -66,8 +73,8 @@ function my_app:on_start()
 	--- 增加设备实例
 	local inputs = {
 		{name="cloud", desc="Cloud host address", vt="string"},
-		{name="pkg_ver", desc="Cloud Version", vt="int"},
-		{name="pkg_url", desc="Cloud pkg url", vt="string"}
+		{name="pkg_url", desc="Cloud pkg url", vt="string"},
+		{name="cnf_url", desc="Cloud cnf url", vt="string"}
 	}
 	local commands = {
 		{name="switch", desc="Switch cloud(thingsroot, kooiot)"},
@@ -81,8 +88,8 @@ function my_app:on_start()
 	self._dev = dev
 
 	self._cloud = ''
-	self._pkg_ver = -1
 	self._pkg_url = ''
+	self._cnf_url = ''
 
 	return true
 end
@@ -94,16 +101,14 @@ end
 
 --- 应用运行入口
 function my_app:on_run(tms)
-	for _, dev in ipairs(self._devs) do
-		local pkg_ver = ioe.pkg_ver()
-		local pkg_url = ioe.pkg_host_url()
-		local cloud = ioe.cloud_host()
+	local cloud = ioe.cloud_host()
+	local pkg_url = ioe.pkg_host_url()
+	local cnf_url = ioe.cnf_host_url()
 
-		if pkg_ver ~= self._pkg_ver or pkg_url ~= self._pkg_url or cloud ~= self._cloud then
-			self._dev:set_input_prop('cloud', 'value', cloud)
-			self._dev:set_input_prop('pkg_ver', 'value', pkg_ver)
-			self._dev:set_input_prop('pkg_url', 'value', pkg_url)
-		end
+	if cnf_url ~= self._cnf_url or pkg_url ~= self._pkg_url or cloud ~= self._cloud then
+		self._dev:set_input_prop('cloud', 'value', cloud)
+		self._dev:set_input_prop('pkg_url', 'value', pkg_url)
+		self._dev:set_input_prop('cnf_url', 'value', cnf_url)
 	end
 
 	return 3000 --下一采集周期为3秒
