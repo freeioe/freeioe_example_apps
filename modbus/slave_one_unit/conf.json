@@ -41,7 +41,8 @@
 	},
 	{
 		"name": "tpls",
-		"desc": "设备模板",
-		"type": "templates"
+		"desc": "点表模板",
+		"type": "templates",
+		"limit": 1
 	}
 ]

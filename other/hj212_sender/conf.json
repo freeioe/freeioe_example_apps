@@ -1,0 +1,24 @@
+[
+	{
+		"name": "serial",
+		"type": "serial"
+	},
+	{
+		"name": "mn",
+		"desc": "本机MN号",
+		"type": "string",
+		"default": "88888888"
+	},
+	{
+		"name": "interval",
+		"desc": "发送周期(s)",
+		"type": "number",
+		"default": 5
+	},
+	{
+		"name": "tpls",
+		"desc": "污染因子模板",
+		"type": "templates",
+		"limit": 1
+	}
+]

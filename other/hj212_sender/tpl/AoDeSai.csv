@@ -1,0 +1,11 @@
+COMMENT,SN,Name,Description,HJ212,Format,rate
+PROP,GW.HJ212,w00000,流量,B01,N8.3,1
+PROP,GW.HJ212,w01001,PH,001,N2.2,1
+PROP,GW.HJ212,w01018,化学需氧量,011,N7.2,1
+PROP,GW.HJ212,w21001,总氮,065,N5.3,1
+PROP,GW.HJ212,w21003,氨氮,060,N5.3,1
+,,,,,,
+,,,,,,
+,,,,,,
+,,,,,,
+,,,,,,
