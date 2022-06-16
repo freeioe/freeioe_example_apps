@@ -55,7 +55,7 @@ function app:on_start()
 		tpl_file = tpl_id..'_'..tpl_ver
 	end
 	if ioe.developer_mode() then
-		tpl_file = 'test.csv'
+		tpl_file = 'test'
 	end
 
 	log:info("Loading template", tpl_file)
@@ -95,7 +95,7 @@ function app:on_start()
 		flow_control = 'OFF'
 	}
 	if ioe.developer_mode() then
-		opt.port = '/tmp/ttyS2'
+		opt.port = '/tmp/ttyS10'
 	end
 
 	self._log:notice(string.format("Open serial %s", cjson.encode(opt)))
@@ -187,6 +187,7 @@ function app:on_input(app_src, sn, input, prop, value, timestamp, quality)
 				else
 					val = tostring(val)
 				end
+				print(v.hj212, v.name, val)
 				self._value_map[v.hj212] = val
 			end
 		end
@@ -201,11 +202,11 @@ function app:on_run(tms)
 	if self._port then
 		local t = {}
 		t[#t + 1] = string.format('ST=31;CN=2011;123456;MN=%s;CP=&&', self._conf.mn)
-		t[#t + 1] = 'DataTime='..encode_datetime(ioe.time())..';'
+		t[#t + 1] = 'DataTime='..encode_datetime(ioe.time())
 		sort.for_each_sorted_kv(self._value_map, function(k, v)
-			t[#t + 1] = string.format('%s=%s;', k, v)
+			t[#t + 1] = string.format(';%s=%s', k, v)
 		end)
-		local body_str = table.concat(t)
+		local body_str = table.concat(t)..'&&'
 		local body_len = string.len(body_str)
 		local crc_str = string.format('%04X', crc16(body_str))
 		local data = string.format('##%04d%s%s\r\n', body_len, body_str, crc_str)
