@@ -42,7 +42,7 @@ local function load_tpl(name, err_cb)
 				prop.hj212 = v[5]
 				prop.fmt = v[6]
 				prop.rate = tonumber(v[7])
-				prop.key = string.len(v[8]) > 0 and v[8] or 'Rtd'
+				prop.key = string.len(v[8] or '') > 0 and v[8] or 'Rtd'
 
 				if valid_prop(prop, err_cb) then
 					props[#props + 1] = prop
