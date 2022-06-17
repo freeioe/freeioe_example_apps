@@ -201,7 +201,7 @@ end
 function app:on_run(tms)
 	if self._port then
 		local t = {}
-		t[#t + 1] = string.format('ST=31;CN=2011;123456;MN=%s;CP=&&', self._conf.mn)
+		t[#t + 1] = string.format('ST=%02d;CN=2011;PW=123456;MN=%s;CP=&&', self._conf.st, self._conf.mn)
 		t[#t + 1] = 'DataTime='..encode_datetime(ioe.time())
 		sort.for_each_sorted_kv(self._value_map, function(k, v)
 			t[#t + 1] = string.format(';%s=%s', k, v)

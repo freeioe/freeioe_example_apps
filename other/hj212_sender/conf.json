@@ -4,6 +4,12 @@
 		"type": "serial"
 	},
 	{
+		"name": "st",
+		"desc": "本机ST号",
+		"type": "number",
+		"default": 32
+	},
+	{
 		"name": "mn",
 		"desc": "本机MN号",
 		"type": "string",
