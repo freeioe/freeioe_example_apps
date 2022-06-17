@@ -125,31 +125,6 @@ function app:on_start()
 	return true
 end
 
-function app:read_tags()
-	local api = self:data_api()
-	local props = self._tpl.props
-	local devs = {}
-	for _, v in pairs(props) do
-		local dev_api = devs[v.sn]
-		if not dev_api then
-			dev_api = api:get_device(v.sn)
-			devs[v.sn] = dev_api
-		end
-
-		if dev_api then
-			local value, timestamp, quality = dev_api:get_input_prop(v.name, 'value')
-			if value ~= nil and quality == 0 then
-				self._log:debug("Input value got", v.sn, v.name, value, timestamp)
-
-				local key = v.sn..'/'..v.name
-				self._cov:handle(key, value, timestamp, quality)
-			end
-		else
-			self._log:error("Failed to find device", v.sn)
-		end
-	end
-end
-
 local function n_val_fmt(fmt, val)
 	local i, f = string.match(fmt, 'N(%d*)%.?(%d*)')
 	i = tonumber(i)
@@ -164,6 +139,55 @@ local function n_val_fmt(fmt, val)
 	end
 end
 
+function app:set_input_value_map(hj212_name, fmt, rate, key, value, quality)
+	print(hj212_name, fmt, rate, key, value, quality)
+	local val = value
+	if rate then
+		val = val * rate
+	end
+
+	if string.sub(fmt, 1, 1) == 'N' then
+		val = n_val_fmt(fmt, val)
+	else
+		val = tostring(val)
+	end
+
+	if self._value_map[hj212_name] == nil then
+		self._value_map[hj212_name] = {
+			[key] = val
+		}
+	end
+
+	if quality == 0 then
+		self._value_map[hj212_name]._flag = 'N'
+		self._value_map[hj212_name][key] = val
+	else
+		self._value_map[hj212_name]._flag = 'D'
+	end
+end
+
+function app:read_tags()
+	local api = self:data_api()
+	local props = self._tpl.props
+	local devs = {}
+	for _, v in pairs(props) do
+		local dev_api = devs[v.sn]
+		if not dev_api then
+			dev_api = api:get_device(v.sn)
+			devs[v.sn] = dev_api
+		end
+
+		if dev_api then
+			local value, timestamp, quality = dev_api:get_input_prop(v.name, 'value')
+			if value ~= nil then
+				self:set_input_value_map(v.hj212, v.fmt, v.rate, v.key, value, quality)
+			end
+		else
+			self._log:error("Failed to find device", v.sn)
+		end
+	end
+end
+
 function app:on_input(app_src, sn, input, prop, value, timestamp, quality)
 	-- Skip quality not good value
 	if prop ~= 'value' then
@@ -175,21 +199,7 @@ function app:on_input(app_src, sn, input, prop, value, timestamp, quality)
 
 	for _, v in ipairs(props) do
 		if v.sn == sn and v.name == input then
-			if quality ~= 0 then
-				self._value_map[v.hj212] = nil -- Remove from value map
-			else
-				local val = value
-				if v.rate then
-					val = val * v.rate
-				end
-				if string.sub(v.fmt, 1, 1) == 'N' then
-					val = n_val_fmt(v.fmt, val)
-				else
-					val = tostring(val)
-				end
-				print(v.hj212, v.name, val)
-				self._value_map[v.hj212] = val
-			end
+			self:set_input_value_map(v.hj212, v.fmt, v.rate, v.key, value, quality)
 		end
 	end
 end
@@ -204,7 +214,14 @@ function app:on_run(tms)
 		t[#t + 1] = string.format('ST=%02d;CN=2011;PW=123456;MN=%s;CP=&&', self._conf.st, self._conf.mn)
 		t[#t + 1] = 'DataTime='..encode_datetime(ioe.time())
 		sort.for_each_sorted_kv(self._value_map, function(k, v)
-			t[#t + 1] = string.format(';%s=%s', k, v)
+			local tt = {}
+			for kk, vv in pairs(v) do
+				if kk ~= '_flag' then
+					table.insert(tt, string.format('%s-%s=%s', k, kk, vv))
+				end
+			end
+			table.insert(tt, string.format('%s-Flag=%s', k, v._flag or 'D'))
+			t[#t + 1] = string.format(';%s', table.concat(tt, ','))
 		end)
 		local body_str = table.concat(t)..'&&'
 		local body_len = string.len(body_str)
