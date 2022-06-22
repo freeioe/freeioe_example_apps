@@ -140,7 +140,7 @@ local function n_val_fmt(fmt, val)
 end
 
 function app:set_input_value_map(hj212_name, fmt, rate, key, value, quality)
-	print(hj212_name, fmt, rate, key, value, quality)
+	-- print(hj212_name, fmt, rate, key, value, quality)
 	local val = value
 	if rate then
 		val = val * rate
@@ -164,6 +164,7 @@ function app:set_input_value_map(hj212_name, fmt, rate, key, value, quality)
 	else
 		self._value_map[hj212_name]._flag = 'D'
 	end
+	-- print(cjson.encode(self._value_map[hj212_name]))
 end
 
 function app:read_tags()
@@ -229,6 +230,7 @@ function app:on_run(tms)
 		local data = string.format('##%04d%s%s\r\n', body_len, body_str, crc_str)
 
 		self._serial_sent = self._serial_sent + string.len(data)
+		-- print(data)
 		self._dev:dump_comm('SERIAL-OUT', data)
 		self._port:write(data)
 	end
