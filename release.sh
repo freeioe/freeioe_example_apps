@@ -20,6 +20,7 @@ RELEASE_APP hw_test/reboot
 RELEASE_APP hw_test/serial_socket
 
 RELEASE_APP tools/frpc
+RELEASE_APP tools/freetun
 RELEASE_APP tools/network_uci
 RELEASE_APP tools/dns_hosts
 RELEASE_APP tools/local_proxy
