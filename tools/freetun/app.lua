@@ -8,7 +8,7 @@ local app_base = require 'app.base'
 local app = app_base:subclass("FREEIOE_APP_FREETUN_CLASS")
 app.static.API_VER = 10
 
-local function get_default_conf(sys, conf, file_name)
+local function save_yaml_conf(sys, conf, file_name)
 	local root = {}
 	local id = sys:id()
 
@@ -23,18 +23,18 @@ local function get_default_conf(sys, conf, file_name)
 	table.insert(common, 'auth_key: ' .. auth_key)
 
 	local log = {}
-	table.insert(log, 'dir: /var')
+	table.insert(log, 'dir: /var/log')
 	table.insert(log, 'level: ' .. log_level)
 	table.insert(log, 'filename: ' .. log_file)
 
-	table.insert(root, 'common: ')
-	table.insert(root, table.concat(common, '\n\t'))
-	table.insert(root, 'log: ')
-	table.insert(root, table.concat(log, '\n\t'))
+	table.insert(root, 'common:')
+	table.insert(root, '  '..table.concat(common, '\n  '))
+	table.insert(root, 'log:')
+	table.insert(root, '  '..table.concat(log, '\n  '))
 
-	local str = table.concat(root, '\n')
+	local str = table.concat(root, '\n')..'\n'
 
-	local f, err = io.open(file_name, '+w')
+	local f, err = io.open(file_name, 'w+')
 	if not f then
 		return nil, err
 	end
@@ -57,7 +57,7 @@ end
 function app:on_start()	
 	local sys = self:sys_api()
 	local api = self:data_api()
-	local dev_sn = sys:id()..'.'..self.app_name()
+	local dev_sn = sys:id()..'.'..self:app_name()
 
 	local inputs = {
 		{
@@ -182,11 +182,9 @@ end
 
 function app:run(tms)
 	if not self._first_start then
+		-- Try stop first avoid previous
 		self:on_post_service_ctrl('stop', true)
-
-		if self._conf.auto_start then
-			self:on_post_service_ctrl('start')
-		end
+		self:on_post_service_ctrl('start')
 		self._first_start = true
 	end
 
@@ -200,18 +198,18 @@ end
 
 function app:on_post_service_ctrl(action, force)
 	if self._in_service_ctrl then
-		self._log:warning("an operation is blocking, please wait..")
+		self._log:warning("An operation is blocking, please wait..")
 		return nil, 'blocking'
 	end
 	self._in_service_ctrl = true
 	if action == 'restart' then
-		self._log:debug("restart service")
+		self._log:debug("Restart service")
 
 		--- Try to stop service(freetun)
 		if self._start_time then
 			local r, err = self._service:stop()
 			if not r then
-				self._log:warning("stop service failed. ", err)
+				self._log:warning("Stop service failed. ", err)
 			end
 			self:on_freetun_stop()
 		end
@@ -221,14 +219,14 @@ function app:on_post_service_ctrl(action, force)
 		if r then
 			self:on_freetun_start()
 		else
-			self._log:error("start service failed. ", err)
+			self._log:error("Start service failed. ", err)
 			return nil, err
 		end
 	end
 	if action == 'stop' then
 		--- check whether it start or not
 		if not force and not self._start_time then
-			self._log:error("service already stoped!")
+			self._log:error("Service already stoped!")
 			self._in_service_ctrl = nil
 			return nil, err
 		end
@@ -244,7 +242,7 @@ function app:on_post_service_ctrl(action, force)
 	if action == 'start' then
 		--- check whether it start or not
 		if not force and self._start_time then
-			self._log:error("service already started!")
+			self._log:error("Service already started!")
 			self._in_service_ctrl = nil
 			return nil, err
 		end
@@ -254,7 +252,7 @@ function app:on_post_service_ctrl(action, force)
 		if r then
 			self:on_freetun_start()
 		else
-			self._log:error("start service failed. ", err)
+			self._log:error("Start service failed. ", err)
 			return nil, err
 		end
 	end

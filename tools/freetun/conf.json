@@ -1,0 +1,32 @@
+[
+	{
+		"name": "server_addr",
+		"desc": "Server Address",
+		"type": "string",
+		"default": "tun.iiot8.com:8765"
+	},
+	{
+		"name": "auth_key",
+		"desc": "Auth Key ",
+		"type": "string",
+		"default": "FreeTUN@KOOIOT"
+	},
+	{
+		"name": "log_level",
+		"desc": "Log Level",
+		"type": "dropdown",
+		"default": "info",
+		"values": [
+			"error",
+			"warn",
+			"info",
+			"debug"
+		]
+	},
+	{
+		"name": "log_file",
+		"desc": "Log Filename",
+		"type": "string",
+		"default": "freetun.log"
+	}
+]
