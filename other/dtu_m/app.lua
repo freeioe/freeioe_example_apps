@@ -41,6 +41,24 @@ function app:on_start()
 	self._kick_same_ip = conf.kick_same_ip
 
 	self._dev = self._api:add_device(sn, meta, inputs)
+	self._closing = false
+
+	self._sys:timeout(0, function()
+		self:serial_proc()
+	end)
+
+	self._sys:timeout(10, function()
+		self:fire_data_proc()
+	end)
+	self._sys:timeout(10, function()
+		self:listen_proc()
+	end)
+
+	return true
+end
+
+function app:serial_proc()
+	local conf = self:app_conf()
 
 	local opt = assert(conf.serial)
 	local port = serial:new(opt.port,
@@ -53,7 +71,13 @@ function app:on_start()
 	local r, err = port:open()
 	if not r then
 		self._log:warning("Failed open port, error: "..err)
-		return nil, err
+
+		if not self._closing then
+			self._sys:timeout(10000, function()
+				return self:serial_proc()
+			end)
+		end
+		return
 	end
 
 	port:start(function(data, err)
@@ -69,20 +93,27 @@ function app:on_start()
 				self._sys:wakeup(self._wait_buf)
 			end
 		else
+			--- Just return with log the error
+			if self._closing then
+				return
+			end
+
+			print(err)
 			self._log:error(err)
+
+			-- Close serial first
+			if self._port then
+				local to_close = self._port
+				self._port = nil
+				to_close:close(reason)
+			end
+
+			self._sys:timeout(0, function()
+				return self:serial_proc()
+			end)
 		end
 	end)
 	self._port = port
-	self._closing = false
-
-	self._sys:timeout(10, function()
-		self:fire_data_proc()
-	end)
-	self._sys:timeout(10, function()
-		self:listen_proc()
-	end)
-
-	return true
 end
 
 function app:listen_proc()
