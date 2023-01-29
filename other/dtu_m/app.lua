@@ -4,6 +4,7 @@ local serial = require 'serialdriver'
 local basexx = require 'basexx'
 local cjson = require 'cjson.safe'
 local sapp = require 'app.base'
+local event = require 'app.event'
 
 local app = sapp:subclass("freeioe.other.dtu_m")
 app.static.API_VER = 10
@@ -39,6 +40,8 @@ function app:on_start()
 
 	local conf = self:app_conf()
 	self._kick_same_ip = conf.kick_same_ip
+	self._serial_event = conf.serial_event
+	self._socket_event = conf.socket_event
 
 	self._dev = self._api:add_device(sn, meta, inputs)
 	self._closing = false
@@ -57,6 +60,18 @@ function app:on_start()
 	return true
 end
 
+function app:fire_serial_event(level, info, data)
+	local data = data or {}
+	data['type'] = 'serial'
+	self._dev:fire_event(level, event.EVENT_COMM, err, data)
+end
+
+function app:fire_socket_event(level, info, data)
+	local data = data or {}
+	data['type'] = 'serial'
+	self._dev:fire_event(level, event.EVENT_COMM, err, data)
+end
+
 function app:serial_proc()
 	local conf = self:app_conf()
 
@@ -71,6 +86,7 @@ function app:serial_proc()
 	local r, err = port:open()
 	if not r then
 		self._log:warning("Failed open port, error: "..err)
+		self:fire_serial_event(event.LEVEL_WARNING, "Failed open port", {err=err})
 
 		if not self._closing then
 			self._sys:timeout(10000, function()
@@ -98,8 +114,8 @@ function app:serial_proc()
 				return
 			end
 
-			print(err)
 			self._log:error(err)
+			self:fire_serial_event(event.LEVEL_ERROR, "Read error", {err=err})
 
 			-- Close serial first
 			if self._port then
@@ -117,7 +133,7 @@ function app:serial_proc()
 end
 
 function app:listen_proc()
-	self._log:info("Start socket connection", err)
+	self._log:info("Start socket connection")
 
 	while not self._closing do
 		local r, err = self:start_listen()
@@ -138,6 +154,7 @@ function app:watch_client_socket(sock, addr)
 		local data, err = socket.read(sock)	
 		if not data then
 			self._log:info("Socket disconnected", err)
+			self:fire_socket_event(event.LEVEL_INFO, "Socket disconnected", {err=err})
 			break
 		end
 		self._dev:dump_comm('SOCKET-IN['..addr..']', data)
@@ -166,6 +183,7 @@ function app:start_listen()
 
 	socket.start(sock, function(fd, addr)
 		self._log:info(string.format("New connection (fd = %d, %s)",fd, addr))
+		self:fire_socket_event(event.LEVEL_INFO, "New socket connection", {fd=fd, addr=addr})
 
 		if conf.nodelay then
 			socketdriver.nodelay(fd)
@@ -207,8 +225,10 @@ function app:start_listen()
 		end)
 
 		if to_close_by_host then
-			self._log:warning(string.format("Previous socket closing, fd = %d", to_close))
+			local peer = self._peers[to_close_by_host]
+			self._log:warning(string.format("Previous socket closing, fd = %d", to_close_by_host))
 			socket.close(to_close_by_host)
+			self:fire_socket_event(event.LEVEL_INFO, "Previous socket closing", peer)
 		end
 	end)
 
@@ -259,6 +279,7 @@ function app:fire_data_proc()
 			local r, err = pcall(socket.write, fd, data)
 			if not r then
 				self._log:error("Write to client "..peer.addr.." error:"..err)
+				self:fire_socket_event(event.LEVEL_ERROR, "Write to client socket failed", {peer=peer, err=err})
 			end
 		end
 	end

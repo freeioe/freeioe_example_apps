@@ -14,5 +14,17 @@
 		"desc": "相同IP来源踢掉之前的连接",
 		"type": "boolean",
 		"default": false
+	},
+	{
+		"name": "serial_event",
+		"desc": "输出串口事件",
+		"type": "boolean",
+		"default": true
+	},
+	{
+		"name": "socket_event",
+		"desc": "输出网络事件",
+		"type": "boolean",
+		"default": false
 	}
 ]
