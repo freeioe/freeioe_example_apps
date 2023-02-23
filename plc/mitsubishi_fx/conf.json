@@ -1,0 +1,100 @@
+[
+	{
+		"name": "loop_gap",
+		"desc": "采集间隔(Read Gap)",
+		"type": "number",
+		"default": 1000
+	},
+	{
+		"name": "proto_ver",
+		"desc": "协议版本(Protocol Version)",
+		"type": "dropdown",
+		"default": "V11",
+		"values": [
+			"V1",
+			"V4"
+		]
+	},
+	{
+		"name": "channel_type",
+		"desc": "通讯类型(Stream Type)",
+		"type": "dropdown",
+		"default": "serial",
+		"values": [
+			{
+				"name": "TCP连接(TCP Client)",
+				"value": "socket"
+			},
+			{
+				"name": "串口(Serial)",
+				"value": "serial"
+			}
+		],
+		"depends": {
+			"socket": "socket_opt",
+			"serial": "serial_opt"
+		}
+	},
+	{
+		"name": "socket_opt",
+		"type": "tcp_client"
+	},
+	{
+		"name": "serial_opt",
+		"type": "serial"
+	},
+	{
+		"name": "tpls",
+		"type": "templates"
+	},
+	{
+		"name": "devs",
+		"desc": "设备列表(Device List)",
+		"type": "table",
+		"cols": [
+			{
+				"name": "unit",
+				"desc": "地址(Address)",
+				"type": "number"
+			},
+			{
+				"name": "name",
+				"desc": "名称(Name)",
+				"type": "string"
+			},
+			{
+				"name": "sn",
+				"desc": "序列号(Serial Number)",
+				"type": "string"
+			},
+			{
+				"name": "tpl",
+				"desc": "模板(Template)",
+				"type": "template"
+			},
+			{
+				"name": "is_fx1",
+				"desc": "Is FXon/FX1s",
+				"type": "boolean",
+				"default": false
+			},
+			{
+				"name": "pack_opt",
+				"desc": "Pack request option",
+				"type": "dropdown",
+				"default": "default",
+				"values": [
+					"default",
+					"compact",
+					"greedy"
+				]
+			}
+		]
+	},
+	{
+		"name": "dev_sn_prefix",
+		"desc": "Use gateway sn as prefix for device sn",
+		"type": "boolean",
+		"default": true
+	}
+]
