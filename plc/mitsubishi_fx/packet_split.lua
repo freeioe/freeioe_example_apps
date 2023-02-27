@@ -56,9 +56,27 @@ local BIT_REG = {
 local function max_addr(cmd, name, start_addr, is_fx1)
 	local max_t = is_fx1 and MAX_COUNT_FX1 or MAX_COUNT
 	if BIT_REG[name] then
-		return max_t[string.upper(cmd)][1]
+		local start = (start_addr // 8) * 8
+		return start, start + max_t[string.upper(cmd)][1]
 	else
-		return max_t[string.upper(cmd)][1]
+		return start_addr, start_addr + max_t[string.upper(cmd)][2]
+	end
+end
+
+local function end_addr(cmd, name, start_addr, addr, dt)
+	local DT = DATA_TYPES[dt]
+	--- slen is the raw string length which
+	local input_len = (DT and DT.len or v.slen) or 1
+
+	if BIT_REG[name] then
+		assert(input_len == 1, 'Bit register only used for bits')
+		return addr
+	else
+		if dt == 'bit' then
+			-- TODO: offset
+			return addr -- + math.ceil((offset) / 8)
+		end
+		return addr + math.ceil(input_len / 2)	
 	end
 end
 
@@ -97,37 +115,35 @@ function split:split(inputs, option, is_fx1)
 	local packets = {}
 	local pack = {}
 	for _, v in ipairs(inputs) do
-		if pack.cmd ~= v.cmd then
+		if pack.cmd ~= v.cmd or pack.name ~= v.name then
 			if pack.cmd ~= nil then
 				table.insert(packets, pack)
 			end
 			pack = { cmd = v.cmd, name = v.name }
-			pack.start = v.addr
+			pack.start, pack.endl = max_addr(v.cmd, v.name, v.addr, is_fx1)
 			pack.inputs = {}
 			pack.len = 0
 			pack.unpack = function(input, data, index)
 				return self:unpack(input, data, index)
 			end
 		end
-		v.offset = v.offset or 0
 
-		local DT = DATA_TYPES[v.dt]
-		local max_len = max_addr(pack.cmd, pack.name, pack.start, is_fx1)
-
-		--- slen is the raw string length which
-		local input_len = (DT and DT.len or v.slen) or 1
+		local e_addr = end_addr(v.cmd, v.name, pack.start, v.addr, v.dt)
 
 		local same_p = true
-		if option == 'compact' then
-			same_p = v.addr == pack.start + pack.len
-		else
-			same_p = input_len + v.addr - pack.start < max_len
+		if e_addr >= pack.endl then
+			same_p = false
+		end
+		if same_p and option == 'compact' then
+			if v.addr - pack.start ~= pack.len then
+				same_p = false
+			end
 		end
 
 		if not same_p then
 			table.insert(packets, pack)
 			pack = { cmd=v.cmd }
-			pack.start = v.addr
+			pack.start, pack.endl = max_addr(v.cmd, v.name, v.addr, is_fx1)
 			pack.inputs = {}
 			pack.len = 0
 			pack.unpack = function(input, data, index)
@@ -138,7 +154,7 @@ function split:split(inputs, option, is_fx1)
 		v.pack_index = v.addr - pack.start
 
 		table.insert(pack.inputs, v)
-		pack.len = input_len + v.addr - pack.start
+		pack.len = e_addr - pack.start + 1
 	end
 	if pack.cmd then
 		table.insert(packets, pack)
