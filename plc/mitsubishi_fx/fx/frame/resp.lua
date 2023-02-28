@@ -31,10 +31,10 @@ function resp:valid_hex(raw, index)
 	local head = string.byte(raw, index)
 	local ind = index or 1
 	if head ~= types.STX then
-		return false, ind + 1
+		return false, ind + 1, 'header not accept'
 	end
 	if string.len(raw) - ind + 1 < HEAD_LEN then
-		return false, ind
+		return false, ind, 'frame len too small'
 	end
 
 	local ei = ind + 6
@@ -45,16 +45,18 @@ function resp:valid_hex(raw, index)
 	end
 
 	if ei == ind + 5 then
-		return false, ind
+		return false, ind, 'ETX position error'
 	end
 	if ei + 2 > string.len(raw) then
-		return false, ind
+		return false, ind, 'string length error'
 	end
 
 	local cs_data = string.sub(raw, ind + 1, ei)
 	local cs = helper.sum(cs_data)
-	if cs ~= string.sub(raw, ei + 1, ei + 2) then
-		return false, ind + 1
+	local cs_s = string.sub(raw, ei + 1, ei + 2) 
+	if cs ~= cs_s then
+		--print(cs, cs_s)
+		return false, ind + 1, 'Check sum error'
 	end
 	return true, ei + 3
 end

@@ -7,13 +7,13 @@ local req = base:subclass('LUA_FX_FRAME_REQ')
 local HEAD_LEN = 1 --[[ENQ]] + 2 --[[DevAddr]] + 2 --[[PC_Addr]] + 2 --[[CMD]] + 1 --[[WAIT]]
 local TAIL_LEN = 2 --[[LEN]] + 2 --[[CS]]
 
-function req:initialize(proto_type, dev_no, pc_no, cmd, timeout, addr, count, data)
+function req:initialize(proto_type, dev_no, pc_no, cmd, timeout, start, count, data)
 	self._proto_type = proto_type
 	self._dev_no = dev_no or 0
 	self._pc_no = pc_no or 0xFF
 	self._cmd = cmd or 'BR'
 	self._timeout = timeout or 0
-	self._addr = addr or ''
+	self._start = start or ''
 	self._count = count or 0
 	self._data = data
 end
@@ -34,8 +34,8 @@ function req:TIMEOUT()
 	return self._timeout
 end
 
-function req:ADDR()
-	return self._addr
+function req:START()
+	return self._start
 end
 
 function req:COUNT()
@@ -44,14 +44,6 @@ end
 
 function req:DATA()
 	return self._data
-end
-
-local function cmd_addr_len(cmd)
-	if cmd == 'QR' or cmd == 'QW' or cmd == 'QT' then
-		return 6
-	else
-		return 4
-	end
 end
 
 function req:valid_hex(raw, index)
@@ -65,7 +57,7 @@ function req:valid_hex(raw, index)
 	end
 	local cmd = string.sub(raw, ind + 5)
 
-	local len = HEAD_LEN + cmd_addr_len(cmd) + TAIL_LEN
+	local len = HEAD_LEN + fx_helper.cmd_addr_len(cmd) + TAIL_LEN
 	local elen = len
 	if self._proto_type == types.PROTO_TYPE_4 then
 		--[[ \r\n LF.CR ]]
@@ -103,7 +95,7 @@ function req:from_hex(raw, index)
 	self._timeout = tonumber('0x'..string.sub(raw, ind, ind))
 	ind = ind + 1
 
-	local addr_len = cmd_addr_len(cmd)
+	local addr_len = fx_helper.cmd_addr_len(self._cmd)
 	self._addr = string.sub(raw, ind, ind + addr_len - 1)
 	ind = ind + addr_len
 	self._count = tonumber('0x'..string.sub(raw, ind, ind + 1))
@@ -116,14 +108,13 @@ function req:from_hex(raw, index)
 end
 
 function req:to_hex()
-	local addr_len = cmd_addr_len(self._cmd)
-	assert(addr_len == string.len(self._addr))
-
-	local data = table.pack({
+	assert(self._cmd, 'Command is nil')
+	assert(self._start, 'Start address is nil')
+	local data = table.concat({
 		string.format('%02X%02X', self._dev_no, self._pc_no),
 		self._cmd,
 		string.format('%01X', self._timeout),
-		self._addr,
+		self._start,
 		string.format('%02X', self._count),
 	})
 	local cs = helper.sum(data)

@@ -1,15 +1,18 @@
 --- 导入需要的模块
-local fx_client = require 'fx.client.skynet'
+local fx_client = require 'fx.client'
+local fx_types = require 'fx.frame.types'
+local fx_helper = require 'fx.helper'
 local data_pack = require 'fx.data.pack'
 local data_unpack = require 'fx.data.unpack'
-local queue = require 'skynet.queue'
-
-local csv_tpl = require 'csv_tpl'
 local packet_split = require 'packet_split'
+local csv_tpl = require 'csv_tpl'
 local valid_value = require 'valid_value'
+
+local queue = require 'skynet.queue'
 local conf_helper = require 'app.conf_helper'
 local base_app = require 'app.base'
 local basexx = require 'basexx'
+local ioe = require 'ioe'
 
 --- 注册对象(请尽量使用唯一的标识字符串)
 local app = base_app:subclass("LUA_PLC_FX_MAIN")
@@ -28,23 +31,20 @@ function app:on_start()
 	local sys_id = self._sys:id()
 
 	local config = self._conf or {}
-	--[[
-	config.devs = config.devs or {
-		{ unit = 1, name = 'bms01', sn = 'xxx-xx-1', tpl = 'bms' },
-		{ unit = 2, name = 'bms02', sn = 'xxx-xx-2', tpl = 'bms2' }
-	}
-	]]--
 
-	--- 获取云配置
-	if not config.devs and config.cnf and conf.ver then
-		config = config.cnf .. '.' .. config.ver
+	if ioe.developer_mode() then
+		self._log:debug('IN Developer mode........')
+		config.channel_type = 'socket'
+		config.socket_opt = {
+			host = "0.0.0.0",
+			port = 16000,
+			nodelay = true
+		}
+		config.devs = {
+			{ unit = 1, name = 'DEV.1', sn = 'dev1', tpl = 'example', is_fx1 = false, pack_opt = 'default' }
+		}
+		config.tpls = {}
 	end
-
-	--[[ test
-	if not config.cnf then
-		config = 'CNF000000003.1' -- loading cloud configuration CNF000000002 version 1
-	end
-	]]--
 
 	local helper = conf_helper:new(self._sys, config)
 	helper:fetch()
@@ -134,20 +134,17 @@ function app:on_start()
 	end
 	self._loop_gap = conf.loop_gap or self._conf.loop_gap
 
+	local log = self:log_api()
 	if conf.channel_type == 'socket' then
-		self._client = fx_client({ link = 'tcp', tcp = conf.opt, proto_type = proto_type })
+		self._client = fx_client({ link = 'tcp', tcp = conf.opt, proto_type = proto_type }, log)
 	else
-		self._client = fx_client({ link = 'serial', serial = conf.opt, proto_type = proto_type })
+		self._client = fx_client({ link = 'serial', serial = conf.opt, proto_type = proto_type }, log)
 	end
 
 	--- 设定通讯口数据回调
-	self._modbus:set_io_cb(function(io, unit, msg)
+	self._client:set_io_cb(function(io, unit, msg)
+		self._log:trace(io, basexx.to_hex(msg))
 		--[[
-		if string.lower(conf.apdu_type) == 'ascii' then
-			self._log:trace(io, msg)
-		else
-			self._log:trace(io, basexx.to_hex(msg))
-		end
 		]]--
 
 		local dev = nil
@@ -172,15 +169,15 @@ function app:on_start()
 		end
 	end)
 
-	return self._modbus:start()
+	return self._client:start()
 end
 
 --- 应用退出函数
 function app:on_close(reason)
 	local close_modbus = function()
-		if self._modbus then
-			self._modbus:stop()
-			self._modbus = nil
+		if self._client then
+			self._client:stop()
+			self._client = nil
 		end
 	end
 
@@ -281,7 +278,7 @@ function app:write_packet(dev, stat, unit, output, value)
 	local func = tonumber(output.wfc) or 0x06
 	local addr = output.addr
 
-	if not self._modbus then
+	if not self._client then
 		return
 	end
 
@@ -292,7 +289,7 @@ function app:write_packet(dev, stat, unit, output, value)
 
 	--- 写入数据
 	stat:inc('packets_out', 1)
-	local pdu, err = self._modbus:request(unit, req, timeout)
+	local pdu, err = self._client:request(unit, req, timeout)
 
 	if not pdu then 
 		self._log:warning("write failed: " .. err) 
@@ -312,7 +309,7 @@ function app:read_packet(dev, stat, unit, pack, tpl)
 	local addr = pack.start or 0x00
 	local len = pack.len or 10 -- 长度
 
-	if not self._modbus then
+	if not self._client then
 		return
 	end
 
@@ -323,7 +320,10 @@ function app:read_packet(dev, stat, unit, pack, tpl)
 	stat:inc('packets_out', 1)
 
 	--self._log:debug("Before request", unit, func, addr, len, timeout)
-	local pdu, err = self._modbus:request(unit, pack.cmd, pack.start, pack.len, timeout)
+	local addr_len = fx_helper.cmd_addr_len(pack.cmd)
+	local addr = fx_helper.make_addr(pack.name, pack.start, addr_len)
+	self._log:debug("Fire request:", unit, pack.cmd, addr, pack.len, timeout)
+	local pdu, err = self._client:request(unit, pack.cmd, addr, pack.len, timeout)
 	if not pdu then
 		self._log:warning("read failed: " .. (err or "Timeout"))
 		stat:set('status', -1)
@@ -380,7 +380,7 @@ end
 
 --- 应用运行入口
 function app:on_run(tms)
-	if not self._modbus then
+	if not self._client then
 		return
 	end
 
@@ -388,7 +388,7 @@ function app:on_run(tms)
 	local gap = self._loop_gap or 5000
 
 	for _, dev in ipairs(self._devs) do
-		if not self._modbus then
+		if not self._client then
 			break
 		end
 		self:read_dev(dev.dev, dev.stat, dev.unit, dev.packets, dev.tpl)

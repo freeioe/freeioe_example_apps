@@ -1,4 +1,5 @@
 local ftcsv = require 'ftcsv'
+local fx_helper = require 'fx.helper'
 
 local tpl_dir = 'tpl/'
 
@@ -51,16 +52,6 @@ local function valid_prop(prop, err_cb)
 	return true
 end
 
-local function convert_addr(name, index)
-	if string.upper(name) == 'X' then
-		return tonumber(index, 8)
-	elseif string.upper(name) == 'Y' then
-		return tonumber(index, 8)
-	else
-		return tonumber(index)
-	end
-end
-
 local function load_tpl(name, err_cb)
 	local path = tpl_dir..name..'.csv'
 	local t = ftcsv.parse(path, ",", {headers=false})
@@ -78,12 +69,8 @@ local function load_tpl(name, err_cb)
 				meta.series = v[4]
 			end
 			if v[1] == 'PROP' then
-				local name_col = v[2] or ''
-				local name, index = string.match('^(%a+)(%d+)')
-				local addr = convert_addr(name, index)
 				local prop = {
-					name = string.upper(name),
-					addr = addr,
+					name = v[2] or '',
 					desc = v[3] or 'UNKNOWN',
 				}
 				if string.len(v[4]) > 0 then
@@ -107,10 +94,16 @@ local function load_tpl(name, err_cb)
 				end
 
 				prop.cmd = string.upper(v[8] or 'WR')
-				prop.rate = tonumber(v[9]) or 1
-				prop.wfc = v[10] or 'WT'
-				if v[11] and string.len(v[11]) > 0 then
-					prop.slen = tonumber(v[11]) or 1
+				local addr_col = assert(v[9])
+				local addr_name, addr_index = string.match(addr_col, '^(%a+)(%d+)')
+				prop.addr = addr_col
+				prop.addr_name = addr_name
+				prop.addr_index = fx_helper.convert_addr(addr_name, addr_index)
+
+				prop.rate = tonumber(v[10]) or 1
+				prop.wfc = v[11] or 'WT'
+				if v[12] and string.len(v[12]) > 0 then
+					prop.slen = tonumber(v[12]) or 1
 				end
 
 				if prop.dt == 'string' then

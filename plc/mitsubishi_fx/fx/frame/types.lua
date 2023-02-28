@@ -15,3 +15,6 @@ _M.NAK = 0x15
 
 _M.PROTO_TYPE_1 = 1
 _M.PROTO_TYPE_4 = 4
+
+
+return _M

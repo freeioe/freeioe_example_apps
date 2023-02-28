@@ -63,10 +63,10 @@ local function max_addr(cmd, name, start_addr, is_fx1)
 	end
 end
 
-local function end_addr(cmd, name, start_addr, addr, dt)
+local function end_addr(cmd, name, start_addr, addr, dt, slen)
 	local DT = DATA_TYPES[dt]
 	--- slen is the raw string length which
-	local input_len = (DT and DT.len or v.slen) or 1
+	local input_len = (DT and DT.len or slen) or 1
 
 	if BIT_REG[name] then
 		assert(input_len == 1, 'Bit register only used for bits')
@@ -94,10 +94,17 @@ function split:sort(inputs)
 			return true
 		end
 
-		if a.addr > b.addr then
+		if a.addr_name > b.addr_name then
 			return false
 		end
-		if a.addr < b.addr then
+		if a.addr_name < b.addr_name then
+			return true
+		end
+
+		if a.addr_index > b.addr_index then
+			return false
+		end
+		if a.addr_index < b.addr_index then
 			return true
 		end
 
@@ -115,12 +122,12 @@ function split:split(inputs, option, is_fx1)
 	local packets = {}
 	local pack = {}
 	for _, v in ipairs(inputs) do
-		if pack.cmd ~= v.cmd or pack.name ~= v.name then
+		if pack.cmd ~= v.cmd or pack.name ~= v.addr_name then
 			if pack.cmd ~= nil then
 				table.insert(packets, pack)
 			end
-			pack = { cmd = v.cmd, name = v.name }
-			pack.start, pack.endl = max_addr(v.cmd, v.name, v.addr, is_fx1)
+			pack = { cmd = v.cmd, name = v.addr_name }
+			pack.start, pack.endl = max_addr(v.cmd, v.addr_name, v.addr_index, is_fx1)
 			pack.inputs = {}
 			pack.len = 0
 			pack.unpack = function(input, data, index)
@@ -128,22 +135,22 @@ function split:split(inputs, option, is_fx1)
 			end
 		end
 
-		local e_addr = end_addr(v.cmd, v.name, pack.start, v.addr, v.dt)
+		local e_addr = end_addr(v.cmd, v.addr_name, pack.start, v.addr_index, v.dt, v.slen)
 
 		local same_p = true
 		if e_addr >= pack.endl then
 			same_p = false
 		end
 		if same_p and option == 'compact' then
-			if v.addr - pack.start ~= pack.len then
+			if v.addr_index - pack.start ~= pack.len then
 				same_p = false
 			end
 		end
 
 		if not same_p then
 			table.insert(packets, pack)
-			pack = { cmd=v.cmd }
-			pack.start, pack.endl = max_addr(v.cmd, v.name, v.addr, is_fx1)
+			pack = { cmd = v.cmd, name = v.addr_name }
+			pack.start, pack.endl = max_addr(v.cmd, v.addr_name, v.addr_index, is_fx1)
 			pack.inputs = {}
 			pack.len = 0
 			pack.unpack = function(input, data, index)
@@ -151,7 +158,7 @@ function split:split(inputs, option, is_fx1)
 			end
 		end
 
-		v.pack_index = v.addr - pack.start
+		v.pack_index = v.addr_index - pack.start
 
 		table.insert(pack.inputs, v)
 		pack.len = e_addr - pack.start + 1

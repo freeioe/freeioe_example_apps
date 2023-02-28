@@ -5,7 +5,7 @@ local sum = require 'hashings.sum'
 local cjson = require 'cjson.safe'
 
 function _M.sum(data)
-	return sum:new(data):digest()
+	return sum:new(data):hexdigest()
 end
 
 function _M.tostring(data)

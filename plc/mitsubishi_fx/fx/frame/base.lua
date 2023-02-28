@@ -1,5 +1,5 @@
 local class = require 'middleclass'
-local helper = require 'fx.helper'
+local helper = require 'fx.frame.helper'
 
 local base = class('LUA_FX_FRAME_BASE')
 
