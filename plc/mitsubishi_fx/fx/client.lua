@@ -24,7 +24,7 @@ function client:set_io_cb(cb)
 end
 
 --- Timeout: ms
-function client:request(dev_no, cmd, start, count, timeout)
+function client:read(dev_no, cmd, start, count, timeout)
 	assert(dev_no, 'Device address invalid')
 	assert(cmd, 'Request command invalid')
 	assert(start, 'Memory address start invalid')
@@ -70,6 +70,53 @@ function client:request(dev_no, cmd, start, count, timeout)
 	end
 	return table.unpack(result)
 end
+
+--- Timeout: ms
+function client:write(dev_no, cmd, start, count, data, timeout)
+	assert(dev_no, 'Device address invalid')
+	assert(cmd, 'Request command invalid')
+	assert(start, 'Memory address start invalid')
+
+	local count = count or 1
+	local timeout = timeout or 1000
+	print(start, count, timeout)
+
+	local req = fx_req:new(self._opt.proto_type, dev_no, self._opt.pc_no, cmd, 0, start, count, data)
+	if self._request then
+		return nil, "Device already in reading/writing!!!"
+	end
+
+	local t_left = timeout
+	while self._request and t_left >= 0 do
+		skynet.sleep(10)
+		t_left = t_left - 100
+	end
+	if t_left < 0 then
+		return nil, 'Request timeout!!!!'
+	end
+	self._request = req
+
+	local apdu_raw = req:to_hex()
+	self._stream:write(apdu_raw, timeout)
+
+	local t = {}
+	self._request_wait = t
+
+	skynet.sleep(timeout / 10, self._request_wait)
+
+	self._request_wait = nil
+	self._request = nil
+	
+	local result = self._result or {false, "Timeout"}
+	self._result = nil
+	if not result[1] then
+		--print(os.date(), 'Request failed', dev_no, table.unpack(result))
+	else
+		--print(os.date(), 'Request done', dev_no)
+	end
+	return table.unpack(result)
+end
+
 
 function client:frame_process()
 	while not self._closing do

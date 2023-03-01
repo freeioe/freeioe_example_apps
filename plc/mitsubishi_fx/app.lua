@@ -226,40 +226,8 @@ function app:on_output(app_src, sn, output, prop, value, timestamp)
 		return false, err
 	end
 
-	--- UINT8, INT8 hacks
-	if tpl_output.dt == 'int8' or tpl_output.dt == 'uint8' then
-		local link_val = 0
-		local link_offset = tpl_output.offset == 1 and 0 or 1
-		for _, v in ipairs(dev.inputs) do
-			--- Check function code and addr and offset
-			if v.fc == tpl_output.fc and v.addr == tpl_output.addr and v.offset == link_offset then
-				-- check data type
-				if v.dt == 'uint8' or v.dt == 'int8' then
-					link_val = dev.dev:get_input_prop(v.name, 'value')
-					if v.rate ~= 1 then
-						link_val = link_val / v.rate
-					end
-					if tpl_output.dt ~= v.dt then
-						if tpl_output.dt == 'uint8' then
-							link_val = (link_val + 256) % 256
-						else
-							link_val = (link_val - 128) % 256 - 128
-						end
-					end
-				end
-			end
-		end
-		--- TODO: Take care about little endian stuff?????
-		if link_offset == 1 then
-			val = (val << 8 ) + link_val
-		else
-			val = (link_val << 8) + val
-		end
-	end
-	--- hacks end
-
-	if tpl_output.dt == 'bit' and tpl_output.wfc == 0x06 then
-		return nil, "Bit value readed from 0x03/0x04 cannot be write to device"
+	if tpl_output.dt == 'bit' and tpl_output.wcmd ~= 'BT' then
+		return nil, 'Bit value only can write by BT command'
 	end
 
 	local r, err = self._queue(self.write_packet, self, dev.dev, dev.stat, dev.unit, tpl_output, val)
@@ -274,22 +242,21 @@ function app:on_output(app_src, sn, output, prop, value, timestamp)
 end
 
 function app:write_packet(dev, stat, unit, output, value)
-	--- 设定写数据的地址
-	local func = tonumber(output.wfc) or 0x06
-	local addr = output.addr
-
 	if not self._client then
 		return
 	end
 
+	--- 设定写数据的地址
+	local addr = assert(output.addr)
 	local timeout = output.timeout or 5000
+	local val_data = self._data_pack[output.dt](value)
 
 	local req = nil
 	local err = nil
 
 	--- 写入数据
 	stat:inc('packets_out', 1)
-	local pdu, err = self._client:request(unit, req, timeout)
+	local pdu, err = self._client:write(unit, pack.wcmd, addr, 1, val_data, timeout)
 
 	if not pdu then 
 		self._log:warning("write failed: " .. err) 
@@ -323,7 +290,7 @@ function app:read_packet(dev, stat, unit, pack, tpl)
 	local addr_len = fx_helper.cmd_addr_len(pack.cmd)
 	local addr = fx_helper.make_addr(pack.name, pack.start, addr_len)
 	self._log:debug("Fire request:", unit, pack.cmd, addr, pack.len, timeout)
-	local pdu, err = self._client:request(unit, pack.cmd, addr, pack.len, timeout)
+	local pdu, err = self._client:read(unit, pack.cmd, addr, pack.len, timeout)
 	if not pdu then
 		self._log:warning("read failed: " .. (err or "Timeout"))
 		stat:set('status', -1)
@@ -351,12 +318,6 @@ function app:read_packet(dev, stat, unit, pack, tpl)
 		local val, err = pack.unpack(input, pdu_data)
 		if val == nil then
 			assert(false, err or 'val is nil')
-		end
-		--- AI Calc
-		if tpl.ai_calc_list[input.name] then
-			local ac = tpl.ai_calc_list[input.name]
-			val = ((val - ac.in_min) * (ac.out_max - ac.out_min))/(ac.in_max - ac.in_min)
-			val = val + ac.out_min
 		end
 		--- Data Rate
 		if input.rate and input.rate ~= 1 then

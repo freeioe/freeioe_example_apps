@@ -101,7 +101,7 @@ local function load_tpl(name, err_cb)
 				prop.addr_index = fx_helper.convert_addr(addr_name, addr_index)
 
 				prop.rate = tonumber(v[10]) or 1
-				prop.wfc = v[11] or 'WT'
+				prop.wcmd = v[11] or 'WT'
 				if v[12] and string.len(v[12]) > 0 then
 					prop.slen = tonumber(v[12]) or 1
 				end
