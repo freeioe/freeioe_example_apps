@@ -72,16 +72,15 @@ function client:read(dev_no, cmd, start, count, timeout)
 end
 
 --- Timeout: ms
-function client:write(dev_no, cmd, start, count, data, timeout)
+function client:write(dev_no, cmd, addr, count, data, timeout)
 	assert(dev_no, 'Device address invalid')
 	assert(cmd, 'Request command invalid')
-	assert(start, 'Memory address start invalid')
+	assert(addr, 'Memory address invalid')
 
-	local count = count or 1
 	local timeout = timeout or 1000
-	print(start, count, timeout)
+	print(addr, count, timeout)
 
-	local req = fx_req:new(self._opt.proto_type, dev_no, self._opt.pc_no, cmd, 0, start, count, data)
+	local req = fx_req:new(self._opt.proto_type, dev_no, self._opt.pc_no, cmd, 0, addr, count, data)
 	if self._request then
 		return nil, "Device already in reading/writing!!!"
 	end

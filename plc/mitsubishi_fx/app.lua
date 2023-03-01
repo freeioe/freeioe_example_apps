@@ -249,14 +249,21 @@ function app:write_packet(dev, stat, unit, output, value)
 	--- 设定写数据的地址
 	local addr = assert(output.addr)
 	local timeout = output.timeout or 5000
-	local val_data = self._data_pack[output.dt](value)
+	local val_data = self._data_pack[output.dt](self._data_pack, value)
 
 	local req = nil
 	local err = nil
 
 	--- 写入数据
 	stat:inc('packets_out', 1)
-	local pdu, err = self._client:write(unit, pack.wcmd, addr, 1, val_data, timeout)
+	self._log:debug("Fire write request:", unit, output.wcmd, addr, value, timeout)
+	local count = 1
+	if output.wcmd == 'WW' or output.wcmd == 'QW' then
+		count = string.len(val_data) // 2
+	end
+		local basexx = require 'basexx'
+	print(count, string.len(val_data), basexx.to_hex(val_data))
+	local pdu, err = self._client:write(unit, output.wcmd, addr, count, val_data, nil, timeout)
 
 	if not pdu then 
 		self._log:warning("write failed: " .. err) 
@@ -289,7 +296,7 @@ function app:read_packet(dev, stat, unit, pack, tpl)
 	--self._log:debug("Before request", unit, func, addr, len, timeout)
 	local addr_len = fx_helper.cmd_addr_len(pack.cmd)
 	local addr = fx_helper.make_addr(pack.name, pack.start, addr_len)
-	self._log:debug("Fire request:", unit, pack.cmd, addr, pack.len, timeout)
+	self._log:debug("Fire read request:", unit, pack.cmd, addr, pack.len, timeout)
 	local pdu, err = self._client:read(unit, pack.cmd, addr, pack.len, timeout)
 	if not pdu then
 		self._log:warning("read failed: " .. (err or "Timeout"))
