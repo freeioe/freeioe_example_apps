@@ -59,7 +59,11 @@ local function max_addr(cmd, name, start_addr, is_fx1)
 		local start = (start_addr // 8) * 8
 		return start, start + max_t[string.upper(cmd)][1]
 	else
-		return start_addr, start_addr + max_t[string.upper(cmd)][2]
+		if name == 'CN' and start_addr >= 200 then
+			return start_addr, start_addr + (max_t[string.upper(cmd)][2] // 2)
+		else
+			return start_addr, start_addr + max_t[string.upper(cmd)][2]
+		end
 	end
 end
 
@@ -75,6 +79,9 @@ local function end_addr(cmd, name, start_addr, addr, dt, slen)
 		if dt == 'bit' then
 			-- TODO: offset
 			return addr -- + math.ceil((offset) / 8)
+		end
+		if name == 'CN' and addr >= 200 then
+			return addr + math.ceil(input_len / 4)
 		end
 		return addr + math.ceil(input_len / 2)	
 	end
@@ -122,7 +129,8 @@ function split:split(inputs, option, is_fx1)
 	local packets = {}
 	local pack = {}
 	for _, v in ipairs(inputs) do
-		if pack.cmd ~= v.cmd or pack.name ~= v.addr_name then
+		local cn_diff = (pack.name == 'CN' and pack.start < 200 and v.addr_index >= 200)
+		if pack.cmd ~= v.cmd or pack.name ~= v.addr_name or cn_diff then
 			if pack.cmd ~= nil then
 				table.insert(packets, pack)
 			end
