@@ -3,8 +3,8 @@ local skynet = require 'skynet'
 local socket = require 'skynet.socket'
 local socketdriver = require 'skynet.socketdriver'
 local serial = require 'serialdriver'
-local fx_req = require 'fx.frame.req'
-local buffer = require 'fx.buffer'
+local m1c_req = require 'm1c.frame.req'
+local buffer = require 'm1c.buffer'
 
 local stream = class("LUA_APP_STREAM_CLASS")
 
@@ -45,11 +45,9 @@ function stream:write(raw, timeout)
 
 	if self._socket then
 		return socket.write(self._socket, raw)
-	end
-	if self._port then
+	else
 		return self._port:write(raw)
 	end
-	return nil, "Connection closed!!!"
 end
 
 function stream:connect_proc()

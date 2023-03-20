@@ -45,11 +45,9 @@ function stream:write(raw, timeout)
 
 	if self._socket then
 		return socket.write(self._socket, raw)
-	end
-	if self._port then
+	else
 		return self._port:write(raw)
 	end
-	return nil, "Connection closed!!!"
 end
 
 function stream:connect_proc()

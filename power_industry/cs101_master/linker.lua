@@ -1,27 +1,31 @@
-local class = require 'middleclass'
+local base = require 'iec60870.master.linker'
 local skynet = require 'skynet'
 local socket = require 'skynet.socket'
 local socketdriver = require 'skynet.socketdriver'
 local serial = require 'serialdriver'
-local fx_req = require 'fx.frame.req'
-local buffer = require 'fx.buffer'
 
-local stream = class("LUA_APP_STREAM_CLASS")
+local linker = base:subclass('LUA_APP_STREAM_CLASS')
 
 --- 
--- stream_type: tcp/serial
-function stream:initialize(opt, handler)
+-- linker_type: tcp/serial
+function linker:initialize(opt, log)
+	base.initialize(self)
+
 	-- Set default link to serial
 	opt.link = string.lower(opt.link or 'serial')
 
 	self._closing = false
 	self._opt = opt
-	self._handler = handler
+	self._log = log
+end
+
+function linker:send(raw)
+	return self:write(raw, 1000)
 end
 
 --- Timeout: ms
-function stream:write(raw, timeout)
-	assert(raw, 'Send stream is nil')
+function linker:write(raw, timeout)
+	assert(raw, 'Send linker is nil')
 	assert(timeout, 'Send timeout is nil')
 	if self._closing then
 		return nil, "Connection closing!!!"
@@ -36,12 +40,15 @@ function stream:write(raw, timeout)
 		end
 	end
 	if t_left <= 0 then
+		self._log:debug('Wait for connection timeout', timeout)
 		return nil, "Not connected!!"
 	end
 
+	--[[
 	if self._handler then
 		self._handler.on_send(raw)
 	end
+	]]--
 
 	if self._socket then
 		return socket.write(self._socket, raw)
@@ -52,10 +59,12 @@ function stream:write(raw, timeout)
 	return nil, "Connection closed!!!"
 end
 
-function stream:connect_proc()
+function linker:connect_proc()
 	local connect_gap = 100 -- one second
+	self._log:debug("connection proc enter...")
 	while not self._closing do
 		self._connection_wait = {}
+		self._log:debug("connection sleep", connect_gap)
 		skynet.sleep(connect_gap, self._connection_wait)
 		self._connection_wait = nil
 		if self._closing then
@@ -64,6 +73,7 @@ function stream:connect_proc()
 
 		local r, err = self:start_connect()
 		if r then
+			self._log:error("Start connection failed", err)
 			break
 		end
 
@@ -71,22 +81,23 @@ function stream:connect_proc()
 		if connect_gap > 64 * 100 then
 			connect_gap = 100
 		end
-		skynet.error("Wait for retart connection", connect_gap)
+		self._log:error("Wait for retart connection", connect_gap)
 	end
 
 	if self._socket then
 		self:watch_client_socket()
 	end
+	self._log:debug("connection proc exit...")
 end
 
-function stream:watch_client_socket()
+function linker:watch_client_socket()
 	while self._socket and not self._closing do
 		local data, err = socket.read(self._socket)	
 		if not data then
-			skynet.error("Socket disconnected", err)
+			self._log:error("Socket disconnected", err)
 			break
 		end
-		self._handler.on_recv(data)
+		self:on_recv(data)
 	end
 
 	if self._socket then
@@ -105,17 +116,17 @@ function stream:watch_client_socket()
 	end)
 end
 
-function stream:start_connect()
+function linker:start_connect()
 	if self._opt.link == 'tcp' then
 		local conf = self._opt.tcp
-		skynet.error(string.format("Connecting to %s:%d", conf.host, conf.port))
+		self._log:info(string.format("Connecting to %s:%d", conf.host, conf.port))
 		local sock, err = socket.open(conf.host, conf.port)
 		if not sock then
 			local err = string.format("Cannot connect to %s:%d. err: %s", conf.host, conf.port, err or "")
-			skynet.error(err)
+			self._log:error(err)
 			return nil, err
 		end
-		skynet.error(string.format("Connected to %s:%d", conf.host, conf.port))
+		self._log:notice(string.format("Connected to %s:%d", conf.host, conf.port))
 
 		if conf.nodelay then
 			socketdriver.nodelay(sock)
@@ -127,19 +138,19 @@ function stream:start_connect()
 	if self._opt.link == 'serial' then
 		local opt = self._opt.serial
 		local port = serial:new(opt.port, opt.baudrate or 9600, opt.data_bits or 8, opt.parity or 'NONE', opt.stop_bits or 1, opt.flow_control or "OFF")
-		skynet.error("Open serial port:"..opt.port)
+		self._log:info("Open serial port:"..opt.port)
 		local r, err = port:open()
 		if not r then
-			skynet.error("Failed open serial port:"..opt.port..", error: "..err)
+			self._log:error("Failed open serial port:"..opt.port..", error: "..err)
 			return nil, err
 		end
 
 		port:start(function(data, err)
 			-- Recevied Data here
 			if data then
-				self._handler.on_recv(data)
+				self:on_recv(data)
 			else
-				skynet.error(err)
+				self._log:error(err)
 				port:close()
 				self._port = nil
 				skynet.timeout(100, function()
@@ -154,7 +165,8 @@ function stream:start_connect()
 	return false, "Unknown Link Type"
 end
 
-function stream:start()
+function linker:open()
+	self._log:debug("Linker open...")
 	if self._socket or self._port then
 		return nil, "Already started"
 	end
@@ -168,11 +180,11 @@ function stream:start()
 	return true
 end
 
-function stream:stop()
+function linker:close()
 	self._closing = true
 	if self._connection_wait then
 		skynet.wakeup(self._connection_wait) -- wakeup the process co
 	end
 end
 
-return stream 
+return linker 

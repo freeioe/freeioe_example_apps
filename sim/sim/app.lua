@@ -14,7 +14,7 @@ function app:on_start()
 	local tag_count = self._conf.tag_count or 4
 
 	for d = 1, dev_count do
-		local dev_sn = self._sys:id()..'.'..self._name..'.'..d
+		local dev_sn = self._sys:id()..'.'..self._name..'_'..d
 		local inputs = {}
 
 		local outputs = {}
@@ -24,6 +24,7 @@ function app:on_start()
 				desc = 'input '..i,
 			}
 		end
+
 		inputs[#inputs + 1] = {
 			name = 'tag_string',
 			desc = 'input as string',
@@ -50,12 +51,12 @@ function app:on_run(tms)
 	local run_loop = self._conf.run_loop or 1000 -- ms
 
 	for _, dev in ipairs(self._devs) do
-		--[[
 		for i = 1, tag_count do
 			dev:set_input_prop('tag'..i, 'value', math.random(0xFFFFFFFF))
 		end
-		]]--
 		dev:set_input_prop('tag_string', 'value', os.date())
+
+		self._sys:sleep(10)
 	end
 
 
