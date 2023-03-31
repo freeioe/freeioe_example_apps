@@ -3,7 +3,7 @@
 		"name": "loop_gap",
 		"desc": "总招间隔(Read Gap)",
 		"type": "number",
-		"default": 1000
+		"default": 5000
 	},
 	{
 		"name": "channel_type",

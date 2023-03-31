@@ -4,12 +4,14 @@ local cs101_slave = require 'iec60870.master.cs101.slave'
 local cs101_channel = require 'iec60870.master.cs101.channel'
 local data_pack = require 'iec60870.data.pack'
 local data_unpack = require 'iec60870.data.unpack'
+local data_bsi = require 'iec60870.data.bsi'
 local iec_util = require 'iec60870.util'
 local iec_logger = require 'iec60870.logger'
 
 local csv_tpl = require 'csv_tpl'
 local valid_value = require 'valid_value'
 local linker = require 'linker'
+local data_parser = require 'data_parser'
 
 local queue = require 'skynet.queue'
 local conf_helper = require 'app.conf_helper'
@@ -58,6 +60,23 @@ function app:on_init()
 
 end
 
+function app:set_input_value(unit, ti, addr, val, timestamp, iv)
+	for _, v in ipairs(self._devs) do
+		if v.unit == unit then
+			for _, input in ipairs(v.inputs) do
+				if input.ti == ti and input.addr == addr then
+					if ti == 'BO' then
+						local bsi = data_bsi:new(val)
+						v.dev:set_input_prop(input.name, 'value', bsi:BIT(input.offset), timestamp, iv)
+					else
+						v.dev:set_input_prop(input.name, 'value', val, timestamp, iv)
+					end
+				end
+			end
+		end
+	end
+end
+
 --- 应用启动函数
 function app:on_start()
 	---获取设备序列号和应用配置
@@ -71,6 +90,7 @@ function app:on_start()
 		config.socket_opt = {
 			host = "0.0.0.0",
 			port = 17001,
+			-- port = 15000,
 			nodelay = true
 		}
 		config.devs = {
@@ -210,6 +230,10 @@ function app:on_start()
 	for _, v in ipairs(self._devs) do
 		local slave = cs101_slave:new(self._master, self._channel, v.unit, false, false)
 		slave:set_poll_cycle(self._loop_gap)
+		slave:set_data_cb(data_parser:new(function(unit, ti, addr, data, timestamp, iv)
+			-- print('CB', unit, ti, addr, data, timestamp, iv)
+			self:set_input_value(unit, ti, addr, data, timestamp, iv)
+		end))
 		if self._master:add_slave(v.unit, slave) then
 			v.slave = slave
 		end
