@@ -1,0 +1,26 @@
+[
+	{
+		"name": "cloud",
+		"desc": "PING 地址",
+		"type": "string",
+		"default": "ioe.thingsroot.com"
+	},
+	{
+		"name": "iface",
+		"desc": "4G 网络名称",
+		"type": "string",
+		"default": "4g_wan"
+	},
+	{
+		"name": "cycle",
+		"desc": "检测周期(秒)",
+		"type": "number",
+		"default": 60
+	},
+	{
+		"name": "timeout",
+		"desc": "重置时间(秒)",
+		"type": "number",
+		"default": 300
+	}
+]

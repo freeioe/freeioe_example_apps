@@ -89,7 +89,7 @@ end
 
 function app:check_alive(destip)
     local dev = self.net_info_dev
-	local cmd = "ping -c 3  -W 2 " .. destip .. " > /dev/nul && echo true ||echo false"
+	local cmd = "ping -c 3  -W 2 " .. destip .. " > /dev/null && echo true ||echo false"
 	local info, err = sysinfo.exec(cmd)
 	if not info then
 		return nil, err
