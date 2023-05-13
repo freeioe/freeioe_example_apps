@@ -2,17 +2,13 @@ local base = require 'iec60870.common.linker'
 local skynet = require 'skynet'
 local socket = require 'skynet.socket'
 local socketdriver = require 'skynet.socketdriver'
-local serial = require 'serialdriver'
 
 local linker = base:subclass('LUA_APP_STREAM_CLASS')
 
 --- 
--- linker_type: tcp/serial
+-- linker_type: tcp
 function linker:initialize(opt, log)
 	base.initialize(self)
-
-	-- Set default link to serial
-	opt.link = string.lower(opt.link or 'serial')
 
 	self._closing = false
 	self._opt = opt
@@ -32,7 +28,7 @@ function linker:write(raw, timeout)
 	end
 
 	local t_left = timeout
-	while not self._socket and not self._port and t_left > 0 do
+	while not self._socket and t_left > 0 do
 		skynet.sleep(100)
 		t_left = t_left - 1000
 		if self._closing then
@@ -52,9 +48,6 @@ function linker:write(raw, timeout)
 
 	if self._socket then
 		return socket.write(self._socket, raw)
-	end
-	if self._port then
-		return self._port:write(raw)
 	end
 	return nil, "Connection closed!!!"
 end
@@ -118,60 +111,28 @@ function linker:watch_client_socket()
 end
 
 function linker:start_connect()
-	if self._opt.link == 'tcp' then
-		local conf = self._opt.tcp
-		self._log:info(string.format("Connecting to %s:%d", conf.host, conf.port))
-		local sock, err = socket.open(conf.host, conf.port)
-		if not sock then
-			local err = string.format("Cannot connect to %s:%d. err: %s", conf.host, conf.port, err or "")
-			self._log:error(err)
-			return nil, err
-		end
-		self._log:notice(string.format("Connected to %s:%d", conf.host, conf.port))
-
-		if conf.nodelay then
-			socketdriver.nodelay(sock)
-		end
-
-		self._socket = sock
-		self:on_connected()
-		return true
+	local conf = self._opt.tcp
+	self._log:info(string.format("Connecting to %s:%d", conf.host, conf.port))
+	local sock, err = socket.open(conf.host, conf.port)
+	if not sock then
+		local err = string.format("Cannot connect to %s:%d. err: %s", conf.host, conf.port, err or "")
+		self._log:error(err)
+		return nil, err
 	end
-	if self._opt.link == 'serial' then
-		local opt = self._opt.serial
-		local port = serial:new(opt.port, opt.baudrate or 9600, opt.data_bits or 8, opt.parity or 'NONE', opt.stop_bits or 1, opt.flow_control or "OFF")
-		self._log:info("Open serial port:"..opt.port)
-		local r, err = port:open()
-		if not r then
-			self._log:error("Failed open serial port:"..opt.port..", error: "..err)
-			return nil, err
-		end
+	self._log:notice(string.format("Connected to %s:%d", conf.host, conf.port))
 
-		port:start(function(data, err)
-			-- Recevied Data here
-			if data then
-				self:on_recv(data)
-			else
-				self._log:error(err)
-				port:close()
-				self._port = nil
-				skynet.timeout(100, function()
-					self:connect_proc()
-				end)
-				self:on_disconnected()
-			end
-		end)
-
-		self._port = port
-		self:on_connected()
-		return true
+	if conf.nodelay then
+		socketdriver.nodelay(sock)
 	end
-	return false, "Unknown Link Type"
+
+	self._socket = sock
+	self:on_connected()
+	return true
 end
 
 function linker:open()
 	self._log:debug("Linker open...")
-	if self._socket or self._port then
+	if self._socket then
 		return nil, "Already started"
 	end
 
@@ -191,18 +152,14 @@ function linker:close()
 	end
 end
 
+function linker:reset()
+	self:close()
+	self:open()
+end
+
 function linker:dump_key()
-	if self._opt.link == 'tcp' then
-		local conf = self._opt.tcp
-		return string.format("%s:%d", conf.host, conf.port)
-	end
-
-	if self._opt.link == 'serial' then
-		local opt = self._opt.serial
-		return tostring(opt.port)
-	end
-
-	return 'UNKNOWN'
+	local conf = self._opt.tcp
+	return string.format("%s:%d", conf.host, conf.port)
 end
 
 return linker 

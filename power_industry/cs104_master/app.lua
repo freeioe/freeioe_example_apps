@@ -1,15 +1,17 @@
 --- 导入需要的模块
-local cs101_master = require 'iec60870.master.cs101'
-local cs101_slave = require 'iec60870.master.cs101.slave'
-local cs101_channel = require 'iec60870.master.cs101.channel'
+local cs104_master = require 'iec60870.master.cs104'
+local cs104_slave = require 'iec60870.master.cs104.slave'
+local cs104_channel = require 'iec60870.master.cs104.channel'
+local data_pack = require 'iec60870.data.pack'
+local data_unpack = require 'iec60870.data.unpack'
 local data_bsi = require 'iec60870.data.bsi'
 local iec_util = require 'iec60870.common.util'
 local iec_logger = require 'iec60870.common.logger'
 
 local csv_tpl = require 'csv_tpl'
+local valid_value = require 'valid_value'
 local linker = require 'linker'
 local data_parser = require 'data_parser'
-local data_writer = require 'data_writer'
 
 local queue = require 'skynet.queue'
 local conf_helper = require 'app.conf_helper'
@@ -18,7 +20,7 @@ local basexx = require 'basexx'
 local ioe = require 'ioe'
 
 --- 注册对象(请尽量使用唯一的标识字符串)
-local app = base_app:subclass("LUA_POWER_INDUSTRY_CS101_MASTER")
+local app = base_app:subclass("LUA_POWER_INDUSTRY_CS104_MASTER")
 --- 设定应用最小运行接口版本
 app.static.API_VER = 14
 
@@ -87,11 +89,9 @@ function app:on_start()
 
 	if ioe.developer_mode() then
 		self._log:debug('IN Developer mode........')
-		config.channel_type = 'socket'
-		config.socket_opt = {
-			host = "127.0.0.1",
-			port = 17001,
-			-- port = 15000,
+		config.opt = {
+			host = "192.168.1.138",
+			port = 2404,
 			nodelay = true
 		}
 		config.devs = {
@@ -102,6 +102,9 @@ function app:on_start()
 
 	local helper = conf_helper:new(self._sys, config)
 	helper:fetch()
+
+	self._data_pack = data_pack:new()
+	self._data_unpack = data_unpack:new()
 
 	local dev_sn_prefix = config.dev_sn_prefix ~= nil and config.dev_sn_prefix or true
 
@@ -163,78 +166,56 @@ function app:on_start()
 		end
 	end
 
+	if #self._devs == 0 then
+		return nil, "Device list empty"
+	end
+
 	--- 获取配置
 	local conf = helper:config()
-	conf.channel_type = conf.channel_type or 'socket'
-	if conf.channel_type == 'socket' then
-		conf.opt = conf.socket_opt or {
-			host = "127.0.0.1",
-			port = 2401,
-			nodelay = true
-		}
-	else
-		conf.opt = conf.serial_opt or {
-			port = "/tmp/ttyS1",
-			baudrate = 19200
-		}
-	end
+	conf.opt = conf.opt or {
+		host = "127.0.0.1",
+		port = 2404,
+		nodelay = true
+	}
+
 	self._loop_gap = conf.loop_gap or self._conf.loop_gap
 
 	local log = self:log_api()
-	if conf.channel_type == 'socket' then
-		self._linker = linker:new({ link = 'tcp', tcp = conf.opt }, log)
-	else
-		self._linker = linker:new({ link = 'serial', serial = conf.opt }, log)
-	end
+	self._linker = linker:new({ link = 'tcp', tcp = conf.opt }, log)
 
 	--- TODO: master conf
-	self._master = cs101_master:new({FRAME_ADDR_SIZE=1})
+	self._master = cs104_master:new()
 
-	self._channel = cs101_channel:new(self._master, self._linker)
+	self._channel = cs104_channel:new(self._master, self._linker)
+	local dev = assert(self._devs[1])
+
 	--- 设定通讯口数据回调
-	self._channel:set_io_cb(function(io, unit, msg)
-		self._log:trace(io, basexx.to_hex(msg))
-		--[[
-		]]--
-
-		local dev = nil
-		for _, v in ipairs(self._devs) do
-			if v.unit == tonumber(unit) then
-				dev = v
-				break
-			end
-		end
-		--- 输出通讯报文
-		
-		if dev then
-			dev.dev:dump_comm(io, msg)
-			--- 计算统计信息
-			if io == 'IN' then
-				dev.stat:inc('bytes_in', string.len(msg))
-			else
-				dev.stat:inc('bytes_out', string.len(msg))
-			end
+	self._channel:set_io_cb(function(io, key, msg)
+		self._log:trace(io, key, basexx.to_hex(msg))
+		dev.dev:dump_comm(io, msg)
+		--- 计算统计信息
+		if io == 'IN' then
+			dev.stat:inc('bytes_in', string.len(msg))
 		else
-			self._sys:dump_comm(sys_id, io, msg)
+			dev.stat:inc('bytes_out', string.len(msg))
 		end
 	end)
+
 	local r, err = self._channel:start()
 	if not r then
 		self._log:error(err)
 		return nil, err
 	end
 
-	-- Create slaves
-	for _, v in ipairs(self._devs) do
-		local slave = cs101_slave:new(self._master, self._channel, v.unit, false, false)
-		slave:set_poll_cycle(self._loop_gap)
-		slave:set_data_cb(data_parser:new(function(unit, ti, addr, data, timestamp, iv)
-			-- print('CB', unit, ti, addr, data, timestamp, iv)
-			self:set_input_value(unit, ti, addr, data, timestamp, iv)
-		end))
-		if self._master:add_slave(v.unit, slave) then
-			v.slave = slave
-		end
+	-- Create slave
+	local slave = cs104_slave:new(self._master, self._channel, dev.unit, false, {k = 12, w = 8})
+	slave:set_poll_cycle(self._loop_gap)
+	slave:set_data_cb(data_parser:new(function(unit, ti, addr, data, timestamp, iv)
+		print('CB', unit, ti, addr, data, timestamp, iv)
+		self:set_input_value(unit, ti, addr, data, timestamp, iv)
+	end))
+	if self._master:add_slave(self._linker, slave) then
+		self._slave = slave
 	end
 
 	return self._master:start()
@@ -292,36 +273,58 @@ function app:on_output(app_src, sn, output, prop, value, timestamp)
 		val = val / tpl_output.rate
 	end
 
-	local r, err = self._queue(self.write_packet, self, dev.slave, dev.stat, dev.unit, tpl_output, val)
+	local val, err = valid_value(tpl_output.dt, val)
+	if not val then
+		self._log:error("Write value validation", err)
+		return false, err
+	end
 
+	if tpl_output.dt == 'bit' and tpl_output.wcmd ~= 'BT' then
+		return nil, 'Bit value only can write by BT command'
+	end
+
+	local r, err = self._queue(self.write_packet, self, dev.dev, dev.stat, dev.unit, tpl_output, val)
+	--[[
+	if not r then
+		local info = "Write output failure!"
+		local data = { sn=sn, output=output, prop=prop, value=value, err=err }
+		self._dev:fire_event(event.LEVEL_ERROR, event.EVENT_DEV, info, data)
+	end
+	]]--
 	return r, err or "Done"
 end
 
-function app:write_packet(slave, stat, unit, output, value)
-	if not self._master then
+function app:write_packet(dev, stat, unit, output, value)
+	if not self._client then
 		return
 	end
 
 	--- 设定写数据的地址
 	local addr = assert(output.addr)
-
-	-- TODO: pack value?
-	--local val_data = self._data_pack[output.dt](self._data_pack, value)
-	local val_data = value
+	local timeout = output.timeout or 5000
+	local val_data = self._data_pack[output.dt](self._data_pack, value)
 
 	local req = nil
 	local err = nil
 
-	self._log:debug("Fire write request:", unit, output.wcmd, addr, value)
-
-	local writer = data_writer:new(slave)
-
-	local pdu, err = writer(output.ti, addr, val_data)
+	--- 写入数据
+	stat:inc('packets_out', 1)
+	self._log:debug("Fire write request:", unit, output.wcmd, addr, value, timeout)
+	local count = 1
+	if output.wcmd == 'WW' or output.wcmd == 'QW' then
+		count = string.len(val_data) // 2
+	end
+		local basexx = require 'basexx'
+	print(count, string.len(val_data), basexx.to_hex(val_data))
+	local pdu, err = self._client:write(unit, output.wcmd, addr, count, val_data, nil, timeout)
 
 	if not pdu then 
-		self._log:error("write failed: " .. err)
+		self._log:warning("write failed: " .. err) 
 		return nil, err
 	end
+
+	--- 统计数据
+	stat:inc('packets_in', 1)
 
 	return true, "Write Done!"
 end
@@ -342,18 +345,6 @@ function app:on_run(tms)
 	local gap = self._loop_gap or 5000
 
 	for _, dev in ipairs(self._devs) do
-		if not self._master then
-			break
-		end
-		if not dev.slave then
-			local slave = cs101_slave:new(self._master, self._channel, dev.unit, false, false)
-			slave:set_poll_cycle(self._loop_gap)
-			if self._master:add_slave(dev.unit, slave) then
-				dev.slave = slave
-			end
-		else
-			self:on_output('TEST', dev.sn, 'SP0', 'value', 1)
-		end
 		-- self._master:poll_data(dev.unit)
 	end
 

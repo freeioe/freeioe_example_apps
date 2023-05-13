@@ -1,7 +1,7 @@
 --- 导入需要的模块
-local cs101_master = require 'iec60870.master.cs101'
-local cs101_slave = require 'iec60870.master.cs101.slave'
-local cs101_channel = require 'iec60870.master.cs101.channel'
+local cs101_slave = require 'iec60870.slave.cs101'
+local cs101_master = require 'iec60870.slave.cs101.master'
+local cs101_channel = require 'iec60870.slave.cs101.channel'
 local data_bsi = require 'iec60870.data.bsi'
 local iec_util = require 'iec60870.common.util'
 local iec_logger = require 'iec60870.common.logger'
@@ -59,23 +59,6 @@ function app:on_init()
 
 	csv_tpl.init(self._sys:app_dir())
 
-end
-
-function app:set_input_value(unit, ti, addr, val, timestamp, iv)
-	for _, v in ipairs(self._devs) do
-		if v.unit == unit then
-			for _, input in ipairs(v.inputs) do
-				if input.ti == ti and input.addr == addr then
-					if ti == 'BO' then
-						local bsi = data_bsi:new(val)
-						v.dev:set_input_prop(input.name, 'value', bsi:BIT(input.offset), timestamp, iv)
-					else
-						v.dev:set_input_prop(input.name, 'value', val, timestamp, iv)
-					end
-				end
-			end
-		end
-	end
 end
 
 --- 应用启动函数
@@ -188,7 +171,7 @@ function app:on_start()
 	end
 
 	--- TODO: master conf
-	self._master = cs101_master:new({FRAME_ADDR_SIZE=1})
+	self._slave = cs101_slave:new({FRAME_ADDR_SIZE=1})
 
 	self._channel = cs101_channel:new(self._master, self._linker)
 	--- 设定通讯口数据回调
@@ -224,18 +207,7 @@ function app:on_start()
 		return nil, err
 	end
 
-	-- Create slaves
-	for _, v in ipairs(self._devs) do
-		local slave = cs101_slave:new(self._master, self._channel, v.unit, false, false)
-		slave:set_poll_cycle(self._loop_gap)
-		slave:set_data_cb(data_parser:new(function(unit, ti, addr, data, timestamp, iv)
-			-- print('CB', unit, ti, addr, data, timestamp, iv)
-			self:set_input_value(unit, ti, addr, data, timestamp, iv)
-		end))
-		if self._master:add_slave(v.unit, slave) then
-			v.slave = slave
-		end
-	end
+	-- Create objects
 
 	return self._master:start()
 end
@@ -260,75 +232,16 @@ function app:on_close(reason)
 	end)
 end
 
-function app:on_output(app_src, sn, output, prop, value, timestamp)
-	if prop ~= 'value' then
-		return false, "Cannot write property which is not value"
-	end
-
-	local dev = nil
-	for _, v in ipairs(self._devs) do
-		if v.sn == sn then
-			dev = v
-			break
-		end
-	end
-	if not dev then
-		return false, "Cannot find device sn "..sn
-	end
-
-	local tpl_output = nil
-	for _, v in ipairs(dev.outputs or {}) do
-		if v.name == output then
-			tpl_output = v
-			break
-		end
-	end
-	if not tpl_output then
-		return false, "Cannot find output "..sn.."."..output
-	end
-
-	local val = value
-	if tpl_output.rate and tpl_output.rate ~= 1 then
-		val = val / tpl_output.rate
-	end
-
-	local r, err = self._queue(self.write_packet, self, dev.slave, dev.stat, dev.unit, tpl_output, val)
-
-	return r, err or "Done"
-end
-
-function app:write_packet(slave, stat, unit, output, value)
-	if not self._master then
+function app:on_input(app_src, sn, input, prop, value, timestamp, quality)
+	if quality ~= 0 or prop ~= 'value' then
 		return
 	end
 
-	--- 设定写数据的地址
-	local addr = assert(output.addr)
-
-	-- TODO: pack value?
-	--local val_data = self._data_pack[output.dt](self._data_pack, value)
-	local val_data = value
-
-	local req = nil
-	local err = nil
-
-	self._log:debug("Fire write request:", unit, output.wcmd, addr, value)
-
-	local writer = data_writer:new(slave)
-
-	local pdu, err = writer(output.ti, addr, val_data)
-
-	if not pdu then 
-		self._log:error("write failed: " .. err)
-		return nil, err
-	end
-
-	return true, "Write Done!"
-end
-
-function app:invalid_dev(dev, pack)
-	for _, input in ipairs(pack.inputs) do
-		dev:set_input_prop(input.name, "value", 0, nil, 1)
+	for _, dev in ipairs(self._devs) do
+		if dev.sn == sn or dev.dev_sn == sn then
+			local key = sn..'/'..input
+			self._cov:handle(key, value, timestamp, quality)
+		end
 	end
 end
 
@@ -338,27 +251,7 @@ function app:on_run(tms)
 		return
 	end
 
-	local begin_time = self._sys:time()
-	local gap = self._loop_gap or 5000
-
-	for _, dev in ipairs(self._devs) do
-		if not self._master then
-			break
-		end
-		if not dev.slave then
-			local slave = cs101_slave:new(self._master, self._channel, dev.unit, false, false)
-			slave:set_poll_cycle(self._loop_gap)
-			if self._master:add_slave(dev.unit, slave) then
-				dev.slave = slave
-			end
-		else
-			self:on_output('TEST', dev.sn, 'SP0', 'value', 1)
-		end
-		-- self._master:poll_data(dev.unit)
-	end
-
-	local next_tms = gap - ((self._sys:time() - begin_time) * 1000)
-	return next_tms > 0 and next_tms or 0
+	return 5000
 end
 
 --- 返回应用对象
