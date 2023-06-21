@@ -1,8 +1,8 @@
 local class = require 'middleclass'
-local ti_map = require 'iec60870.asdu.ti_map'
-local helper = require 'iec60870.frame.helper'
 local types = require 'iec60870.types'
-local logger = require 'iec60870.logger'
+local helper = require 'iec60870.common.helper'
+local logger = require 'iec60870.common.logger'
+local ti_map = require 'iec60870.asdu.ti_map'
 
 local parser = class('LUA_IEC60870_FRAME_DATA_PARSER')
 

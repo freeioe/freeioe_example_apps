@@ -1,7 +1,8 @@
 local class = require 'middleclass'
-local ti_map = require 'iec60870.asdu.ti_map'
-local helper = require 'iec60870.frame.helper'
 local types = require 'iec60870.types'
+local helper = require 'iec60870.common.helper'
+local logger = require 'iec60870.common.logger'
+local ti_map = require 'iec60870.asdu.ti_map'
 
 local parser = class('LUA_IEC60870_FRAME_DATA_PARSER')
 
@@ -57,7 +58,7 @@ function parser:__call(obj, asdu)
 		local val = assert(data[1]:VAL())
 		self._cb(caoa, ti, addr, val, timestamp, iv)
 	else
-		print('UNKNOWN TI', caoa, ti, addr, data_to_string(data), timestamp, iv)
+		logger.error('UNKNOWN TI', caoa, ti, addr, data_to_string(data), timestamp, iv)
 		-- self._cb(caoa, addr, data, timestamp, iv)
 	end
 end

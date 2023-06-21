@@ -63,13 +63,13 @@ end
 function app:fire_serial_event(level, info, data)
 	local data = data or {}
 	data['type'] = 'serial'
-	self._dev:fire_event(level, event.EVENT_COMM, err, data)
+	self._dev:fire_event(level, event.EVENT_COMM, info, data)
 end
 
 function app:fire_socket_event(level, info, data)
 	local data = data or {}
 	data['type'] = 'serial'
-	self._dev:fire_event(level, event.EVENT_COMM, err, data)
+	self._dev:fire_event(level, event.EVENT_COMM, info, data)
 end
 
 function app:serial_proc()
