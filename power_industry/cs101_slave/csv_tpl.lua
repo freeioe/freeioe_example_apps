@@ -28,11 +28,6 @@ local function valid_prop(prop, err_cb)
 		return log_cb('Invalid prop TI type found', prop.name, prop.ti)
 	end
 
-	if NAME_CHECKING[prop.name] then
-		return log_cb("Duplicated name found", prop.name)
-	end
-	NAME_CHECKING[prop.name] = true
-
 	return true
 end
 
@@ -54,22 +49,17 @@ local function load_tpl(name, err_cb)
 			end
 			if v[1] == 'PROP' then
 				local prop = {
-					name = v[2] or '',
-					desc = v[3] or 'UNKNOWN',
+					sn = v[2] or 'GW',
+					name = v[3] or '',
+					desc = v[4] or 'UNKNOWN',
 				}
-				if string.len(v[4]) > 0 then
-					prop.unit = v[4]
+				if string.len(v[5]) > 0 then
+					prop.unit = v[5]
 				end
 
-				prop.rw = string.upper(v[5] or 'RO')
+				prop.rw = string.upper(v[6] or 'RO')
 				if not prop.rw or string.len(prop.rw) == 0 then
 					prop.rw = 'RO'
-				end
-
-				if v[6] and string.len(v[6]) > 0 then
-					prop.vt = v[6]
-				else
-					prop.vt = 'int'
 				end
 
 				prop.ti = string.upper(v[7] or '')

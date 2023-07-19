@@ -8,14 +8,14 @@ local iec_logger = require 'iec60870.common.logger'
 
 local csv_tpl = require 'csv_tpl'
 local linker = require 'linker'
-local data_parser = require 'data_parser'
-local data_writer = require 'data_writer'
 
 local queue = require 'skynet.queue'
+
 local conf_helper = require 'app.conf_helper'
 local base_app = require 'app.base'
 local basexx = require 'basexx'
 local ioe = require 'ioe'
+local cov = require 'cov'
 
 --- 注册对象(请尽量使用唯一的标识字符串)
 local app = base_app:subclass("LUA_POWER_INDUSTRY_CS101_MASTER")
@@ -63,93 +63,81 @@ end
 
 --- 应用启动函数
 function app:on_start()
-	---获取设备序列号和应用配置
-	local sys_id = self._sys:id()
+	self._cov = cov:new(function(...)
+		self:handle_cov_data(...)
+	end, {})
+	self._cov:start()
 
-	local config = self._conf or {}
+	local log = self:log_api()
+	local sys = self:sys_api()
+
+	csv_tpl.init(sys:app_dir())
+
+	---获取设备序列号和应用配置
+	local sys_id = sys:id()
+	--- Mapping 
+	local function map_dev_sn(sn)
+		if sn == 'GW' then
+			return sys_id
+		end
+		local sn = sn or 'GW'
+		sn = string.gsub(sn, '^GW(%..*)$', sys_id..'%1')
+		return sn
+	end
+
+	local conf = self._conf or {}
+
+	local tpl_id = conf.tpl
+	local tpl_ver = conf.ver
+
+	if conf.tpls and #conf.tpls >= 1 then
+		tpl_id = conf.tpls[1].id
+		tpl_ver = conf.tpls[1].ver
+	end
+
+	if tpl_id and tpl_ver then
+		local capi = sys:conf_api(tpl_id)
+		local data, err = capi:data(tpl_ver)
+		if not data then
+			log:error("Failed loading template from cloud!!!", err)
+			return false
+		end
+		tpl_file = tpl_id..'_'..tpl_ver
+	end
 
 	if ioe.developer_mode() then
-		self._log:debug('IN Developer mode........')
-		config.channel_type = 'socket'
-		config.socket_opt = {
-			host = "127.0.0.1",
-			port = 17001,
-			-- port = 15000,
+		conf.channel_type = 'tcp.server'
+		conf.server_opt = {
+			host = "0.0.0.0",
+			port = 1503,
 			nodelay = true
 		}
-		config.devs = {
-			{ unit = 1, name = 'DEV.1', sn = 'dev1', tpl = 'example', is_fx1 = false, pack_opt = 'default' }
+		tpl_file = 'test'
+	end
+
+	log:info("Loading template", tpl_file)
+	local tpl, err = csv_tpl.load_tpl(tpl_file, function(...)
+		log:error(...)
+	end)
+	if not tpl then
+		return nil, err
+	end
+
+	for _, v in ipairs(tpl.props) do
+		v.sn = map_dev_sn(v.sn)
+	end
+	self._tpl = tpl
+
+	self._unit = tonumber(conf.unit) or 1 -- default is 1
+
+	conf.channel_type = conf.channel_type or 'tcp.server'
+	if conf.channel_type == 'tcp.server' then
+		conf.opt = conf.socket_opt or {
+			host = "0.0.0.0",
+			port = 2401,
+			nodelay = true
 		}
-		config.tpls = {}
-	end
-
-	local helper = conf_helper:new(self._sys, config)
-	helper:fetch()
-
-	local dev_sn_prefix = config.dev_sn_prefix ~= nil and config.dev_sn_prefix or true
-
-	self._devs = {}
-	for _, v in ipairs(helper:devices()) do
-		assert(v.sn and v.name and v.unit and v.tpl)
-
-		--- 生成设备的序列号
-		local dev_sn = dev_sn_prefix and sys_id.."."..v.sn or v.sn
-		self._log:debug("Loading template file", v.tpl)
-		local tpl, err = csv_tpl.load_tpl(v.tpl, function(...) self._log:error(...) end)
-		if not tpl then
-			self._log:error("loading csv tpl failed", err)
-		else
-			local meta = self._api:default_meta()
-			meta.name = tpl.meta.name or "Modbus"
-			meta.description = tpl.meta.desc or "Modbus Device"
-			meta.series = tpl.meta.series or "XXX"
-			meta.inst = v.name
-
-			local inputs = {}
-			local outputs = {}
-			local tpl_inputs = {}
-			local tpl_outputs = {}
-			for _, v in ipairs(tpl.props) do
-				if string.find(v.rw, '[Rr]') then
-					inputs[#inputs + 1] = {
-						name = v.name,
-						desc = v.desc,
-						vt = v.vt,
-						unit = v.unit,
-					}
-					tpl_inputs[#tpl_inputs + 1] = v
-				end
-				if string.find(v.rw, '[Ww]') then
-					outputs[#outputs + 1] = {
-						name = v.name,
-						desc = v.desc,
-						unit = v.unit,
-					}
-					tpl_outputs[#tpl_outputs + 1] = v
-				end
-			end
-
-			--- 生成设备对象
-			local dev = self._api:add_device(dev_sn, meta, inputs, outputs)
-			--- 生成设备通讯口统计对象
-			local stat = dev:stat('port')
-
-			table.insert(self._devs, {
-				unit = tonumber(v.unit) or 0,
-				sn = dev_sn,
-				dev = dev,
-				tpl = tpl,
-				stat = stat,
-				inputs = tpl_inputs,
-				outputs = tpl_outputs,
-			})
-		end
-	end
-
-	--- 获取配置
-	local conf = helper:config()
-	conf.channel_type = conf.channel_type or 'socket'
-	if conf.channel_type == 'socket' then
+	elseif conf.channel_type == 'tcp.client' then
 		conf.opt = conf.socket_opt or {
 			host = "127.0.0.1",
 			port = 2401,
@@ -161,55 +149,56 @@ function app:on_start()
 			baudrate = 19200
 		}
 	end
-	self._loop_gap = conf.loop_gap or self._conf.loop_gap
 
-	local log = self:log_api()
-	if conf.channel_type == 'socket' then
-		self._linker = linker:new({ link = 'tcp', tcp = conf.opt }, log)
-	else
-		self._linker = linker:new({ link = 'serial', serial = conf.opt }, log)
-	end
+	self._linker = linker:new(conf.channel_type, conf.opt, log)
 
-	--- TODO: master conf
 	self._slave = cs101_slave:new({FRAME_ADDR_SIZE=1})
+	self._channel = cs101_channel:new(self._slave, self._linker)
 
-	self._channel = cs101_channel:new(self._master, self._linker)
 	--- 设定通讯口数据回调
 	self._channel:set_io_cb(function(io, unit, msg)
-		self._log:trace(io, basexx.to_hex(msg))
-		--[[
-		]]--
-
-		local dev = nil
-		for _, v in ipairs(self._devs) do
-			if v.unit == tonumber(unit) then
-				dev = v
-				break
-			end
-		end
 		--- 输出通讯报文
-		
-		if dev then
-			dev.dev:dump_comm(io, msg)
-			--- 计算统计信息
-			if io == 'IN' then
-				dev.stat:inc('bytes_in', string.len(msg))
-			else
-				dev.stat:inc('bytes_out', string.len(msg))
-			end
+		if self._unit == tonumber(unit) then
+			local dev_sn = sys_id.."."..self:app_name()
+			sys:dump_comm(dev_sn, io, msg)
 		else
-			self._sys:dump_comm(sys_id, io, msg)
+			self._log:error('No dev for unit:'..unit)
+			sys:dump_comm(sys_id, io, msg)
 		end
 	end)
-	local r, err = self._channel:start()
-	if not r then
-		self._log:error(err)
-		return nil, err
+
+	self._channel:start()
+
+	sys:timeout(10, function()
+		self:read_tags()
+	end)
+
+	return true
+end
+
+function app:read_tags()
+	local api = self:data_api()
+	local props = self._tpl.props
+	local devs = {}
+	for _, v in pairs(props) do
+		local dev_api = devs[v.sn]
+		if not dev_api then
+			dev_api = api:get_device(v.sn)
+			devs[v.sn] = dev_api
+		end
+
+		if dev_api then
+			local value, timestamp, quality = dev_api:get_input_prop(v.name, 'value')
+			if value ~= nil and quality == 0 then
+				self._log:debug("Input value got", v.sn, v.name, value, timestamp)
+
+				local key = v.sn..'/'..v.name
+				self._cov:handle(key, value, timestamp, quality)
+			end
+		else
+			self._log:error("Failed to find device", sn)
+		end
 	end
-
-	-- Create objects
-
-	return self._master:start()
 end
 
 --- 应用退出函数
@@ -232,26 +221,37 @@ function app:on_close(reason)
 	end)
 end
 
-function app:on_input(app_src, sn, input, prop, value, timestamp, quality)
-	if quality ~= 0 or prop ~= 'value' then
-		return
-	end
+function app:handle_cov_data(key, value, timestamp, quality)
+	local sn, input = string.match(key, '^([^/]+)/(.+)$')
 
-	for _, dev in ipairs(self._devs) do
-		if dev.sn == sn or dev.dev_sn == sn then
-			local key = sn..'/'..input
-			self._cov:handle(key, value, timestamp, quality)
+	local props = self._tpl.props
+	local block = self._block
+
+	for _, v in ipairs(props) do
+		if v.sn == sn and v.name == input then
+			self._log:trace('write value to block', v.name, value)
+			local r, err = block:write(v, value)
+			if not r then
+				self._log:debug('Value write failed!', err)
+			end
 		end
 	end
 end
 
---- 应用运行入口
-function app:on_run(tms)
-	if not self._master then
+function app:on_input(app_src, sn, input, prop, value, timestamp, quality)
+	-- Skip quality not good value
+	if quality ~= 0 or prop ~= 'value' then
 		return
 	end
+	-- avoid nil ipairs
+	local props = self._tpl and self._tpl.props or {}
 
-	return 5000
+	for _, v in ipairs(props) do
+		if v.sn == sn and v.name == input then
+			local key = sn..'/'..input
+			self._cov:handle(key, value, timestamp, quality)
+		end
+	end
 end
 
 --- 返回应用对象

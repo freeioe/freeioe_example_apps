@@ -1,73 +1,57 @@
 [
 	{
-		"name": "loop_gap",
-		"desc": "总招间隔(Read Gap)",
-		"type": "number",
-		"default": 5000
-	},
-	{
 		"name": "channel_type",
 		"desc": "通讯类型(Stream Type)",
 		"type": "dropdown",
 		"default": "serial",
 		"values": [
 			{
-				"name": "TCP连接(TCP Client)",
-				"value": "socket"
-			},
-			{
 				"name": "串口(Serial)",
 				"value": "serial"
+			},
+			{
+				"name": "TCP服务器(TCP Server)",
+				"value": "tcp.server"
+			},
+			{
+				"name": "TCP连接(TCP Client)",
+				"value": "tcp.client"
 			}
 		],
 		"depends": {
-			"socket": "socket_opt",
-			"serial": "serial_opt"
+			"serial": "serial_opt",
+			"tcp.server": "server_opt",
+			"tcp.client": "client_opt"
 		}
 	},
 	{
-		"name": "socket_opt",
-		"type": "tcp_client"
+		"name": "ascii",
+		"desc": "使用ASCII协议(仅支持串口通讯)",
+		"type": "boolean",
+		"default": false
+	},
+	{
+		"name": "unit",
+		"desc": "本机地址",
+		"type": "number",
+		"default": 1
 	},
 	{
 		"name": "serial_opt",
 		"type": "serial"
 	},
 	{
+		"name": "server_opt",
+		"type": "tcp_server"
+	},
+	{
+		"name": "client_opt",
+		"type": "tcp_client"
+	},
+	{
 		"name": "tpls",
-		"type": "templates"
-	},
-	{
-		"name": "devs",
-		"desc": "设备列表(Device List)",
-		"type": "table",
-		"cols": [
-			{
-				"name": "unit",
-				"desc": "地址(Address)",
-				"type": "number"
-			},
-			{
-				"name": "name",
-				"desc": "名称(Name)",
-				"type": "string"
-			},
-			{
-				"name": "sn",
-				"desc": "序列号(Serial Number)",
-				"type": "string"
-			},
-			{
-				"name": "tpl",
-				"desc": "模板(Template)",
-				"type": "template"
-			}
-		]
-	},
-	{
-		"name": "dev_sn_prefix",
-		"desc": "Use gateway sn as prefix for device sn",
-		"type": "boolean",
-		"default": true
+		"desc": "点表模板",
+		"type": "templates",
+		"limit": 1
 	}
 ]
