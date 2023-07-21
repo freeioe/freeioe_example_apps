@@ -12,6 +12,10 @@ function tcp_client_linker:initialize(linker, opt, log)
 	self._log = log
 end
 
+function tcp_client_linker:connected()
+	return self._socket ~= nil
+end
+
 function tcp_client_linker:write(raw)
 	if self._socket then
 		return socket.write(self._socket, raw)
@@ -21,7 +25,6 @@ end
 
 function tcp_client_linker:open()
 	local conf = self._opt
-	local conf = self._opt.tcp
 	self._log:info(string.format("Connecting to %s:%d", conf.host, conf.port))
 	local sock, err = socket.open(conf.host, conf.port)
 	if not sock then

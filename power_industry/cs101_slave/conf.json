@@ -31,7 +31,7 @@
 		"default": false
 	},
 	{
-		"name": "unit",
+		"name": "addr",
 		"desc": "本机地址",
 		"type": "number",
 		"default": 1

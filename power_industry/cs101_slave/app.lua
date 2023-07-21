@@ -8,6 +8,7 @@ local iec_logger = require 'iec60870.common.logger'
 
 local csv_tpl = require 'csv_tpl'
 local linker = require 'linker'
+local cs101_device = require 'device'
 
 local queue = require 'skynet.queue'
 
@@ -106,10 +107,10 @@ function app:on_start()
 	end
 
 	if ioe.developer_mode() then
-		conf.channel_type = 'tcp.server'
-		conf.server_opt = {
-			host = "0.0.0.0",
-			port = 1503,
+		conf.channel_type = 'tcp.client'
+		conf.client_opt = {
+			host = "127.0.0.1",
+			port = 17001,
 			nodelay = true
 		}
 		tpl_file = 'test'
@@ -132,13 +133,13 @@ function app:on_start()
 
 	conf.channel_type = conf.channel_type or 'tcp.server'
 	if conf.channel_type == 'tcp.server' then
-		conf.opt = conf.socket_opt or {
+		conf.opt = conf.server_opt or {
 			host = "0.0.0.0",
 			port = 2401,
 			nodelay = true
 		}
 	elseif conf.channel_type == 'tcp.client' then
-		conf.opt = conf.socket_opt or {
+		conf.opt = conf.client_opt or {
 			host = "127.0.0.1",
 			port = 2401,
 			nodelay = true
@@ -155,14 +156,21 @@ function app:on_start()
 	self._slave = cs101_slave:new({FRAME_ADDR_SIZE=1})
 	self._channel = cs101_channel:new(self._slave, self._linker)
 
+	-- Create slaves
+	self._device = cs101_device:new(conf.addr)
+	local master = cs101_master:new(self._device, self._channel, false, false)
+	self._slave:add_master(master:ADDR(), master)
+
 	--- 设定通讯口数据回调
 	self._channel:set_io_cb(function(io, unit, msg)
+		-- local basexx = require 'basexx'
+		-- print(io, unit, basexx.to_hex(msg))
 		--- 输出通讯报文
 		if self._unit == tonumber(unit) then
 			local dev_sn = sys_id.."."..self:app_name()
 			sys:dump_comm(dev_sn, io, msg)
 		else
-			self._log:error('No dev for unit:'..unit)
+			-- self._log:error('No dev for unit:'..unit)
 			sys:dump_comm(sys_id, io, msg)
 		end
 	end)

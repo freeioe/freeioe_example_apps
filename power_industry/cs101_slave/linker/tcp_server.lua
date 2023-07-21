@@ -12,6 +12,10 @@ function tcp_server_linker:initialize(linker, opt, log)
 	self._log = log
 end
 
+function tcp_server_linker:connected()
+	return self._socket ~= nil
+end
+
 function tcp_server_linker:write(raw)
 	if self._socket then
 		return socket.write(self._socket, raw)
