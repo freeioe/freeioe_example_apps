@@ -107,10 +107,10 @@ function app:on_start()
 	end
 
 	if ioe.developer_mode() then
-		conf.channel_type = 'tcp.client'
+		conf.channel_type = 'tcp.server'
 		conf.client_opt = {
-			host = "127.0.0.1",
-			port = 17001,
+			host = "0.0.0.0",
+			port = 2401,
 			nodelay = true
 		}
 		tpl_file = 'test'
