@@ -8,7 +8,7 @@ local iec_logger = require 'iec60870.common.logger'
 
 local csv_tpl = require 'csv_tpl'
 local linker = require 'linker'
-local cs101_device = require 'device'
+local device = require 'device'
 
 local queue = require 'skynet.queue'
 
@@ -107,10 +107,10 @@ function app:on_start()
 	end
 
 	if ioe.developer_mode() then
-		conf.channel_type = 'tcp.server'
+		conf.channel_type = 'tcp.client'
 		conf.client_opt = {
-			host = "0.0.0.0",
-			port = 2401,
+			host = "127.0.0.1",
+			port = 17001,
 			nodelay = true
 		}
 		tpl_file = 'test'
@@ -157,8 +157,8 @@ function app:on_start()
 	self._channel = cs101_channel:new(self._slave, self._linker)
 
 	-- Create slaves
-	self._device = cs101_device:new(conf.addr)
-	local master = cs101_master:new(self._device, self._channel, false, false)
+	self._device = device:new(conf.addr, 'unbalance', tpl.props, log)
+	local master = cs101_master:new(self._device:DEVICE(), self._channel, false, false)
 	self._slave:add_master(master:ADDR(), master)
 
 	--- 设定通讯口数据回调
@@ -231,19 +231,7 @@ end
 
 function app:handle_cov_data(key, value, timestamp, quality)
 	local sn, input = string.match(key, '^([^/]+)/(.+)$')
-
-	local props = self._tpl.props
-	local block = self._block
-
-	for _, v in ipairs(props) do
-		if v.sn == sn and v.name == input then
-			self._log:trace('write value to block', v.name, value)
-			local r, err = block:write(v, value)
-			if not r then
-				self._log:debug('Value write failed!', err)
-			end
-		end
-	end
+	self._device:handle_input(sn, input, value, timestamp, quality)
 end
 
 function app:on_input(app_src, sn, input, prop, value, timestamp, quality)
@@ -251,14 +239,10 @@ function app:on_input(app_src, sn, input, prop, value, timestamp, quality)
 	if quality ~= 0 or prop ~= 'value' then
 		return
 	end
-	-- avoid nil ipairs
-	local props = self._tpl and self._tpl.props or {}
-
-	for _, v in ipairs(props) do
-		if v.sn == sn and v.name == input then
-			local key = sn..'/'..input
-			self._cov:handle(key, value, timestamp, quality)
-		end
+	-- Check input
+	if self._device:check_input(sn, input) then
+		local key = sn..'/'..input
+		self._cov:handle(key, value, timestamp, quality)
 	end
 end
 

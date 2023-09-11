@@ -3,7 +3,7 @@ local ftcsv = require 'ftcsv'
 local tpl_dir = 'tpl/'
 
 local TI_TYPES = {
-	'SP', 'DP', 'ME', 'IT', 'ST', 'BO'
+	'SP', 'DP', 'ME', 'ME_NA', 'ME_NB', 'ME_NC', 'IT', 'ST', 'BO'
 }
 
 local function valid_ti(ti)
