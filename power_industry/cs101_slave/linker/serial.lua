@@ -52,6 +52,7 @@ function serial_linker:open()
 
 	self._port = port
 	self._linker:on_connected()
+	self._log:info("Open serial port:"..opt.port..' done!')
 	return true
 end
 

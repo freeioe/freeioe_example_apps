@@ -60,9 +60,11 @@ function linker:connect_proc()
 
 		local r, err = self:start_connect()
 		if r then
-			self._log:error("Start connection failed", err)
+			self._log:info("Start connection success!!")
 			break
 		end
+
+		self._log:error("Start connection failed", err)
 
 		self._log:error("Wait for retart connection", connect_gap)
 

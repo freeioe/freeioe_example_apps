@@ -113,6 +113,15 @@ function app:on_start()
 			port = 17001,
 			nodelay = true
 		}
+
+		--[[
+		conf.channel_type = 'serial'
+		conf.serial_opt = {
+			port = "/tmp/ttyS1",
+			baudrate = 19200
+		}
+		]]--
+
 		tpl_file = 'test'
 	end
 
@@ -158,8 +167,12 @@ function app:on_start()
 
 	-- Create slaves
 	self._device = device:new(conf.addr, 'unbalance', tpl.props, log)
-	local master = cs101_master:new(self._device:DEVICE(), self._channel, false, false)
+	local master = cs101_master:new(self._device:DEVICE(), self._channel, false, true)
 	self._slave:add_master(master:ADDR(), master)
+	local r, err = self._slave:start()
+	if not r then
+		log:error('Slave start failed', err)
+	end
 
 	--- 设定通讯口数据回调
 	self._channel:set_io_cb(function(io, unit, msg)
