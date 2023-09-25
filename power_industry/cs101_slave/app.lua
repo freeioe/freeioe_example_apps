@@ -107,20 +107,21 @@ function app:on_start()
 	end
 
 	if ioe.developer_mode() then
+		--[[
 		conf.channel_type = 'tcp.client'
 		conf.client_opt = {
 			host = "127.0.0.1",
 			port = 17001,
 			nodelay = true
 		}
+		conf.mode = 'balance'
+		]]--
 
-		--[[
 		conf.channel_type = 'serial'
 		conf.serial_opt = {
 			port = "/tmp/ttyS1",
 			baudrate = 19200
 		}
-		]]--
 
 		tpl_file = 'test'
 	end
@@ -166,7 +167,8 @@ function app:on_start()
 	self._channel = cs101_channel:new(self._slave, self._linker)
 
 	-- Create slaves
-	self._device = device:new(conf.addr, 'unbalance', tpl.props, log)
+	log:info("Create slave", conf.addr, conf.mode)
+	self._device = device:new(conf.addr, conf.mode or 'unbalance', tpl.props, log)
 	local master = cs101_master:new(self._device:DEVICE(), self._channel, false, true)
 	self._slave:add_master(master:ADDR(), master)
 	local r, err = self._slave:start()
@@ -203,6 +205,7 @@ function app:read_tags()
 	local devs = {}
 	for _, v in pairs(props) do
 		local dev_api = devs[v.sn]
+		print('xxxx', v, v.sn)
 		if not dev_api then
 			dev_api = api:get_device(v.sn)
 			devs[v.sn] = dev_api

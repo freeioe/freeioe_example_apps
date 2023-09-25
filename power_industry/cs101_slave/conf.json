@@ -34,7 +34,23 @@
 		"name": "addr",
 		"desc": "本机地址",
 		"type": "number",
-		"default": 1
+		"default": 3
+	},
+	{
+		"name": "mode",
+		"desc": "通讯类型",
+		"type": "dropdown",
+		"default": "unbalance",
+		"values": [
+			{
+				"name": "非平衡模式",
+				"value": "unbalance"
+			},
+			{
+				"name": "平衡模式",
+				"value": "balance"
+			}
+		]
 	},
 	{
 		"name": "serial_opt",
