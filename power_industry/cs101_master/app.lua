@@ -226,15 +226,21 @@ function app:on_start()
 
 	-- Create slaves
 	for _, v in ipairs(self._devs) do
-		local slave = cs101_slave:new(self._master, self._channel, v.unit, false, false)
-		slave:set_poll_cycle(self._loop_gap)
-		slave:set_data_cb(data_parser:new(function(unit, ti, addr, data, timestamp, iv)
-			-- print('CB', unit, ti, addr, data, timestamp, iv)
-			self:set_input_value(unit, ti, addr, data, timestamp, iv)
-		end))
-		if self._master:add_slave(v.unit, slave) then
-			v.slave = slave
+		local slave = self._master:find_slave(v.addr)
+		if not slave then
+			local slave = cs101_slave:new(self._master, self._channel, v.addr, 'unbalance', false)
+			slave:set_caoa(v.caoa)
+			slave:set_poll_cycle(self._loop_gap)
+			self._master:add_slave(v.addr, slave)
+		else
+			slave:add_caoa(v.caoa)
 		end
+		slave:set_data_cb(data_parser:new(function(caoa, ti, addr, data, timestamp, iv)
+			-- print('CB', caoa, ti, addr, data, timestamp, iv)
+			self:set_input_value(caoa, ti, addr, data, timestamp, iv)
+		end))
+
+		v.slave = slave
 	end
 
 	return self._master:start()

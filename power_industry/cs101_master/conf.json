@@ -43,8 +43,13 @@
 		"type": "table",
 		"cols": [
 			{
-				"name": "unit",
-				"desc": "地址(Address)",
+				"name": "addr",
+				"desc": "链路地址(Link Address)",
+				"type": "number"
+			},
+			{
+				"name": "caoa",
+				"desc": "ASDU公共地址(ASDU Common Address)",
 				"type": "number"
 			},
 			{

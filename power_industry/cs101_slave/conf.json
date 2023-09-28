@@ -32,9 +32,21 @@
 	},
 	{
 		"name": "addr",
-		"desc": "本机地址",
+		"desc": "链路地址",
 		"type": "number",
 		"default": 3
+	},
+	{
+		"name": "target",
+		"desc": "对端链路地址",
+		"type": "number",
+		"default": 2
+	},
+	{
+		"name": "caoa",
+		"desc": "ASDU 公共地址",
+		"type": "number",
+		"default": 1
 	},
 	{
 		"name": "mode",

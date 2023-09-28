@@ -107,6 +107,8 @@ function app:on_start()
 	end
 
 	if ioe.developer_mode() then
+		conf.mode = 'balance'
+
 		--[[
 		conf.channel_type = 'tcp.client'
 		conf.client_opt = {
@@ -114,7 +116,6 @@ function app:on_start()
 			port = 17001,
 			nodelay = true
 		}
-		conf.mode = 'balance'
 		]]--
 
 		conf.channel_type = 'serial'
@@ -167,9 +168,9 @@ function app:on_start()
 	self._channel = cs101_channel:new(self._slave, self._linker)
 
 	-- Create slaves
-	log:info("Create slave", conf.addr, conf.mode)
-	self._device = device:new(conf.addr, conf.mode or 'unbalance', tpl.props, log)
-	local master = cs101_master:new(self._device:DEVICE(), self._channel, false, true)
+	log:info("Create slave", assert(conf.addr), assert(conf.mode))
+	self._device = device:new(conf.caoa, conf.mode, tpl.props, log)
+	local master = cs101_master:new(conf.addr, self._device:DEVICE(), self._channel, conf.mode, true, conf.target)
 	self._slave:add_master(master:ADDR(), master)
 	local r, err = self._slave:start()
 	if not r then
@@ -178,8 +179,8 @@ function app:on_start()
 
 	--- 设定通讯口数据回调
 	self._channel:set_io_cb(function(io, unit, msg)
-		-- local basexx = require 'basexx'
-		-- print(io, unit, basexx.to_hex(msg))
+		local basexx = require 'basexx'
+		print(io, unit, basexx.to_hex(msg))
 		--- 输出通讯报文
 		if self._unit == tonumber(unit) then
 			local dev_sn = sys_id.."."..self:app_name()

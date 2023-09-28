@@ -5,13 +5,13 @@ local ioe = require 'ioe'
 
 local device = class('CS101_SLAVE_APP_DEVICE_CLASS')
 
-function device:initialize(addr, mode, inputs, log)
-	assert(addr)
+function device:initialize(caoa, mode, inputs, log)
+	assert(caoa)
 	assert(mode)
 	assert(log)
 	self._inputs = assert(inputs)
 	self._log = assert(log)
-	self._device = common_device:new(addr, mode)
+	self._device = common_device:new(caoa, mode)
 	--- create input map
 	self._inputs_map = {}
 	local now = ioe.now()
@@ -28,7 +28,7 @@ function device:initialize(addr, mode, inputs, log)
 		table.insert(input_pools[v.ti], v)
 	end
 
-	local str = 'Device:'..addr..' mode:'..mode
+	local str = 'Device:'..caoa..' mode:'..mode
 	for k, v in pairs(input_pools) do
 		table.sort(v, function (a, b)
 			return a.addr < b.addr
