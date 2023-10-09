@@ -5,6 +5,7 @@ local basexx = require 'basexx'
 local cjson = require 'cjson.safe'
 local sapp = require 'app.base'
 local event = require 'app.event'
+local ioe = require 'ioe'
 
 local app = sapp:subclass("freeioe.other.dtu_m")
 app.static.API_VER = 10
@@ -95,6 +96,7 @@ function app:serial_proc()
 		end
 		return
 	end
+	self._log:info("Serial open port "..opt.port)
 
 	port:start(function(data, err)
 		-- Recevied Data here
@@ -121,7 +123,7 @@ function app:serial_proc()
 			if self._port then
 				local to_close = self._port
 				self._port = nil
-				to_close:close(reason)
+				to_close:close()
 			end
 
 			self._sys:timeout(0, function()
@@ -143,18 +145,18 @@ function app:listen_proc()
 
 		self._sys:sleep(3000)
 
-		self._log:debug("Wait for restart listen socket", sleep_gap)
+		self._log:debug("Wait for restart listen socket")
 	end
 
 	assert(self._server_socket)
 end
 
-function app:watch_client_socket(sock, addr)
+function app:watch_client_socket(fd, addr)
 	while true do
-		local data, err = socket.read(sock)	
+		local data, err = socket.read(fd)
 		if not data then
-			self._log:info("Socket disconnected", err)
-			self:fire_socket_event(event.LEVEL_INFO, "Socket disconnected", {err=err})
+			self._log:info(string.format("Socket (fd = %d, %s) disconnected", fd, addr))
+			self:fire_socket_event(event.LEVEL_INFO, "Socket disconnected", { fd=fd, addr=addr, err=err })
 			break
 		end
 		self._dev:dump_comm('SOCKET-IN['..addr..']', data)
@@ -167,7 +169,7 @@ function app:watch_client_socket(sock, addr)
 		end
 	end
 
-	self._peers[sock] = nil
+	self._peers[fd] = nil
 end
 
 function app:start_listen()
@@ -182,7 +184,7 @@ function app:start_listen()
 	self._server_socket = sock
 
 	socket.start(sock, function(fd, addr)
-		self._log:info(string.format("New connection (fd = %d, %s)",fd, addr))
+		self._log:info(string.format("New connection (fd = %d, %s), peers count %d", fd, addr, #self._peers))
 		self:fire_socket_event(event.LEVEL_INFO, "New socket connection", {fd=fd, addr=addr})
 
 		if conf.nodelay then
@@ -197,15 +199,13 @@ function app:start_listen()
 
 		local host, port = string.match(addr, "^(.+):(%d+)$")
 		self._peers[fd] = {
-			addr = addr
+			addr = addr,
+			time = ioe.time()
 		}
 
 		if host and port then
-			self._peers[fd] = {
-				host = host,
-				port = port,
-				addr = addr
-			}
+			self._peers[fd].host = host
+			self._peers[fd].port = port
 
 			if self._kick_same_ip then
 				for k, v in pairs(self._peers) do
@@ -216,8 +216,8 @@ function app:start_listen()
 			end
 		end
 
-		socket.onclose(function(fd)
-			self._peers[fd] = nil
+		socket.onclose(function(close_fd)
+			self._peers[close_fd] = nil
 		end)
 
 		self._sys:fork(function()
@@ -241,9 +241,11 @@ function app:start_listen()
 			for sock, peer in pairs(self._peers) do
 				socket.close(sock)
 			end
+			-- Close peers
+			self._peers = {}
 
 			self._sys:timeout(1000, function()
-				self:listen_proc(fd)
+				self:listen_proc()
 			end)
 		end
 	end)
@@ -270,16 +272,16 @@ function app:fire_data_proc()
 		local data = table.concat(buf)
 		local added = false
 		for fd, peer in pairs(self._peers) do
-			if not added then
-				added = true
-				self._socket_sent = self._socket_sent + string.len(data)
-			end
-
 			self._dev:dump_comm('SOCKET-OUT['..peer.addr..']', data)
 			local r, err = pcall(socket.write, fd, data)
 			if not r then
 				self._log:error("Write to client "..peer.addr.." error:"..err)
 				self:fire_socket_event(event.LEVEL_ERROR, "Write to client socket failed", {peer=peer, err=err})
+			else
+				if not added then
+					added = true
+					self._socket_sent = self._socket_sent + string.len(data)
+				end
 			end
 		end
 	end
@@ -328,7 +330,7 @@ function app:on_run(tms)
 	self._dev:set_input_prop('socket_sent', 'value', self._socket_sent)
 	self._dev:set_input_prop('socket_recv', 'value', self._socket_recv)
 	local data = {}
-	for k, v in pairs(self._peers) do
+	for _, v in pairs(self._peers) do
 		table.insert(data, v)
 	end
 
