@@ -184,7 +184,7 @@ function app:start_listen()
 	self._server_socket = sock
 
 	socket.start(sock, function(fd, addr)
-		self._log:info(string.format("New connection (fd = %d, %s), peers count %d", fd, addr, #self._peers))
+		self._log:info(string.format("New connection (fd = %d, %s)", fd, addr))
 		self:fire_socket_event(event.LEVEL_INFO, "New socket connection", {fd=fd, addr=addr})
 
 		if conf.nodelay then
@@ -254,6 +254,10 @@ function app:start_listen()
 end
 
 function app:fire_data_proc()
+	local last_print = ioe.time() - 10
+	local send_count = 0
+	local send_peers = 0
+	local send_bytes = 0
 	while not self._closing do
 		if #self._send_buf == 0 then
 			self._wait_buf = {}
@@ -271,6 +275,8 @@ function app:fire_data_proc()
 
 		local data = table.concat(buf)
 		local added = false
+		local data_len = string.len(data)
+		local peer_count = 0
 		for fd, peer in pairs(self._peers) do
 			self._dev:dump_comm('SOCKET-OUT['..peer.addr..']', data)
 			local r, err = pcall(socket.write, fd, data)
@@ -278,11 +284,24 @@ function app:fire_data_proc()
 				self._log:error("Write to client "..peer.addr.." error:"..err)
 				self:fire_socket_event(event.LEVEL_ERROR, "Write to client socket failed", {peer=peer, err=err})
 			else
+				peer_count = peer_count + 1
 				if not added then
 					added = true
-					self._socket_sent = self._socket_sent + string.len(data)
+					self._socket_sent = self._socket_sent + data_len
+					send_bytes = send_bytes + data_len
 				end
 			end
+		end
+		send_count = send_count + 1
+		send_peers = send_peers + peer_count
+
+		if data_len > 0 and ioe.time() - last_print > 10 then
+			self._log:trace(string.format('Socket.Send statistics  count[%d] peers[%d] bytes[%d]', 
+											send_count, send_peers, send_bytes))
+			last_print = ioe.time()
+			send_count = 0
+			send_peers = 0
+			send_bytes = 0
 		end
 	end
 	assert(self._closing)
