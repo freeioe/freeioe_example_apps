@@ -279,16 +279,24 @@ function app:fire_data_proc()
 		local peer_count = 0
 		for fd, peer in pairs(self._peers) do
 			self._dev:dump_comm('SOCKET-OUT['..peer.addr..']', data)
-			local r, err = pcall(socket.write, fd, data)
-			if not r then
-				self._log:error("Write to client "..peer.addr.." error:"..err)
-				self:fire_socket_event(event.LEVEL_ERROR, "Write to client socket failed", {peer=peer, err=err})
+			local rr, r, err = pcall(socket.write, fd, data)
+			if not rr then
+				self._log:error("Call socket.write failed, peer:"..peer.addr.." error:"..r)
+				self:fire_socket_event(event.LEVEL_ERROR, "Call socket.write failed", {peer=peer, err=r})
+				socket.close(fd)
 			else
-				peer_count = peer_count + 1
-				if not added then
-					added = true
-					self._socket_sent = self._socket_sent + data_len
-					send_bytes = send_bytes + data_len
+				if not r then
+					self._log:error("Write to client "..peer.addr.." error:"..err)
+					self:fire_socket_event(event.LEVEL_ERROR, "Write to client socket failed", {peer=peer, err=err})
+					socket.close(fd)
+				else
+					-- Write ok
+					peer_count = peer_count + 1
+					if not added then
+						added = true
+						self._socket_sent = self._socket_sent + data_len
+						send_bytes = send_bytes + data_len
+					end
 				end
 			end
 		end
