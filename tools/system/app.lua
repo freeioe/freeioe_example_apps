@@ -1,3 +1,4 @@
+local skynet = require 'skynet.manager'
 local base_app = require 'app.base'
 local sysinfo = require 'utils.sysinfo'
 local helper = require 'utils.helper'
@@ -15,7 +16,6 @@ end
 function my_app:on_command(app, sn, command, params)
 	if command == 'restart' then
 		self._sys:timeout(1000, function()
-			local skynet = require 'skynet.manager'
 			skynet.abort()
 		end)
 		return true
