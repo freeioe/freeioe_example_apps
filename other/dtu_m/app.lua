@@ -121,7 +121,7 @@ function app:serial_proc()
 				return
 			end
 
-			self._log:error(err)
+			self._log:error(err or 'Unknown serial port error!')
 			self:fire_serial_event(event.LEVEL_ERROR, "Read error", {err=err})
 
 			-- Close serial first

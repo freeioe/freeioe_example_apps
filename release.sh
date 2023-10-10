@@ -26,6 +26,7 @@ RELEASE_APP tools/dns_hosts
 RELEASE_APP tools/local_proxy
 RELEASE_APP tools/cloud_switch
 RELEASE_APP tools/ping_check
+RELEASE_APP tools/system
 
 # OPCUA apps
 RELEASE_APP opcua/server_pub
