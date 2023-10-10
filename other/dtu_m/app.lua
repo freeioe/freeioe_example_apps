@@ -259,10 +259,13 @@ function app:fire_data_proc()
 	local send_peers = 0
 	local send_bytes = 0
 	while not self._closing do
-		if #self._send_buf == 0 then
+		while #self._send_buf == 0 do
 			self._wait_buf = {}
 			self._sys:wait(self._wait_buf, 10000)
 			self._wait_buf = nil
+			if #self._send_buf == 0 then
+				self._log:trace('No data from serial to socket in last 10 seconds...')
+			end
 		end
 
 		if self._closing then
