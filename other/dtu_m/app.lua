@@ -70,7 +70,7 @@ end
 function app:fire_socket_event(level, info, data)
 	local data = data or {}
 	data['type'] = 'serial'
-	self._dev:fire_event(level, event.EVENT_COMM, info, data)
+	--self._dev:fire_event(level, event.EVENT_COMM, info, data)
 end
 
 function app:serial_proc()
@@ -173,6 +173,9 @@ function app:watch_client_socket(fd, addr)
 			self._port:write(data)
 		end
 	end
+
+	-- try to close socket
+	socket.close(fd)
 
 	self._peers[fd] = nil
 end

@@ -1,0 +1,26 @@
+[
+	{
+		"name": "host",
+		"desc": "地址",
+		"type": "string",
+		"default": "127.0.0.1"
+	},
+	{
+		"name": "port",
+		"desc": "端口",
+		"type": "number",
+		"default": 4001
+	},
+	{
+		"name": "nodelay",
+		"desc": "Nodelay",
+		"type": "boolean",
+		"default": false
+	},
+	{
+		"name": "min_recv",
+		"desc": "Min Recv bytes",
+		"type": "number",
+		"default": 1
+	}
+]
