@@ -26,9 +26,11 @@ function my_app:on_command(app, sn, command, params)
 		return true
 	elseif command == 'force_upgrade' then
 		if fs_access('/usr/bin/wget') then
-			sysinfo.exec('wget -O /tmp/freeioe.force.upgrade.tar.gz '..params.url)
-			if fs_access('/tmp/freeioe.force.upgrade.tar.gz') then
-				local sum, err = helper.md5sum(path)
+			self._log:info('download from '..params.url)
+			local filepath = '/tmp/freeioe.force.upgrade.tar.gz'
+			sysinfo.exec('wget -O '..filepath..' '..params.url)
+			if fs_access(filepath) then
+				local sum, err = helper.md5sum(filepath)
 				if not sum then
 					return nil, "Cannot caculate md5"
 				end
