@@ -37,7 +37,7 @@ function my_app:on_command(app, sn, command, params)
 				if string.lower(sum) ~= string.lower(params.md5) then
 					return nil, "md5sum check failed"
 				end
-				sysinfo.exec('cp -f '..self._sys:app_dir()..'/upgrade.sh /usr/ioe/ipt/')
+				sysinfo.exec('cp -f '..self._sys:app_dir()..'/upgrade.sh /usr/ioe/ipt/upgrade')
 				self._sys:timeout(1000, function()
 					skynet.abort()
 				end)
