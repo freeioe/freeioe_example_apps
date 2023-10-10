@@ -101,6 +101,11 @@ function app:serial_proc()
 	port:start(function(data, err)
 		-- Recevied Data here
 		if data then
+			if #data == 0 then
+				self._log:warning("Serial port got an empty data, error: "..tostring(err))
+				return
+			end
+
 			self._dev:dump_comm('SERIAL-IN', data)
 			self._serial_recv = self._serial_recv + string.len(data)
 
@@ -261,7 +266,7 @@ function app:fire_data_proc()
 	while not self._closing do
 		while #self._send_buf == 0 do
 			self._wait_buf = {}
-			self._sys:wait(self._wait_buf, 10000)
+			self._sys:sleep(10000, self._wait_buf)
 			self._wait_buf = nil
 			if #self._send_buf == 0 then
 				self._log:trace('No data from serial to socket in last 10 seconds...')
