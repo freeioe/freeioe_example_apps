@@ -3,10 +3,16 @@ local skynet = require 'skynet'
 local class = require 'middleclass'
 local sysinfo = require 'utils.sysinfo'
 local helper = require 'utils.helper'
+local lfs = require 'lfs'
 
 local download = class('CURL_DOWNLOAD_CLASS')
 
 function download:initialize()
+end
+
+local function fs_access(file)
+	local mode = lfs.attributes(file, 'access')
+	return mode
 end
 
 function download:wget_download(url, md5sum, save_path)
@@ -19,11 +25,11 @@ function download:wget_download(url, md5sum, save_path)
 	end
 
 	if fs_access(filepath) then
-		local sum, err = helper.md5sum(filepath)
+		local sum, err = helper.md5sum(save_path)
 		if not sum then
 			return nil, "Cannot caculate md5"
 		end
-		if string.lower(sum) ~= string.lower(params.md5) then
+		if string.lower(sum) ~= string.lower(md5sum) then
 			return nil, "md5sum check failed"
 		end
 		return true
