@@ -33,7 +33,7 @@ function my_app:on_command(app, sn, command, params)
 
 		if r then
 			self._log:notice('Downloaed completed, now abort after one second')
-			sysinfo.exec('cp -f '..self._sys:app_dir()..'/upgrade.sh /usr/ioe/ipt/upgrade')
+			sysinfo.exec('cp -f '..self._sys:app_dir()..'/upgrade.sh /usr/ioe/ipt/upgrade.sh && touch /usr/ioe/ipt/upgrade')
 			self._sys:timeout(1000, function()
 				skynet.abort()
 			end)
