@@ -37,6 +37,7 @@ function my_app:on_command(app, sn, command, params)
 			self._sys:timeout(1000, function()
 				skynet.abort()
 			end)
+			return true
 		else
 			return false, err
 		end
