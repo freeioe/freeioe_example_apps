@@ -24,7 +24,7 @@ function download:wget_download(url, md5sum, save_path)
 		return false, 'wget/curl not found!!!!'
 	end
 
-	if fs_access(filepath) then
+	if fs_access(save_path) then
 		local sum, err = helper.md5sum(save_path)
 		if not sum then
 			return nil, "Cannot caculate md5"
