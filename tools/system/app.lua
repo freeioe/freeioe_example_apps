@@ -1,7 +1,7 @@
 local skynet = require 'skynet.manager'
 local base_app = require 'app.base'
 local sysinfo = require 'utils.sysinfo'
-local helper = require 'utils.helper'
+local curl_down = require 'curl_download'
 local lfs = require 'lfs'
 local ioe = require 'ioe'
 
@@ -25,28 +25,20 @@ function my_app:on_command(app, sn, command, params)
 		end)
 		return true
 	elseif command == 'force_upgrade' then
-		if fs_access('/usr/bin/wget') then
-			self._log:info('download from '..params.url)
-			local filepath = '/tmp/freeioe.force.upgrade.tar.gz'
-			sysinfo.exec('wget -O '..filepath..' '..params.url)
-			if fs_access(filepath) then
-				local sum, err = helper.md5sum(filepath)
-				if not sum then
-					return nil, "Cannot caculate md5"
-				end
-				if string.lower(sum) ~= string.lower(params.md5) then
-					return nil, "md5sum check failed"
-				end
-				sysinfo.exec('cp -f '..self._sys:app_dir()..'/upgrade.sh /usr/ioe/ipt/upgrade')
-				self._sys:timeout(1000, function()
-					skynet.abort()
-				end)
-				return true
-			else
-				return false, 'Download file missing'
-			end
+		local filepath = '/tmp/freeioe.force.upgrade.tar.gz'
+		local down = curl_down:new()
+		local r, err = down:download(params.url, params.md5, filepath, function(total, downloaded)
+			self._log:trace('Download totol:'..total..' downloaed:'..downloaded)
+		end)
+
+		if r then
+			self._log:notice('Downloaed completed, now abort after one second')
+			sysinfo.exec('cp -f '..self._sys:app_dir()..'/upgrade.sh /usr/ioe/ipt/upgrade')
+			self._sys:timeout(1000, function()
+				skynet.abort()
+			end)
 		else
-			return false, 'wget command not found'
+			return false, err
 		end
 	elseif command == 'exec' then
 		sysinfo.exec(params.cmd)
