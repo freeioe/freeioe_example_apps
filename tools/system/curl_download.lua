@@ -1,4 +1,4 @@
-local lcurl = require 'lcurl'
+local lcurl_loaded, lcurl = pcall(require, 'lcurl')
 local skynet = require 'skynet'
 local class = require 'middleclass'
 local helper = require 'utils.helper'
@@ -8,7 +8,34 @@ local download = class('CURL_DOWNLOAD_CLASS')
 function download:initialize()
 end
 
+function download:wget_download(url, md5sum, save_path)
+	if fs_access('/usr/bin/wget') then
+		sysinfo.exec('wget -O '..save_path..' '..url)
+	else if fs_access('/usr/bin/curl') then
+		sysinfo.exec('curl -o '..save_path..' '..url)
+	else
+		return false, 'wget/curl not found!!!!'
+	end
+
+	if fs_access(filepath) then
+		local sum, err = helper.md5sum(filepath)
+		if not sum then
+			return nil, "Cannot caculate md5"
+		end
+		if string.lower(sum) ~= string.lower(params.md5) then
+			return nil, "md5sum check failed"
+		end
+		return true
+	end
+
+	return false, 'Download file missing'
+end
+
 function download:download(url, md5sum, save_path, on_progress)
+	if not lcurl_loaded then
+		return self:wget_download(url, md5sum, save_path)
+	end
+
 	local headers = {}
 	local f, err = io.open(save_path, 'w+')
 	if not f then
