@@ -1,6 +1,7 @@
 local lcurl_loaded, lcurl = pcall(require, 'lcurl')
 local skynet = require 'skynet'
 local class = require 'middleclass'
+local sysinfo = require 'utils.sysinfo'
 local helper = require 'utils.helper'
 
 local download = class('CURL_DOWNLOAD_CLASS')
@@ -11,7 +12,7 @@ end
 function download:wget_download(url, md5sum, save_path)
 	if fs_access('/usr/bin/wget') then
 		sysinfo.exec('wget -O '..save_path..' '..url)
-	else if fs_access('/usr/bin/curl') then
+	elseif fs_access('/usr/bin/curl') then
 		sysinfo.exec('curl -o '..save_path..' '..url)
 	else
 		return false, 'wget/curl not found!!!!'
