@@ -9,7 +9,7 @@ local sort = require 'utils.sort'
 local csv_tpl = require 'csv_tpl'
 
 local app = base:subclass("FREEIOE.APP.OTHER.HJ212_SENDER")
-app.static.API_VER = 9
+app.static.API_VER = 15
 
 function app:on_init()
 	self._serial_sent = 0
@@ -118,9 +118,11 @@ function app:on_start()
 	end)
 	self._port = port
 
+	--[[ API_VER 15 will do this data traversal
 	sys:timeout(10, function()
 		self:read_tags()
 	end)
+	]]--
 
 	return true
 end
@@ -167,6 +169,7 @@ function app:set_input_value_map(hj212_name, fmt, rate, key, value, quality)
 	-- print(cjson.encode(self._value_map[hj212_name]))
 end
 
+--[[
 function app:read_tags()
 	local api = self:data_api()
 	local props = self._tpl.props
@@ -188,6 +191,7 @@ function app:read_tags()
 		end
 	end
 end
+]]--
 
 function app:on_input(app_src, sn, input, prop, value, timestamp, quality)
 	-- Skip quality not good value

@@ -21,7 +21,7 @@ local cov = require 'cov'
 --- 注册对象(请尽量使用唯一的标识字符串)
 local app = base_app:subclass("LUA_POWER_INDUSTRY_CS101_MASTER")
 --- 设定应用最小运行接口版本
-app.static.API_VER = 14
+app.static.API_VER = 15
 
 function app:on_init()
 	self._queue = queue()
@@ -72,8 +72,6 @@ function app:on_start()
 	local log = self:log_api()
 	local sys = self:sys_api()
 
-	csv_tpl.init(sys:app_dir())
-
 	---获取设备序列号和应用配置
 	local sys_id = sys:id()
 	--- Mapping 
@@ -88,6 +86,7 @@ function app:on_start()
 
 	local conf = self._conf or {}
 
+	local tpl_file = 'test'
 	local tpl_id = conf.tpl
 	local tpl_ver = conf.ver
 
@@ -193,13 +192,16 @@ function app:on_start()
 
 	self._channel:start()
 
+	--[[ API_VER 15 will do this data traversal
 	sys:timeout(10, function()
 		self:read_tags()
 	end)
+	]]--
 
 	return true
 end
 
+--[[
 function app:read_tags()
 	local api = self:data_api()
 	local props = self._tpl.props
@@ -225,6 +227,7 @@ function app:read_tags()
 		end
 	end
 end
+]]--
 
 --- 应用退出函数
 function app:on_close(reason)

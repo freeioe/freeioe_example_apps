@@ -14,7 +14,7 @@ local ioe = require 'ioe'
 --- 注册对象(请尽量使用唯一的标识字符串)
 local app = base_app:subclass("freeioe_example.modbus.slave_one_uint")
 --- 设定应用最小运行接口版本
-app.static.API_VER = 10
+app.static.API_VER = 15
 
 --- 应用启动函数
 function app:on_start()
@@ -133,13 +133,16 @@ function app:on_start()
 
 	self._modbus:start()
 
+	--[[ API_VER 15 will do this data traversal
 	sys:timeout(10, function()
 		self:read_tags()
 	end)
+	]]--
 
 	return true
 end
 
+--[[
 function app:read_tags()
 	local api = self:data_api()
 	local props = self._tpl.props
@@ -164,6 +167,7 @@ function app:read_tags()
 		end
 	end
 end
+]]--
 
 function app:handle_pdu(response, fc, ...)
 	if not fc then
