@@ -7,7 +7,7 @@ local http_auth = require 'http_auth'
 local csv_tpl = require 'csv_tpl'
 
 local app = mqtt_app:subclass("GRID_BJ_PD_MQTT_APP")
-app.static.API_VER = 14
+app.static.API_VER = 15 -- Require API_VER 15
 
 function app:on_init()
 	local sys = self:sys_api()
