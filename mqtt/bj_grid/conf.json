@@ -1,0 +1,97 @@
+[
+	{
+		"name": "host",
+		"desc": "接入地址",
+		"type": "string",
+		"default":"10.131.0.25:23106"
+	},
+	{
+		"name": "username",
+		"desc": "用户名",
+		"type": "string"
+	},
+	{
+		"name": "password",
+		"desc": "密码",
+		"type": "string"
+	},
+	{
+		"name": "options",
+		"desc": "数据传输选项",
+		"type": "section",
+		"child": [
+			{
+				"name": "period",
+				"desc": "上送周期(秒)",
+				"type": "number",
+				"default": 60
+			},
+			{
+				"name": "ttl",
+				"desc": "最大数据间隔(秒)",
+				"type": "number",
+				"default": 300
+			},
+			{
+				"name": "data_upload_dpp",
+				"desc": "最大打包数量",
+				"type": "number",
+				"default": 1024
+			},
+			{
+				"name": "enable_data_cache",
+				"desc": "开启断线缓存",
+				"type": "boolean",
+				"default": false
+			}
+		]
+	},
+	{
+		"name": "tpls",
+		"desc": "点表模板",
+		"type": "templates",
+		"limit": 1
+	},
+	{
+		"name": "fake_devices",
+		"desc": "设备列表",
+		"type": "fake_section"
+	},
+	{
+		"name": "devs",
+		"desc": "需要上传的设备列表",
+		"type": "table",
+		"cols": [
+			{
+				"name": "sn",
+				"desc": "设备序号",
+				"type": "string"
+			},
+			{
+				"name": "id",
+				"desc": "设备 ID",
+				"type": "string"
+			},
+			{
+				"name": "name",
+				"desc": "设备名称",
+				"type": "string"
+			},
+			{
+				"name": "manufacturer",
+				"desc": "设备厂商",
+				"type": "string"
+			},
+			{
+				"name": "desc",
+				"desc": "设备描述",
+				"type": "string"
+			},
+			{
+				"name": "model",
+				"desc": "设备模型",
+				"type": "string"
+			}
+		]
+	}
+]

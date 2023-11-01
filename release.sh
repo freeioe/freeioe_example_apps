@@ -45,6 +45,7 @@ RELEASE_APP mqtt/huawei
 RELEASE_APP mqtt/telit
 RELEASE_APP mqtt/citic
 RELEASE_APP mqtt/inspur
+RELEASE_APP mqtt/bj_grid
 
 # PLC
 RELEASE_APP plc/ab
