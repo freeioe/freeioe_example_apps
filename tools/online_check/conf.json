@@ -1,0 +1,8 @@
+[
+	{
+		"name": "host",
+		"desc": "检测地址",
+		"type": "string",
+		"default": "ioe.thingsroot.com"
+	}
+]
