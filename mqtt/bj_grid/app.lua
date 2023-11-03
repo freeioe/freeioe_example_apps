@@ -1,6 +1,5 @@
 local cjson = require 'cjson.safe'
 local mqtt_app = require 'app.base.mqtt'
-local uuid = require 'uuid'
 local ioe = require 'ioe'
 
 local http_auth = require 'http_auth'
@@ -12,14 +11,31 @@ app.static.API_VER = 15 -- Require API_VER 15
 function app:on_init()
 	local sys = self:sys_api()
 	local conf = self:app_conf()
+
+	if ioe.developer_mode() then
+		conf.host = '10.141.0.15'
+		conf.port = 23106
+	end
+
 	local host = conf.host
 	if conf.port then
 		host = host .. ':' .. conf.port
 	end
+
 	self._http_auth = http_auth:new(sys, host)
-	self._gateway_sn = conf.sn or ioe.id()
-	self._data_fire_period = conf.period or 5000
+
+	local dev_sn = string.upper(conf.sn or ioe.id())
+	if string.len(dev_sn) < 16 then
+		dev_sn = string.rep('0', 16 - string.len(dev_sn))..dev_sn
+	else
+		dev_sn = string.sub(-16) -- last 16 chars
+	end
+	self._gateway_sn = dev_sn
+
+	self._data_fire_period = (conf.period or 15) * 60 * 1000 -- 分钟
 	self._dev_map = {}
+
+	self._mid = 0
 
 	csv_tpl.init(sys:app_dir())
 
@@ -29,6 +45,15 @@ function app:on_init()
 	conf.ttl = 0
 end
 
+function app:get_mid()
+	if self._mid == 0xFFFFFFFF then
+		self._mid = 1
+	else
+		self._mid = self._mid + 1
+	end
+	return self._mid
+end
+
 function app:on_start()
 	local log = self:log_api()
 	local sys = self:sys_api()
@@ -36,14 +61,21 @@ function app:on_start()
 
 	---获取设备序列号和应用配置
 	local sys_id = sys:id()
-	--- Mapping 
+	--- Mapping
 	local function map_dev_sn(sn)
+		sn = sn or 'GW'
 		if sn == 'GW' then
 			return sys_id
 		end
-		local sn = sn or 'GW'
 		sn = string.gsub(sn, '^GW(%..*)$', sys_id..'%1')
 		return sn
+	end
+	local function map_node_id(node_id)
+		-- 15: 展示传感器 1: 485 1: 485-I
+		return '1511'..node_id..self._gateway_sn
+	end
+	local function map_dev_name(name)
+		return name .. self._gateway_sn
 	end
 
 	local tpl_file = 'test'
@@ -73,9 +105,20 @@ function app:on_start()
 		return nil, err
 	end
 
+	-- 映射ID
 	for _, v in ipairs(tpl.props) do
 		v.sn = map_dev_sn(v.sn)
+		v.node_id = map_node_id(v.node_id)
 	end
+	for _, v in ipairs(tpl.devs) do
+		v.node_id = map_node_id(v.node_id)
+		if v.name and string.len(v.name) > 0 then
+			v.name = map_dev_name(v.name)
+		else
+			v.name = v.node_id
+		end
+	end
+
 	self._tpl = tpl
 
 	self._last_data_fire = ioe.now()
@@ -83,23 +126,28 @@ function app:on_start()
 end
 
 function app:mqtt_auth()
-	local r, err = self._http_auth:auth()
+	local meta = self._tpl.meta
+	local gw_name = meta.name..self._gateway_sn
+	local r, err = self._http_auth:auth(self._gateway_sn, meta.manufacturer, meta.model, gw_name, meta.desc)
 	if r and r.content then
-		local conf = self:app_conf()
+		local chn, err = self._http_auth:get_channel('mqtt')
+		if not chn then
+			return nil, err
+		end
 
-		local chn = self._http_auth:get_channel('mqtt')
-		local addr = chn.addr
-		local mqtt_host, mqtt_port = string.match('^([^:]+):(%d+)$')
+		local addr = assert(chn.addr)
+		local mqtt_host, mqtt_port = string.match(addr, '^([^:]+):(%d+)$')
 
 
 		self._mqtt_id = self._http_auth:get_gateway_id()
-		local username = conf.username
-		local password = conf.password
+		-- local conf = self:app_conf()
+		-- local username = conf.username
+		-- local password = conf.password
 
 		return {
 			client_id = self._mqtt_id,
-			username = username,
-			password = password,
+			-- username = username,
+			-- password = password, -- not required username/password
 			clean_session = true,
 			host = mqtt_host,
 			port = mqtt_port,
@@ -109,64 +157,14 @@ function app:mqtt_auth()
 	end
 end
 
-function app:fire_data()
-	local snapshot1 = self._cov:snapshot()
-	print(cjson.encode(snapshot1))
-	local topic = self._http_auth:get_topic('DATA_BASE')
-	if not topic then
-		self._log:error('topic not found!')
-		return
-	end
-
-	local cov = self._cov
-
-	local snapshot = cov:snapshot()
-	local now = os.date('%Y%m%dT%H%M%S')
-
-	local datas = {}
-	local props = self._tpl.props or {}
-	for _, prop in ipairs(props) do
-		local key = string.format("%s/%s", prop.sn, prop.name)
-		local val = snapshot[key]
-		if val then
-			-- value, timestamp, qualit
-			local dev = self._dev_map[prop.node_id]
-			if dev then
-				local d = datas[dev.deviceId] or {
-					deviceId = dev.deviceId,
-					serviceId = dev.serviceId,
-					eventTime = now,
-					data = {{}}
-				}
-
-				d.data[1][prop.srv_name] = val[1]
-
-				datas[dev.deviceId] = d
-			end
-		end
-	end
-
-	local devs = {}
-	for k, v in pairs(datas) do
-		devs[#devs + 1] = v
-	end
-	local payload, err = cjson.encode({ devices = devs })
-	if not payload then
-		self._log:error(err)
-		return
-	end
-
-	return self:publish(topic.topic, payload, topic.qos, false)
-end
-
-function app:pack_key(app, sn, input, prop)
+function app:pack_key(src_app, sn, input, prop)
 	if prop ~= 'value' then
 		return
 	end
 
 	local props = self._tpl.props or {}
-	for _, prop in ipairs(props) do
-		if prop.sn == sn and prop.name == input then
+	for _, p in ipairs(props) do
+		if p.sn == sn and p.name == input then
 			return string.format("%s/%s", sn, input)
 		end
 	end
@@ -174,49 +172,44 @@ function app:pack_key(app, sn, input, prop)
 end
 
 function app:on_publish_data(key, value, timestamp, quality)
-	self._has_data_update = true
+	local sn, input = string.match(key, '^([^/]+)/(.+)$')
+
+	local props = self._tpl.props or {}
+	for _, prop in ipairs(props) do
+		if prop.sn == sn and prop.name == input then
+			if prop.dt == 'DI' then
+				-- buffer this
+				self._has_data_update = true
+				self._changed_data[key] = {value, timestamp, quality}
+			end
+		end
+	end
+
 	return true -- do nothing
-	--[[
-	local sn, input, prop = string.match(key, '^([^/]+)/([^/]+)/(.+)$')
-	local msg = {
-		reqId = uuid.new(),
-		method = "thing.property.post",
-		version = "1.0",
-		timestamp = (timestamp * 1000) // 1,
-		properties = {
-			[input] = value
-		}
-	}
-	return self:publish(self._mqtt_topic_prefix.."/property/post", cjson.encode(msg), 1, false)
-	]]--
 end
 
 function app:on_publish_data_list(val_list)
-	self._has_data_update = true
+	assert(false) -- should not be here
 	return true
-	--[[
-	for _, v in ipairs(val_list) do
-		self:on_publish_data(table.unpack(v))
-	end
-	return true
-	]]--
 end
 
 
 --[[
 function app:on_event(app, sn, level, type_, info, data, timestamp)
 	return self:publish(self._mqtt_topic_prefix.."/events", cjson.encode(msg), 1, false)
-
 end
 ]]--
 
 function app:on_add_device(src_app, sn, props)
+	--- TODO: for device online?
 end
 
 function app:on_mode_device(src_app, sn, props)
+	--- TODO: for device online?
 end
 
 function app:on_del_device(src_app, sn)
+	--- TODO: for device offline?
 end
 
 function app:on_publish_cached_data_list(val_list)
@@ -234,55 +227,240 @@ function app:on_mqtt_connect_ok()
 	self:subscribe('thing.'..conf.product_key..'/'..conf.device_name..'/command/invoke', 1) -- 可写属性更新
 	self:subscribe('thing.'..conf.product_key..'/'..conf.device_name..'/response/c2d', 1) -- 云端调用响应
 
+	return self:sub_dev_reg()
+end
+
+function app:on_mqtt_disconnect()
+	self._connection_ready = nil
+end
+
+function app:on_mqtt_message(mid, topic, data, qos, retained)
+	local log = self:log_api()
+	local msg, err = cjson.decode(data)
+	if not msg then
+		log:error('MQTT recv data has JSON error', err)
+		return
+	end
+	--[[
+	local gw_id, topic = string.match(topic, '/v1/devices/([^/]+)/(.+)$')
+	if gw_id ~= self._mqtt_id then
+		log:error('Recevied incorrect topic', topic)
+		return
+	end
+	if topic == 'topo/addResponse' then
+	end
+	]]--
+	local topic_id = self._http_auth:find_topic(topic)
+	if topic_id == 'DEVICE_ADD_RESP' then
+		self._dev_map = {}
+		if msg.statusCode ~= 0 then
+			log:error('Device add response error code', msg.statusDesc, data)
+		end
+		for _, v in ipairs(msg.data or {}) do
+			if (v.statusCode ~= 0) then
+				log:error('Sub device add error', v.statusDesc, cjson.encode(v.deviceInfo))
+			else
+				local info = v.deviceInfo
+				log:info('Got device add info', cjson.encode(info))
+				self._dev_map[info.nodeId] = info.deviceId
+			end
+		end
+
+		local sys = self:sys_api()
+		self._first_login = true
+		sys:timeout(100, function()
+			self:sub_dev_online()
+		end)
+	end
+	if topic_id == 'DEVICE_UPDATE_RESP' then
+		if msg.statusCode ~= 0 then
+			log:error('Device update response error code', msg.statusDesc, data)
+		end
+		for _, v in ipairs(msg.data or {}) do
+			if (v.statusCode ~= 0) then
+				log:error('Sub device update error', v.statusDesc, cjson.encode(v.deviceInfo))
+			else
+				log:info('Got device update info', v.deviceId)
+			end
+		end
+	end
+end
+
+function app:sub_dev_online()
+	local log = self:log_api()
+	local sts = {}
+	for _, v in pairs(self._dev_map) do
+		table.insert(sts, {
+			deviceId = v,
+			status = 'online'
+		})
+	end
+
+	local topic = self._http_auth:get_topic('DEVICE_UPDATE')
+	if not topic then
+		log:error('topic not found!')
+		return
+	end
+
+	local payload, err = cjson.encode({ mid = self:get_mid(), deviceStatuses = sts })
+	if not payload then
+		log:error(err)
+		return
+	end
+
+	log:info('Online all sub devices')
+
+	return self:publish(topic.topic, payload, topic.qos, false)
+end
+
+function app:sub_dev_reg()
+	local log = self:log_api()
+	-- 子设备注册
 	--return self:publish(self._mqtt_topic_prefix.."/status", cjson.encode({device=mqtt_id, status="ONLINE"}), 1, true)
 	local props = self._tpl.props or {}
+	local tpl_devs = self._tpl.devs or {}
 	local devs = {}
 	for _, prop in ipairs(props) do
-		local node_id = prop.node_id
-		if not devs[node_id] then
-			for _, v in ipairs(conf.devs) do
-				if v.id = 
+		if not devs[prop.node_id] then
+			for _, v in ipairs(tpl_devs) do
+				if v.node_id == prop.node_id then
+					devs[prop.node_id] = v
+				end
 			end
 		end
 	end
 
+	local deviceInfo = {}
+
+	for _, v in ipairs(tpl_devs) do
+		table.insert(deviceInfo, {
+			nodeId = v.node_id,
+			name = v.name,
+			desc = v.desc,
+			manufacturerId = v.manufacturer,
+			model = v.model
+		})
+	end
+
+	local topic = self._http_auth:get_topic('DEVICE_ADD')
+	if not topic then
+		log:error('topic not found!')
+		return
+	end
+
+	local payload, err = cjson.encode({ mid = self:get_mid(), deviceInfo = deviceInfo })
+	if not payload then
+		log:error(err)
+		return
+	end
+	log:info('Register all sub devices')
+
+	return self:publish(topic.topic, payload, topic.qos, false)
 end
 
-function app:on_mqtt_message(mid, data, qos, retained)
-	--print(...)
-	-- invodke 
-	local property_example = [[
-{
-	"reqId":<uuid>,
-	"method":"thing.property.invoke",
-	"version":"1.0",
-	"timestamp":1610212132010, --ms
-	"properties":{
-		"log_url":"http://xxx.xxx.xx.xx"
-	}
-}
-]]
-	local command_example = [[
-{
-	"reqId":<uuid>,
-	"method":"thing.command.invoke",
-	"version":"1.0",
-	"timestamp":1610212132010, --ms
-	"params":{
-		"test":"hello world",
-		"format":"plain text"
-	}
-}
-]]
+function app:fire_snapshot_data()
+	-- Set the last data fire timestamp
+	self._last_data_fire = self._last_data_fire + self._data_fire_period
 
-	local response_example = [[
-{
-	"reqId":<uuid>,
-	"method":"thing.property.post",
-	"code":200,
-	"description":"The property 'sn' has been updated successfully."
-}
-]]
+	local snapshot1 = self._cov:snapshot()
+	print('fire_snapshot_data', cjson.encode(snapshot1))
+	local topic, err = self._http_auth:get_topic('DATA_BASE')
+	if not topic then
+		self._log:error('topic not found!', err)
+		return nil, err
+	end
+
+	local cov = self._cov
+
+	local snapshot = cov:snapshot()
+	local now = os.date('%Y%m%dT%H%M%SZ')
+
+	local ai_datas = {}
+	local di_datas = {}
+	local props = self._tpl.props or {}
+	for _, prop in ipairs(props) do
+		local key = string.format("%s/%s", prop.sn, prop.name)
+		local val = snapshot[key]
+		if val then
+			local datas = prop.dt == 'DI' and di_datas or ai_datas
+			-- value, timestamp, qualit
+			local dev_id = self._dev_map[prop.node_id]
+			if dev_id then
+				local d = datas[dev_id] or {
+					deviceId = dev_id,
+					serviceId = prop.dt == 'DI' and 'discrete' or 'analog',
+					eventTime = now,
+					data = {{}}
+				}
+
+				d.data[1][prop.srv_name] = val[1]
+
+				datas[dev_id] = d
+			else
+				self._log:error('deviceId not found for '..prop.node_id)
+			end
+		end
+	end
+
+	local devs = {}
+	for _, v in pairs(di_datas) do
+		devs[#devs + 1] = v
+	end
+	for _, v in pairs(ai_datas) do
+		devs[#devs + 1] = v
+	end
+	local payload, err = cjson.encode({ devices = devs })
+	if not payload then
+		self._log:error(err)
+		return nil, err
+	end
+
+	return self:publish(topic.topic, payload, topic.qos, false)
+end
+
+function app:fire_di_data(data_list)
+	local topic = self._http_auth:get_topic('DATA_BASE')
+	if not topic then
+		self._log:error('topic not found!')
+		return
+	end
+
+	local now = os.date('%Y%m%dT%H%M%SZ')
+
+	local datas = {}
+	local props = self._tpl.props or {}
+	for _, prop in ipairs(props) do
+		local key = string.format("%s/%s", prop.sn, prop.name)
+		local val = data_list[key]
+		if val and prop.dt == 'DI' then
+			-- value, timestamp, qualit
+			local dev_id = self._dev_map[prop.node_id]
+			if dev_id then
+				local d = datas[dev_id] or {
+					deviceId = dev_id,
+					serviceId = 'discrete_change',
+					eventTime = now,
+					data = {{}}
+				}
+
+				d.data[1][prop.srv_name] = val[1]
+
+				datas[dev_id] = d
+			end
+		end
+	end
+
+	local devs = {}
+	for _, v in pairs(datas) do
+		devs[#devs + 1] = v
+	end
+	local payload, err = cjson.encode({ devices = devs })
+	if not payload then
+		self._log:error(err)
+		return nil, err
+	end
+
+	return self:publish(topic.topic, payload, topic.qos, false)
 end
 
 --[[
@@ -292,18 +470,35 @@ end
 ]]--
 
 function app:on_run(tms)
+	if self._first_login then
+		self:fire_snapshot_data()
+		self._has_data_update = false
+		self._first_login = nil
+		self._connection_ready = true
+		return 1000
+	end
+	if not self._connection_ready then
+		self._changed_data = {}
+		self._has_data_update = false
+		return 1000
+	end
+
 	if self._has_data_update then
 		print('data_update')
 		self._has_data_update = false
-		self:fire_data()
-	else
-		local diff = ioe.now() - self._last_data_fire
-		print(diff)
-		if diff > self._data_fire_period then
-			self:fire_data()
-		end
+		local data = self._changed_data
+		self._changed_data = {}
+		self:fire_di_data(data)
 	end
-	return 1000
+
+	local diff = ioe.now() - self._last_data_fire
+	print('diff', diff)
+
+	if diff > self._data_fire_period then
+		self:fire_snapshot_data()
+	end
+
+	return 200 -- ASAP
 end
 
 --- 返回应用对象

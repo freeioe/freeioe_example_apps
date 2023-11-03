@@ -22,13 +22,13 @@ function api:auth(gw_sn, manufacturer, model, name, desc)
 		checkID = gw_sn,
 		devInfo = {
 			name = name or "Gateway",
-			description = desc or "details",
+			description = desc or "Gateway details",
 			manufacturerId = manufacturer,
 			model = model
 		}
 	})
-	print(body)
-	print(self._host)
+	-- print(body)
+	-- print(self._host)
 
 	local easy_handle = lcurl.easy()
 		:setopt_url("http://"..self._host.."/iot/devices/auth/gateway")
@@ -85,6 +85,15 @@ function api:get_channel(chn_name, value)
 		end
 	end
 	return nil, 'Channel not found'
+end
+
+function api:find_topic_id(mqtt_topic)
+	for _, t in ipairs(topic_list or {}) do
+		if string.lower(t.topic) == string.lower(mqtt_topic) then
+			return string.upper(t.topicId)
+		end
+	end
+	return nil, 'Not found'
 end
 
 function api:get_topic(topic, value)

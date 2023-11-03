@@ -2,11 +2,12 @@ local ftcsv = require 'ftcsv'
 
 local tpl_dir = 'tpl/'
 
-local function valid_ti(ti)
+local function valid_node_id(node_id)
+	if string.len(node_id) ~= 12 then
+		return nil, 'NodeId length error'
+	end
 	return true
 end
-
-local NAME_CHECKING = {}
 
 local function valid_prop(prop, err_cb)
 	local log_cb = function(...)
@@ -15,8 +16,9 @@ local function valid_prop(prop, err_cb)
 		end
 		return false
 	end
-	if not valid_ti(prop.ti) then
-		return log_cb('Invalid prop TI type found', prop.name, prop.ti)
+	local r, err = valid_node_id(prop.node_id)
+	if not r then
+		return log_cb('Invalid NodeId type found', prop.name, prop.node_id, err)
 	end
 
 	return true
@@ -28,15 +30,15 @@ local function load_tpl(name, err_cb)
 
 	local meta = {}
 	local props = {}
+	local devs = {}
 
-	NAME_CHECKING = {}
-
-	for k,v in ipairs(t) do
+	for _, v in ipairs(t) do
 		if #v > 1 then
 			if v[1] == 'META' then
-				meta.name = v[2] or 'Device'
-				meta.desc = v[3] or 'CS101 Device'
-				meta.series = v[4] or 'XXX'
+				meta.name = v[2] or 'BJZD'
+				meta.desc = v[3] or '北京中电'
+				meta.manufacturer = v[4] or 'BJZD'
+				meta.model = v[5] or 'BJZD-X01'
 			end
 			if v[1] == 'PROP' then
 				local prop = {
@@ -50,7 +52,7 @@ local function load_tpl(name, err_cb)
 					prop.rw = 'RO'
 				end
 
-				prop.srv_id = string.upper(v[6] or '')
+				prop.dt = string.upper(v[6] or '')
 				if v[7] and string.len(v[7]) > 0 then
 					prop.srv_name = v[7]
 				else
@@ -58,11 +60,21 @@ local function load_tpl(name, err_cb)
 				end
 
 				prop.rate = tonumber(v[8]) or 1
-				prop.node_id = v[9]
+				prop.node_id = string.upper(v[9] or '')
 
 				if valid_prop(prop, err_cb) then
 					props[#props + 1] = prop
 				end
+			end
+			if v[1] == 'DEV' then
+				local dev = {
+					node_id = v[2],
+					name = v[3],
+					desc = v[4] or 'Unknown Description',
+					manufacturer = v[5] or 'Unknown Manufacturer',
+					model = v[6] or 'Unknown Model',
+				}
+				devs[#devs + 1] = dev
 			end
 		end
 	end
@@ -70,6 +82,7 @@ local function load_tpl(name, err_cb)
 	return {
 		meta = meta,
 		props = props,
+		devs = devs,
 	}
 end
 
