@@ -10,6 +10,7 @@ local api = class("GRID_BJ_HTTP_API")
 function api:initialize(sys, host)
 	self._sys = sys
 	self._host = host
+	self._value = {}
 end
 
 function api:auth(gw_sn, manufacturer, model, name, desc)
@@ -27,6 +28,7 @@ function api:auth(gw_sn, manufacturer, model, name, desc)
 		}
 	})
 	print(body)
+	print(self._host)
 
 	local easy_handle = lcurl.easy()
 		:setopt_url("http://"..self._host.."/iot/devices/auth/gateway")

@@ -69,7 +69,7 @@
 			},
 			{
 				"name": "id",
-				"desc": "设备 ID",
+				"desc": "Node ID",
 				"type": "string"
 			},
 			{

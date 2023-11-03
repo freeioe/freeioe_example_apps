@@ -19,6 +19,7 @@ function app:on_init()
 	self._http_auth = http_auth:new(sys, host)
 	self._gateway_sn = conf.sn or ioe.id()
 	self._data_fire_period = conf.period or 5000
+	self._dev_map = {}
 
 	csv_tpl.init(sys:app_dir())
 
@@ -32,6 +33,18 @@ function app:on_start()
 	local log = self:log_api()
 	local sys = self:sys_api()
 	local conf = self:app_conf()
+
+	---获取设备序列号和应用配置
+	local sys_id = sys:id()
+	--- Mapping 
+	local function map_dev_sn(sn)
+		if sn == 'GW' then
+			return sys_id
+		end
+		local sn = sn or 'GW'
+		sn = string.gsub(sn, '^GW(%..*)$', sys_id..'%1')
+		return sn
+	end
 
 	local tpl_file = 'test'
 	local tpl_id = conf.tpl
@@ -97,6 +110,8 @@ function app:mqtt_auth()
 end
 
 function app:fire_data()
+	local snapshot1 = self._cov:snapshot()
+	print(cjson.encode(snapshot1))
 	local topic = self._http_auth:get_topic('DATA_BASE')
 	if not topic then
 		self._log:error('topic not found!')
@@ -195,6 +210,15 @@ function app:on_event(app, sn, level, type_, info, data, timestamp)
 end
 ]]--
 
+function app:on_add_device(src_app, sn, props)
+end
+
+function app:on_mode_device(src_app, sn, props)
+end
+
+function app:on_del_device(src_app, sn)
+end
+
 function app:on_publish_cached_data_list(val_list)
 	return true
 end
@@ -205,12 +229,23 @@ function app:on_publish_devices(devices)
 end
 
 function app:on_mqtt_connect_ok()
-	local c = self:app_conf()
-	self:subscribe('thing.'..c.product_key..'/'..c.device_name..'/property/invoke', 1) -- 可写属性更新
-	self:subscribe('thing.'..c.product_key..'/'..c.device_name..'/command/invoke', 1) -- 可写属性更新
-	self:subscribe('thing.'..c.product_key..'/'..c.device_name..'/response/c2d', 1) -- 云端调用响应
+	local conf = self:app_conf()
+	self:subscribe('thing.'..conf.product_key..'/'..conf.device_name..'/property/invoke', 1) -- 可写属性更新
+	self:subscribe('thing.'..conf.product_key..'/'..conf.device_name..'/command/invoke', 1) -- 可写属性更新
+	self:subscribe('thing.'..conf.product_key..'/'..conf.device_name..'/response/c2d', 1) -- 云端调用响应
 
 	--return self:publish(self._mqtt_topic_prefix.."/status", cjson.encode({device=mqtt_id, status="ONLINE"}), 1, true)
+	local props = self._tpl.props or {}
+	local devs = {}
+	for _, prop in ipairs(props) do
+		local node_id = prop.node_id
+		if not devs[node_id] then
+			for _, v in ipairs(conf.devs) do
+				if v.id = 
+			end
+		end
+	end
+
 end
 
 function app:on_mqtt_message(mid, data, qos, retained)
@@ -258,10 +293,12 @@ end
 
 function app:on_run(tms)
 	if self._has_data_update then
+		print('data_update')
 		self._has_data_update = false
 		self:fire_data()
 	else
 		local diff = ioe.now() - self._last_data_fire
+		print(diff)
 		if diff > self._data_fire_period then
 			self:fire_data()
 		end
