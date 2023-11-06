@@ -27,8 +27,8 @@ function app:on_init()
 	local dev_sn = string.upper(conf.sn or ioe.id())
 	if string.len(dev_sn) < 16 then
 		dev_sn = string.rep('0', 16 - string.len(dev_sn))..dev_sn
-	else
-		dev_sn = string.sub(-16) -- last 16 chars
+	elseif string.len(dev_sn) > 16 then
+		dev_sn = string.sub(dev_sn, -16) -- last 16 chars
 	end
 	self._gateway_sn = dev_sn
 
@@ -159,6 +159,10 @@ end
 
 function app:pack_key(src_app, sn, input, prop)
 	if prop ~= 'value' then
+		return
+	end
+	if not self._tpl then
+		-- Not started!!
 		return
 	end
 
