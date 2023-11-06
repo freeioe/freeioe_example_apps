@@ -13,8 +13,11 @@ function app:on_init()
 	local conf = self:app_conf()
 
 	if ioe.developer_mode() then
-		conf.host = '10.141.0.15'
+		--conf.host = '10.121.0.15'
+		conf.host = '10.131.0.25'
 		conf.port = 23106
+		conf.sn = 'FHETN12344000002'
+		conf.period = 1
 	end
 
 	local host = conf.host
@@ -36,6 +39,7 @@ function app:on_init()
 	self._dev_map = {}
 
 	self._mid = 0
+	self._changed_data = {}
 
 	csv_tpl.init(sys:app_dir())
 
@@ -129,8 +133,8 @@ function app:mqtt_auth()
 	local meta = self._tpl.meta
 	local gw_name = meta.name..self._gateway_sn
 	local r, err = self._http_auth:auth(self._gateway_sn, meta.manufacturer, meta.model, gw_name, meta.desc)
-	if r and r.content then
-		local chn, err = self._http_auth:get_channel('mqtt')
+	if r then
+		local chn, err = self._http_auth:get_channel('channel_mqtt_main')
 		if not chn then
 			return nil, err
 		end
@@ -227,9 +231,16 @@ end
 
 function app:on_mqtt_connect_ok()
 	local conf = self:app_conf()
-	self:subscribe('thing.'..conf.product_key..'/'..conf.device_name..'/property/invoke', 1) -- 可写属性更新
-	self:subscribe('thing.'..conf.product_key..'/'..conf.device_name..'/command/invoke', 1) -- 可写属性更新
-	self:subscribe('thing.'..conf.product_key..'/'..conf.device_name..'/response/c2d', 1) -- 云端调用响应
+	local log = self:log_api()
+	local topic = assert(self._http_auth:get_topic('DEVICE_ADD_RESP'))
+	log:info('MQTT subscribe', topic.topic, topic.qos)
+	self:subscribe(topic.topic, topic.qos)
+	topic = assert(self._http_auth:get_topic('DEVICE_UPDATE_RESP'))
+	log:info('MQTT subscribe', topic.topic, topic.qos)
+	self:subscribe(topic.topic, topic.qos)
+	topic = assert(self._http_auth:get_topic('CMD_BASE'))
+	log:info('MQTT subscribe', topic.topic, topic.qos)
+	self:subscribe(topic.topic, topic.qos)
 
 	return self:sub_dev_reg()
 end
@@ -240,6 +251,7 @@ end
 
 function app:on_mqtt_message(mid, topic, data, qos, retained)
 	local log = self:log_api()
+	log:debug(topic, data)
 	local msg, err = cjson.decode(data)
 	if not msg then
 		log:error('MQTT recv data has JSON error', err)
@@ -254,7 +266,7 @@ function app:on_mqtt_message(mid, topic, data, qos, retained)
 	if topic == 'topo/addResponse' then
 	end
 	]]--
-	local topic_id = self._http_auth:find_topic(topic)
+	local topic_id = self._http_auth:find_topic_id(topic)
 	if topic_id == 'DEVICE_ADD_RESP' then
 		self._dev_map = {}
 		if msg.statusCode ~= 0 then
@@ -357,17 +369,18 @@ function app:sub_dev_reg()
 		log:error(err)
 		return
 	end
-	log:info('Register all sub devices')
+	log:info('Register all sub devices', payload)
 
 	return self:publish(topic.topic, payload, topic.qos, false)
 end
 
 function app:fire_snapshot_data()
+	local log = self:log_api()
 	-- Set the last data fire timestamp
 	self._last_data_fire = self._last_data_fire + self._data_fire_period
 
 	local snapshot1 = self._cov:snapshot()
-	print('fire_snapshot_data', cjson.encode(snapshot1))
+	-- print('fire_snapshot_data', cjson.encode(snapshot1))
 	local topic, err = self._http_auth:get_topic('DATA_BASE')
 	if not topic then
 		self._log:error('topic not found!', err)
@@ -418,11 +431,13 @@ function app:fire_snapshot_data()
 		self._log:error(err)
 		return nil, err
 	end
+	log:debug('fire snapshot data', payload)
 
 	return self:publish(topic.topic, payload, topic.qos, false)
 end
 
 function app:fire_di_data(data_list)
+	local log = self:log_api()
 	local topic = self._http_auth:get_topic('DATA_BASE')
 	if not topic then
 		self._log:error('topic not found!')
@@ -463,6 +478,7 @@ function app:fire_di_data(data_list)
 		self._log:error(err)
 		return nil, err
 	end
+	log:debug('fire discrete change data', payload)
 
 	return self:publish(topic.topic, payload, topic.qos, false)
 end
@@ -475,7 +491,11 @@ end
 
 function app:on_run(tms)
 	if self._first_login then
+		-- print('first_login')
+		self._last_data_fire = ioe.now() - self._data_fire_period
 		self:fire_snapshot_data()
+		-- Clear changed data
+		self._changed_data = {}
 		self._has_data_update = false
 		self._first_login = nil
 		self._connection_ready = true
@@ -488,21 +508,21 @@ function app:on_run(tms)
 	end
 
 	if self._has_data_update then
-		print('data_update')
 		self._has_data_update = false
 		local data = self._changed_data
 		self._changed_data = {}
+		-- print(cjson.encode(data))
 		self:fire_di_data(data)
 	end
 
 	local diff = ioe.now() - self._last_data_fire
-	print('diff', diff)
+	-- print('diff', diff, self._data_fire_period)
 
 	if diff > self._data_fire_period then
 		self:fire_snapshot_data()
 	end
 
-	return 200 -- ASAP
+	return 1000 -- ASAP
 end
 
 --- 返回应用对象

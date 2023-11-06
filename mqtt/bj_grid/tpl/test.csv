@@ -3,17 +3,11 @@ META,FHDL,方恒水浸,FHDL,ZD-FHDL-9000,,,,
 ,,,,,,,,
 COMMENT,SN,Name,Description,RW,DataType,Platform Name(empty use source name),Rate,Node ID
 COMMENT,采集设备序列号,采集数据点名,点描述,读写标志,数据类型(遥信DI，遥测AI),平台字段名称(留空则使用采集数据点名),数据比率,平台定义的传感器序列号
-PROP,GW,cpuload,CPU负载,RO,AI,CpuLoad,1,INH000500001
-PROP,GW,cpu_temp,CPU温度,RO,AI,,1,INH000500001
-PROP,GW,uptime,运行时长,RO,AI,,1,INH000500001
-PROP,GW,starttime,启动时间,RO,AI,,1,INH000500001
-PROP,GW,mem_total,内存总量,RO,AI,,1,INH000500001
-PROP,GW,mem_used,内存使用量,RO,AI,,1,INH000500001
-PROP,GW,version,版本,RO,AI,,1,INH000500001
-PROP,GW,skynet_version,skynet版本,RO,AI,,1,INH000500001
-PROP,GW,data_cache_limit,data_cache_limit,RO,AI,,1,INH000500001
-PROP,GW,data_cache_fire_freq,data_cache_fire_freq,RO,AI,,1,INH000500001
-PROP,GW,enable_beta,Beta模式,RO,DI,,,INH000500001
+PROP,GW,cpu_temp,环境湿度,RO,AI,EnvHum,1,INH000500001
+PROP,GW,cpu_temp,环境温度,RO,AI,Tmp,1,INH000500001
+PROP,GW,uptime,水位值,RO,AI,waterlevel,1,INH000500001
+PROP,GW,app_run_sim,交流失电,RO,DI,is_monitor_poweroff,1,INH000500001
+PROP,GW,enable_beta,装置异常告警,RO,DI,is_monitor_error,,INH000500001
 ,,,,,,,,
 COMMENT,Node ID,Name,Description,Manufacturer,Model,,,
 COMMENT,平台定义的传感器序列号,设备名前缀， 叠加网关SN.留空使用NodeID作为设备名称,设备描述,,,,,

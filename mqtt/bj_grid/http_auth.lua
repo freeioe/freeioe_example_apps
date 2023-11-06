@@ -27,7 +27,7 @@ function api:auth(gw_sn, manufacturer, model, name, desc)
 			model = model
 		}
 	})
-	-- print(body)
+	print(body)
 	-- print(self._host)
 
 	local easy_handle = lcurl.easy()
@@ -69,8 +69,8 @@ function api:auth(gw_sn, manufacturer, model, name, desc)
 		return nil, err
 	end
 
-	if r.code == 200 then
-		self._value = value
+	if r.code == 2000 then
+		self._value = r.value
 		return r.value
 	end
 	return nil, r.errMsg
@@ -80,14 +80,17 @@ function api:get_channel(chn_name, value)
 	local val = value or self._value
 	local chn_list = val.channelList
 	for _, chn in ipairs(chn_list or {}) do
+		--print(chn.channelId, chn_name)
 		if string.lower(chn.channelId) == string.lower(chn_name) then
 			return chn
 		end
 	end
-	return nil, 'Channel not found'
+	return nil, 'Channel not found'..chn_name
 end
 
 function api:find_topic_id(mqtt_topic)
+	local val = value or self._value
+	local topic_list = val.topicList
 	for _, t in ipairs(topic_list or {}) do
 		if string.lower(t.topic) == string.lower(mqtt_topic) then
 			return string.upper(t.topicId)
