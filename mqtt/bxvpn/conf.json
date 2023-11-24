@@ -1,0 +1,33 @@
+[
+	{
+		"name": "host",
+		"desc": "接入地址",
+		"type": "string",
+		"default":"113.57.212.64:41801"
+	},
+	{
+		"name": "sn",
+		"desc": "网关SN(留空使用硬件SN)",
+		"type": "string"
+	},
+	{
+		"name": "user",
+		"desc": "用户名",
+		"type": "string"
+	},
+	{
+		"name": "passwd",
+		"desc": "密码",
+		"type": "string"
+	},
+	{
+		"name": "aes_key",
+		"desc": "加密密码",
+		"type": "string"
+	},
+	{
+		"name": "aes_iv",
+		"desc": "加密向量",
+		"type": "string"
+	}
+]
