@@ -15,6 +15,12 @@ RELEASE_APP modbus/slave_one_unit
 RELEASE_APP modbus/gateway
 RELEASE_APP modbus/smc
 
+# Power industrial
+RELEASE_APP power_industry/dlt645
+RELEASE_APP power_industry/cs101_master
+RELEASE_APP power_industry/cs101_slave
+RELEASE_APP power_industry/cs104_master
+
 # Hardware test
 RELEASE_APP hw_test/reboot 
 RELEASE_APP hw_test/serial_socket
@@ -65,7 +71,6 @@ RELEASE_APP computing/oee_pp
 RELEASE_APP tsdb/bench
 
 # Others
-RELEASE_APP dlt645
 RELEASE_APP other/dtu 
 RELEASE_APP other/dtu_m
 RELEASE_APP other/oliver_355_monitor
