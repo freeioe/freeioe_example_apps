@@ -14,6 +14,8 @@ local app = app_base:subclass("DL/T_645_2007_App")
 --- 设定应用最小运行接口版本(15)
 app.static.API_VER = 15
 
+--- lua-dlt645: 2023-12-03 fixed data encode/decode
+
 --- 应用启动函数
 function app:on_start()
 	csv_tpl.init(self._sys:app_dir())
