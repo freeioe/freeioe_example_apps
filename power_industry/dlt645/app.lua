@@ -1,76 +1,64 @@
-local class = require 'middleclass'
 --- 导入需要的模块
+local ioe = require 'ioe'
+local app_base = require 'app.base'
 local dlt645_client = require 'dlt645.client'
 local dlt645_data = require 'dlt645.data'
 local serialchannel = require 'serialchannel'
 local csv_tpl = require 'csv_tpl'
 local conf_helper = require 'app.conf_helper'
 local cjson = require 'cjson.safe'
+local inspect = require 'inspect'
 
 --- 注册对象(请尽量使用唯一的标识字符串)
-local app = class("DL/T_645_2007_App")
---- 设定应用最小运行接口版本(目前版本为1,为了以后的接口兼容性)
-app.static.API_VER = 1
-
----
--- 应用对象初始化函数
--- @param name: 应用本地安装名称。 如dlt645_1
--- @param sys: 系统sys接口对象。参考API文档中的sys接口说明
--- @param conf: 应用配置参数。由安装配置中的json数据转换出来的数据对象
-function app:initialize(name, sys, conf)
-	self._name = name
-	self._sys = sys
-	self._conf = conf
-	--- 获取数据接口
-	self._api = sys:data_api()
-	--- 获取日志接口
-	self._log = sys:logger()
-	--- 配置接口
-	self._log:debug(name.." Application initlized")
-end
+local app = app_base:subclass("DL/T_645_2007_App")
+--- 设定应用最小运行接口版本(15)
+app.static.API_VER = 15
 
 --- 应用启动函数
-function app:start()
-	--- 设定回调处理函数(目前此应用只做数据采集)
-	self._api:set_handler({
-		on_output = function(app, sn, output, prop, value, timestamp, priv)
-			return self:write_output(sn, output, prop, value, timestamp, priv)
-		end,
-		on_ctrl = function(...)
-			print(...)
-		end,
-	})
-
+function app:on_start()
 	csv_tpl.init(self._sys:app_dir())
 
 	---获取设备序列号和应用配置
 	local sys_id = self._sys:id()
 
-	local config = self._conf or {}
+	local config = self:app_conf()
 
-	config.opt = config.opt or {
-		--port = "/dev/ttymxc1",
-		port = "/tmp/ttyS10",
-		baudrate = 9600
-	}
+	if ioe.developer_mode() then
+		config.fe_required = true
+		config.opt = {
+			--port = "/dev/ttymxc1",
+			--port = "/tmp/ttyS10",
+			port = "/dev/ttyUSB4",
+			baudrate = 2400,
+			parity = 'EVEN',
+		}
 
-	config.tpls = config.tpls or {
-		{ id = "TPL000000001", name = "S1", ver = 1 },
-		{ id = "TPL000000001", name = "S2", ver = 1 }
-	}
+		config.tpls = {}
+		--[[
+		config.tpls = config.tpls or {
+			{ id = "TPL000000001", name = "S1", ver = 1 },
+			{ id = "TPL000000001", name = "S2", ver = 1 }
+		}
+		]]--
 
-	config.devs = config.devs or {
-		{ addr = 992233445566, name = 's1', sn = 'xxx-xx-1', tpl = 'S1' },
-		{ addr = 990000000001, name = 's2', sn = 'xxx-xx-2', tpl = 'S2' },
-	}
+		config.devs = {
+			{ addr = '810000937026', name = 'dts634', sn = 'dts634-1', tpl = 'dts634' },
+		}
+	end
+
+	print(inspect(config))
+
 	local helper = conf_helper:new(self._sys, config)
 	helper:fetch()
-	
 	self._log:debug("Cloud templates fetch done!")
 
 	self._devs = {}
 	for _, v in ipairs(helper:devices()) do
 		assert(v.sn and v.name and v.addr and v.tpl)
+		if type(v.addr) == 'number' then
+			v.addr = string.format('%x', v.addr)
+		end
+		v.addr = tonumber(v.addr)
 
 		--- 生成设备的序列号
 		local dev_sn = sys_id ..'.'..v.sn
@@ -91,7 +79,8 @@ function app:start()
 				inputs[#inputs + 1] = {
 					name = v.name,
 					desc = v.desc,
-					vt = v.vt
+					vt = v.vt,
+					unit = v.unit
 				}
 			end
 			--- outputs
@@ -100,6 +89,7 @@ function app:start()
 				outputs[#outputs + 1] = {
 					name = v.name,
 					desc = v.desc,
+					unit = v.unit,
 				}
 			end
 			--- 生成设备对象
@@ -120,12 +110,38 @@ function app:start()
 	--- 获取配置
 	local fe_required = self._conf.fe_required == true
 	self._client = dlt645_client(serialchannel, config.opt, true, fe_required)
+	
+	--- 设定通讯口数据回调
+	self._client:set_io_cb(function(io, req, msg)
+		local basexx = require 'basexx'
+		print(io, basexx.to_hex(msg))
+
+		local dev = nil
+		for _, v in ipairs(self._devs) do
+			if tonumber(v.addr) == tonumber(req.addr) then
+				dev = v
+				break
+			end
+		end
+		--- 输出通讯报文
+		if dev then
+			dev.dev:dump_comm(io, msg)
+			--- 计算统计信息
+			if io == 'IN' then
+				dev.stat:inc('bytes_in', string.len(msg))
+			else
+				dev.stat:inc('bytes_out', string.len(msg))
+			end
+		else
+			self._sys:dump_comm(sys_id, io, msg)
+		end
+	end)
 
 	return true
 end
 
 --- 应用退出函数
-function app:close(reason)
+function app:on_close(reason)
 	print(self._name, reason)
 end
 
@@ -176,18 +192,7 @@ function app:write_packet(dev, stat, dev_addr, output, value)
 
 	local val = math.floor(value * (1/output.rate))
 	req.data = table.concat({ ef(val) })
-	
-	--- 设定通讯口数据回调
-	self._client:set_io_cb(function(io, msg)
-		--- 输出通讯报文
-		dev:dump_comm(io, msg)
-		--- 计算统计信息
-		if io == 'IN' then
-			stat:inc('bytes_in', string.len(msg))
-		else
-			stat:inc('bytes_out', string.len(msg))
-		end
-	end)
+
 	--- 写入数据
 	local r, pdu, err = pcall(function(req, timeout) 
 		--- 统计数据
@@ -234,21 +239,10 @@ function app:read_packet(dev, stat, dev_addr, pack)
 		data_addr = pack.addr-- 数据标识地址
 		-- TODO: For reading count/time
 	}
-
-	--- 设定通讯口数据回调
-	self._client:set_io_cb(function(io, msg)
-		--- 输出通讯报文
-		dev:dump_comm(io, msg)
-		--- 计算统计信息
-		if io == 'IN' then
-			stat:inc('bytes_in', string.len(msg))
-		else
-			stat:inc('bytes_out', string.len(msg))
-		end
-	end)
 	--- 读取数据
 	local timeout = pack.timeout or 3000
 	local r, pdu, err = pcall(function(req, timeout) 
+		print(inspect(req))
 		--- 统计数据
 		stat:inc('packets_out', 1)
 		--- 接口调用
@@ -285,11 +279,13 @@ function app:read_packet(dev, stat, dev_addr, pack)
 		self._log:warning("Got incorrect data_addr", pack.addr, data_addr)
 		return
 	end
+	self._log:debug("Got data", data_addr, data_value)
 
 	local function set_input(input, val)
 		if input.format and string.len(input.format) > 0 then
-			self._log:warning("Cannot specify data format in correct version")
-			-- TODO: for user specified format
+			if input.format ~= pack.format then
+				self._log:warning("Incorrect format set with other data in same data addr")
+			end
 		end
 
 		if input.rate and input.rate ~= 1 then
@@ -302,6 +298,7 @@ function app:read_packet(dev, stat, dev_addr, pack)
 			if type(val) == 'table' then
 				val = cjson.encode(val)
 			end
+			self._log:debug('set_input', input.name, input.desc, val)
 			dev:set_input_prop(input.name, "value", val)
 		end
 	end
@@ -310,7 +307,7 @@ function app:read_packet(dev, stat, dev_addr, pack)
 		set_input(pack.inputs[1], data_value)
 	else
 		for _, input in ipairs(pack.inputs) do
-			local val = data_value(input.offset)
+			local val = data_value[input.offset + 1]
 			set_input(input, val)
 		end
 	end
@@ -329,7 +326,7 @@ function app:read_dev(dev, stat, addr, tpl)
 end
 
 --- 应用运行入口
-function app:run(tms)
+function app:on_run(tms)
 	if not self._client then
 		return
 	end

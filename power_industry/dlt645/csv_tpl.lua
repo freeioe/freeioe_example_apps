@@ -23,16 +23,19 @@ local function load_tpl(name)
 					name = v[2],
 					desc = v[3],
 				}
-				input.addr = tonumber(v[4])
-				if string.len(v[5]) > 0 then
-					input.vt = v[5]
+				if string.len(v[4]) > 0 then
+					input.unit = v[4]
 				end
-				input.offset = v[6]
-				if string.len(v[7]) > 0 then
-					output.rate = v[7]
+				input.addr = tonumber(v[5])
+				if string.len(v[6]) > 0 then
+					input.vt = v[6]
 				end
+				input.offset = v[7]
 				if string.len(v[8]) > 0 then
-					input.format = v[8]
+					output.rate = v[8]
+				end
+				if string.len(v[9]) > 0 then
+					input.format = v[9]
 				end
 
 				inputs[#inputs + 1] = input
@@ -42,15 +45,18 @@ local function load_tpl(name)
 					name = v[2],
 					desc = v[3],
 				}
-				output.addr = tonumber(v[4])
-				if string.len(v[5]) > 0 then
-					output.vt = v[5]
+				if string.len(v[4]) > 0 then
+					input.unit = v[4]
 				end
+				output.addr = tonumber(v[5])
 				if string.len(v[6]) > 0 then
-					output.rate = v[6]
+					output.vt = v[6]
 				end
 				if string.len(v[7]) > 0 then
-					output.format = v[7]
+					output.rate = v[7]
+				end
+				if string.len(v[8]) > 0 then
+					output.format = v[8]
 				end
 				outputs[#outputs + 1] = output
 			end
@@ -61,6 +67,7 @@ local function load_tpl(name)
 	for _, input in ipairs(inputs) do
 		local pack = packets_map[input.addr] or {
 			addr = input.addr,
+			format = input.format,
 			inputs = {}
 		}
 		pack.inputs[#pack.inputs + 1] = input

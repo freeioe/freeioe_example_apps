@@ -8,14 +8,14 @@ RELEASE_APP (){
 # Release ioe
 RELEASE_APP ioe
 
-# modbus
+# modbus apps
 RELEASE_APP modbus/master
 RELEASE_APP modbus/slave
 RELEASE_APP modbus/slave_one_unit
 RELEASE_APP modbus/gateway
 RELEASE_APP modbus/smc
 
-# Power industrial
+# Power industrial apps
 RELEASE_APP power_industry/dlt645
 RELEASE_APP power_industry/cs101_master
 RELEASE_APP power_industry/cs101_slave

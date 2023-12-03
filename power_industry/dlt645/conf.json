@@ -28,7 +28,7 @@
 		"cols": [
 			{
 				"name": "addr",
-				"desc": "地址",
+				"desc": "地址(十六进制)",
 				"type": "string",
 				"default": "992233445566"
 			},
