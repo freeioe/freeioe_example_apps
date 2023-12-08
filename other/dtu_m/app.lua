@@ -17,6 +17,7 @@ function app:on_init()
 	self._socket_recv = 0
 	self._peers = {}
 	self._send_buf = {}
+	self._serial_reopen = true
 end
 
 --- 应用启动函数
@@ -40,9 +41,25 @@ function app:on_start()
 	meta.description = "DTU Multi Meta"
 
 	local conf = self:app_conf()
+
+	if ioe.developer_mode() then
+		print('xxxx')
+		conf.serial = {
+			port = '/dev/ttyUSB0',
+			--port = '/tmp/ttyS1',
+			baudrate = 2400,
+			parity = 'ODD'
+		}
+		conf.tcp_server = {
+			host = '0.0.0.0',
+			port = 6005
+		}
+	end
+
 	self._kick_same_ip = conf.kick_same_ip
 	self._serial_event = conf.serial_event
 	self._socket_event = conf.socket_event
+	self._serial_reopen = conf.serial_reopen
 
 	self._dev = self._api:add_device(sn, meta, inputs)
 	self._closing = false
@@ -62,12 +79,18 @@ function app:on_start()
 end
 
 function app:fire_serial_event(level, info, data)
+	if not self._serial_event then
+		return
+	end
 	local data = data or {}
 	data['type'] = 'serial'
 	self._dev:fire_event(level, event.EVENT_COMM, info, data)
 end
 
 function app:fire_socket_event(level, info, data)
+	if not self._socket_event then
+		return
+	end
 	local data = data or {}
 	data['type'] = 'serial'
 	self._dev:fire_event(level, event.EVENT_COMM, info, data)
@@ -86,7 +109,7 @@ function app:serial_proc()
 
 	local r, err = port:open()
 	if not r then
-		self._log:warning("Failed open port, error: "..err)
+		self._log:warning("Failed open port"..opt.port..", error: "..err)
 		self:fire_serial_event(event.LEVEL_WARNING, "Failed open port", {err=err})
 
 		if not self._closing then
@@ -121,7 +144,7 @@ function app:serial_proc()
 				return
 			end
 
-			self._log:error(err or 'Unknown serial port error!')
+			self._log:error('Serial Err:', err or 'Unknown serial port error!')
 			self:fire_serial_event(event.LEVEL_ERROR, "Read error", {err=err})
 
 			-- Close serial first
@@ -261,18 +284,33 @@ function app:start_listen()
 	return true
 end
 
+function app:serial_reopen_h()
+	if self._serial_reopen == 'reopen' then
+		self._port:close('reopen')
+	else
+		if not self._serial_reopen_last  then
+			self._port:close('reopen')
+		end
+	end
+	self._serial_reopen_last = ioe.now()
+end
+
 function app:fire_data_proc()
 	local last_print = ioe.time() - 10
 	local send_count = 0
 	local send_peers = 0
 	local send_bytes = 0
 	while not self._closing do
+		local serial_sent = self._serial_sent
 		while #self._send_buf == 0 do
 			self._wait_buf = {}
 			self._sys:sleep(10000, self._wait_buf)
 			self._wait_buf = nil
 			if #self._send_buf == 0 then
 				self._log:trace('No data from serial to socket in last 10 seconds...')
+				if self._port and self._serial_sent <= serial_sent then
+					self:serial_reopen_h()
+				end
 			end
 		end
 

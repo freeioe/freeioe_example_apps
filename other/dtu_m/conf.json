@@ -26,5 +26,21 @@
 		"desc": "输出网络事件",
 		"type": "boolean",
 		"default": false
+	},
+	{
+		"name": "serial_err_h",
+		"desc": "串口故障处理",
+		"type": "dropdown",
+		"default": "reopen_once",
+		"values": [
+			{
+				"name": "重新打开(进一次)",
+				"value": "reopen_once"
+			},
+			{
+				"name": "重新打开(进一次)",
+				"value": "reopen"
+			}
+		]
 	}
 ]
