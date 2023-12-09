@@ -1,0 +1,12 @@
+[
+	{
+		"name": "down",
+		"desc": "目标设定",
+		"type": "tcp_client"
+	},
+	{
+		"name": "up",
+		"desc": "监听设定",
+		"type": "tcp_server"
+	}
+]

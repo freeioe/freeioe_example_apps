@@ -76,6 +76,7 @@ RELEASE_APP other/dtu_m
 RELEASE_APP other/oliver_355_monitor
 RELEASE_APP other/logger
 RELEASE_APP other/hj212_sender
+RELEASE_APP other/dnat_forward
 
 RELEASE_APP sim/sim
 RELEASE_APP sim/sim_tpl
