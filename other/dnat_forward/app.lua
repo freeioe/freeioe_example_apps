@@ -117,7 +117,11 @@ function app:watch_client_socket(fd, addr)
 	end
 
 	self._log:trace(string.format("Connected to %s:%d", conf.host, conf.port))
-	socketdriver.nodelay(sock)
+
+	if conf.nodelay then
+		socketdriver.nodelay(sock)
+	end
+
 	self._down_count = self._down_count + 1
 
 	self._sys:fork(function()
@@ -164,7 +168,9 @@ function app:start_listen()
 		self._up_count = self._up_count + 1
 
 		--- Set no delay
-		socketdriver.nodelay(fd)
+		if conf.nodelay then
+			socketdriver.nodelay(fd)
+		end
 
 		--- Bind socket to current service
 		socket.start(fd)
