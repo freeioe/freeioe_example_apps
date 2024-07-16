@@ -3,7 +3,7 @@
 		"name": "host",
 		"desc": "接入地址",
 		"type": "string",
-		"default":"113.57.212.64:41801"
+		"default":"10.80.39.6:41801"
 	},
 	{
 		"name": "sn",
