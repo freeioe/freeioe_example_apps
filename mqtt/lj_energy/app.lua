@@ -49,8 +49,16 @@ function app:text2file(text, filename)
 	return filename
 end
 
-function app:mqtt_auth()
-	return assert(self._mqtt_conf)
+---
+function app:initialize(name, sys, conf)
+	local sys_id = sys:id()
+	local mqtt_conf = self:to_mqtt_app_conf(conf)
+
+	mqtt_conf.seq = mqtt_conf.seq or sys_id
+
+	self._mqtt_id = mqtt_conf.client_id or sys_id
+
+	return mqtt_app.initialize(self, name, sys, mqtt_conf)
 end
 
 ---
@@ -141,13 +149,6 @@ Ufz6X3tVVErVVc7UUfzSnupHj1M2h4rzlQ3oqHoAEnXcJmV4f/Pf/6FW
 	end
 	self._tpl = tpl
 
-	local mqtt_conf = self:to_mqtt_app_conf(conf)
-
-	mqtt_conf.seq = mqtt_conf.seq or sys_id
-
-	self._mqtt_conf = mqtt_conf
-	self._mqtt_id = mqtt_conf.client_id or sys_id
-
 	self._data_map = {}
 	self._heartbeat_timeout = 0
 	self._upload_timeout = 0
@@ -156,11 +157,19 @@ Ufz6X3tVVErVVc7UUfzSnupHj1M2h4rzlQ3oqHoAEnXcJmV4f/Pf/6FW
 end
 
 function app:pack_key(app_src, sn, input, prop)
-	if quality ~= 0 or prop ~= 'value' then
-		return
+	if prop ~= 'value' then
+		return nil
 	end
+	-- print(sn, input, prop)
 
-	return sn..'/'..input
+	local props = self._tpl.props
+
+	for _, v in ipairs(props) do
+		if v.sn == sn and v.tag == input then
+			return sn..'/'..input
+		end
+	end
+	return nil
 end
 
 function app:on_publish_data(key, value, timestamp, quality)
@@ -169,12 +178,8 @@ function app:on_publish_data(key, value, timestamp, quality)
 	local props = self._tpl.props
 
 	for _, v in ipairs(props) do
-		if v.sn == sn and v.name == input then
+		if v.sn == sn and v.tag == input then
 			self._data_map[v.name] = { value, timestamp, quality }
-		else
-			if v.sn == sn..'.'..input then
-				self._data_map[v.name] = { value, timestamp, quality }
-			end
 		end
 	end
 
@@ -213,11 +218,12 @@ function app:check_heartbeat()
 		self._heartbeat_timeout = self._sys:time() + 60
 		
 		local data = {
-			seq = self._mqtt_conf.seq,
-			projectId = self._mqtt_conf.prj_id,
+			seq = self._conf.seq,
+			projectId = self._conf.prj_id,
 			time = os.date('%F %T', math.floor(self._sys:time())),
 			type = 0,
 		}
+		-- self._log:info('ping', cjson.encode(data))
 		return self:publish("/energy/heart/ping/"..data.seq, cjson.encode(data), 0, false)
 	end
 end
@@ -227,8 +233,8 @@ function app:check_upload_data()
 		self._upload_timeout = self._sys:time() + (self._conf.cycle or 5000) // 1000
 		
 		local msg = {
-			seq = self._mqtt_conf.seq,
-			projectId = self._mqtt_conf.prj_id,
+			seq = self._conf.seq,
+			projectId = self._conf.prj_id,
 			total = 1,
 			uploadTime = os.date('%F %T', math.floor(self._sys:time())),
 			deviceId = self._conf.dev_id,
@@ -242,6 +248,7 @@ function app:check_upload_data()
 		end
 		msg.val = data
 		
+		-- self._log:info('data', cjson.encode(msg))
 		return self:publish("/energy/data/"..msg.seq, cjson.encode(msg), 0, false)
 	end
 end

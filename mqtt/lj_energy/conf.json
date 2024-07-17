@@ -8,13 +8,13 @@
 				"name": "server",
 				"desc": "MQTT 地址",
 				"type": "string",
-				"default":"example.thingsroot.com"
+				"default":"60.205.126.52"
 			},
 			{
 				"name": "port",
 				"desc": "MQTT 端口",
 				"type": "number",
-				"default": 1883
+				"default": 7001
 			},
 			{
 				"name": "username",

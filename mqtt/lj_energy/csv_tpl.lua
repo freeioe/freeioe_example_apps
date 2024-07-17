@@ -41,6 +41,10 @@ local function load_tpl(name, err_cb)
 					desc = v[4],
 				}
 				prop.rate = tonumber(v[5]) or 1
+				prop.tag = v[6]
+				if not prop.tag or string.len(prop.tag) < 1 then
+					prop.tag = prop.name
+				end
 
 				if valid_prop(prop, err_cb) then
 					props[#props + 1] = prop
