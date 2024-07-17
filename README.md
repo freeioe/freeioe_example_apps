@@ -47,6 +47,10 @@ Modbus 数据发布应用（Slave模式), 将FreeIOE网关设备数据通过Modb
 
 ### Huawei Cloud
 
+### 绿建能耗检测平台
+
+此应用适配绿建能耗检测平台
+
 
 ## OPCUA 应用
 
