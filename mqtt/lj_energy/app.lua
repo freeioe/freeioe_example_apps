@@ -52,11 +52,18 @@ end
 ---
 function app:initialize(name, sys, conf)
 	local sys_id = sys:id()
+
+	-- TODO: tls_certs saving file
+	conf.tls_cert_path = self:text2file(conf.mqtt.tls_cert, 'ca.crt')
+	conf.tls_client_cert_path = self:text2file(conf.mqtt.client_cert, 'client_cert.crt')
+	conf.tls_client_key_path = self:text2file(conf.mqtt.client_key, 'client_key.crt')
+
 	local mqtt_conf = self:to_mqtt_app_conf(conf)
 
 	mqtt_conf.seq = mqtt_conf.seq or sys_id
 
 	self._mqtt_id = mqtt_conf.client_id or sys_id
+	self._orig_conf = conf
 
 	return mqtt_app.initialize(self, name, sys, mqtt_conf)
 end
@@ -66,40 +73,7 @@ end
 function app:on_start()
 	local sys = self._sys
 	local log = sys:logger()
-	local conf = self._conf or {}
-
-	conf.mqtt = conf.mqtt or {}
-	--[[
-	conf.mqtt = conf.mqtt or {
-		username = 'viccom',
-		password = 2623824,
-		server = 'dongbala.top',
-		port = 8883,
-		enable_tls = true,
-		tls_insecure = true
-		tls_cert = [[-----BEGIN CERTIFICATE-----
-MIICxjCCAa6gAwIBAgIJAJk1DbZBu8FDMA0GCSqGSIb3DQEBCwUAMBMxETAPBgNV
-BAMMCE15VGVzdENBMB4XDTE3MTEwMjEzNDI0N1oXDTE5MTEwMjEzNDI0N1owEzER
-MA8GA1UEAwwITXlUZXN0Q0EwggEiMA0GCSqGSIb3DQEBAQUAA4IBDwAwggEKAoIB
-AQDshDho6ef1JClDJ24peSsXdFnFO3xIB7+BSp1YPcOvmRECKUG0mLORw3hNm15m
-8eGOn1iLGE/xKlaZ74/xjyq8f7qIGZCmvZj59m+eiJCAmy8SiUJZtSVoOlOzepJd
-PoDgcBvDKA4ogZ3iJHMUNI3EdlD6nrKEJF2qe2JUrL0gv65uo2/N7XVNvE87Dk3J
-83KyCAmeu+x+moS1ILnjs2DuPEGSxZqzf7IQMbXuNWJYAOZg9t4Fg0YjTiAaWw3G
-JKAoMY4tI3JCqlvwGR4lH7kfk3WsD4ofGlFhxU4nEG0xgnJl8BcoJWD1A2RjGe1f
-qCijqPSe93l2wt8OpbyHzwc7AgMBAAGjHTAbMAwGA1UdEwQFMAMBAf8wCwYDVR0P
-BAQDAgEGMA0GCSqGSIb3DQEBCwUAA4IBAQAi+t5jBrMxFzoF76kyRd3riNDlWp0w
-NCewkohBkwBHsQfHzSnc6c504jdyzkEiD42UcI8asPsJcsYrQ+Uo6OBn049u49Wn
-zcSERVSVec1/TAPS/egFTU9QMWtPSAm8AEaQ6YYAuiwOLCcC+Cm/a3e3dWSRWt8o
-LqKX6CWTlmKWe182MhFPpZYxZQLGapti4R4mb5QusUbc6tXbkcX82GjDPTOuAw7b
-mWpzVd5xnlp7Vz+50u+YaAYUmCobg0hR/AuTrA4GDMlgzTnuZQhF6o8iVkypXOtS
-Ufz6X3tVVErVVc7UUfzSnupHj1M2h4rzlQ3oqHoAEnXcJmV4f/Pf/6FW
------END CERTIFICATE-----]]
---]]--
-
-	-- TODO: tls_certs saving file
-	conf.tls_cert_path = self:text2file(conf.mqtt.tls_cert, 'ca.crt')
-	conf.tls_client_cert_path = self:text2file(conf.mqtt.client_cert, 'client_cert.crt')
-	conf.tls_client_key_path = self:text2file(conf.mqtt.client_key, 'client_key.crt')
+	local conf = self._orig_conf or {}
 
 	csv_tpl.init(sys:app_dir())
 
@@ -115,6 +89,7 @@ Ufz6X3tVVErVVc7UUfzSnupHj1M2h4rzlQ3oqHoAEnXcJmV4f/Pf/6FW
 		return sn
 	end
 
+	local tpl_file = 'test'
 	local tpl_id = conf.tpl
 	local tpl_ver = conf.ver
 	if conf.tpls and #conf.tpls >= 1 then
@@ -132,9 +107,11 @@ Ufz6X3tVVErVVc7UUfzSnupHj1M2h4rzlQ3oqHoAEnXcJmV4f/Pf/6FW
 		tpl_file = tpl_id..'_'..tpl_ver
 	end
 
+	--[[
 	if ioe.developer_mode() then
 		tpl_file = 'test'
 	end
+	]]--
 
 	log:info("Loading template", tpl_file)
 	local tpl, err = csv_tpl.load_tpl(tpl_file, function(...)

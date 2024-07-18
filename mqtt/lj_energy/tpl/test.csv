@@ -1,0 +1,7 @@
+COMMENT,name,description,series,,
+META,HJ212,FreeIOE环保数采仪,T-100,,
+,,,,,
+COMMENT,sn,name,description,rate,tag name
+PROP,GW.sim_1,wpp,正向有功电能,1,tag1
+PROP,GW.sim_1,wpn,反向有功电能,1,tag2
+PROP,GW.sim_1,u_a,化学需氧量,1,tag3

@@ -86,20 +86,9 @@
 		]
 	},
 	{
-		"name": "fake_devices",
-		"desc": "设备列表",
-		"type": "fake_section"
-	},
-	{
-		"name": "devs",
-		"desc": "需要上传的设备列表",
-		"type": "table",
-		"cols": [
-			{
-				"name": "sn",
-				"desc": "设备序号",
-				"type": "string"
-			}
-		]
+		"name": "tpls",
+		"desc": "点表模板",
+		"type": "templates",
+		"limit": 1
 	}
 ]
