@@ -18,13 +18,14 @@ function app:to_mqtt_app_conf(conf)
 		client_id = conf.mqtt.client_id and conf.mqtt.client_id ~= '' and conf.mqtt.client_id or nil,
 		username = conf.mqtt.username and conf.mqtt.username ~= '' and conf.mqtt.username or nil,
 		password = conf.mqtt.password and conf.mqtt.password ~= '' and conf.mqtt.password or nil,
-		server = conf.mqtt.server or '172.30.11.199',
-		port = conf.mqtt.port,
+		server = conf.mqtt.server or '192.168.1.138',
+		port = conf.mqtt.port or 1883,
 		enable_tls = conf.mqtt.enable_tls,
 		tls_insecure = conf.mqtt.tls_insecure ~= nil and conf.mqtt.tls_insecure or false,
 		tls_cert = conf.tls_cert_path,
 		tls_client_cert = conf.tls_client_cert_path,
 		tls_client_key = conf.tls_client_key_path,
+		qos = true,
 	}
 	for k, v in pairs(conf.options or {}) do
 		new_conf[k] = v
@@ -104,20 +105,30 @@ Ufz6X3tVVErVVc7UUfzSnupHj1M2h4rzlQ3oqHoAEnXcJmV4f/Pf/6FW
 	conf.tls_client_cert_path = self:text2file(conf.mqtt.client_cert, 'client_cert.crt')
 	conf.tls_client_key_path = self:text2file(conf.mqtt.client_key, 'client_key.crt')
 
+	local sys_id = sys:id()
+
 	self._allowed_devicess = {}
+
+	if ioe.developer_mode() then
+		conf.devs = {
+			{ sn = sys_id..'.sim_1' },
+			{ sn = sys_id..'.sim_2' },
+			{ sn = sys_id..'.sim_3' },
+		}
+	end
+
 	for _, v in ipairs(conf.devs or {}) do
 		if not valid_device_sn(v.sn) then
 			log:error("Invalid device SN", v.sn)
 		end
 
 		if v.sn and string.len(v.sn) > 0 then
+			print('allow device', v.sn)
 			self._allowed_devicess[v.sn] = true
 		else
 			log:warning("Device SN missing in conf.devs item")
 		end
 	end
-
-	local sys_id = sys:id()
 
 	local mqtt_conf = self:to_mqtt_app_conf(conf)
 	if not mqtt_conf.username then

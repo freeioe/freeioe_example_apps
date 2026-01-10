@@ -3,19 +3,19 @@
 		"name": "device_count",
 		"desc": "Device count",
 		"type": "number",
-		"default": 30
+		"default": 3
 	},
 	{
 		"name": "tag_count",
 		"desc": "Device tag count",
 		"type": "number",
-		"default": 1000
+		"default": 10000
 	},
 	{
 		"name": "run_loop",
 		"desc": "Data generation cycle time (ms)",
 		"type": "number",
-		"default": 1000
+		"default": 10000
 	},
 	{
 		"name": "dev_sn_prefix",

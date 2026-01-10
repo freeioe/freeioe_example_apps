@@ -60,7 +60,9 @@ function download:download(url, md5sum, save_path, on_progress)
 		end)
 		:setopt_progressfunction(function(ctx, total, downloaded, total_upload, uploaded)
 			-- print(total, downloaded)
-			on_progress(total, downloaded)
+			if on_progress then
+				on_progress(total, downloaded)
+			end
 			return true
 		end)
 	

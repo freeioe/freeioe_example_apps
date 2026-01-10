@@ -56,10 +56,12 @@ function app:on_run(tms)
 		end
 		dev:set_input_prop('tag_string', 'value', os.date())
 
-		self._sys:sleep(10)
 	end
 
+	-- self._sys:sleep(1000)
+	-- dev:dump_comm('TEST', 'XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX')
 
+	-- return 0
 	return run_loop
 end
 

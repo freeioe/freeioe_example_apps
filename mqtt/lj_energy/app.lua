@@ -14,6 +14,10 @@ local mqtt_secret = "VEhJTkdTUk9PVAo="
 
 function app:to_mqtt_app_conf(conf)
 	conf.mqtt = conf.mqtt or {}
+	if ioe.developer_mode() then
+		conf.mqtt.server = '192.168.1.138'
+		conf.mqtt.port = 1883
+	end
 	conf.enable_data_cache = false
 	local new_conf = {
 		--- mqtt
@@ -107,11 +111,9 @@ function app:on_start()
 		tpl_file = tpl_id..'_'..tpl_ver
 	end
 
-	--[[
 	if ioe.developer_mode() then
 		tpl_file = 'test'
 	end
-	]]--
 
 	log:info("Loading template", tpl_file)
 	local tpl, err = csv_tpl.load_tpl(tpl_file, function(...)
