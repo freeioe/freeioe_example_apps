@@ -11,6 +11,7 @@ local valid_value = require 'valid_value'
 local conf_helper = require 'app.conf_helper'
 local base_app = require 'app.base'
 local basexx = require 'basexx'
+local ioe = require 'ioe'
 
 --- 注册对象(请尽量使用唯一的标识字符串)
 local app = base_app:subclass("MODBUS_LUA_MASTER_APP")
@@ -25,16 +26,22 @@ function app:on_start()
 	local sys_id = self._sys:id()
 
 	local config = self._conf or {}
-	--[[
-	config.devs = config.devs or {
-		{ unit = 1, name = 'bms01', sn = 'xxx-xx-1', tpl = 'bms' },
-		{ unit = 2, name = 'bms02', sn = 'xxx-xx-2', tpl = 'bms2' }
-	}
-	]]--
 
 	--- 获取云配置
 	if not config.devs and config.cnf and conf.ver then
 		config = config.cnf .. '.' .. config.ver
+	end
+
+	if ioe.developer_mode() then
+		--[[
+		config.devs = config.devs or {
+			{ unit = 1, name = 'bms01', sn = 'xxx-xx-1', tpl = 'bms' },
+			{ unit = 2, name = 'bms02', sn = 'xxx-xx-2', tpl = 'bms2' }
+		}
+		]]--
+		config.devs = config.devs or {
+			{ unit = 1, name = 'test', sn = 'test-xx-1', tpl = 'test' },
+		}
 	end
 
 	--[[ test
