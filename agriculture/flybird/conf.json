@@ -1,0 +1,26 @@
+[
+	{
+		"name": "sn",
+		"desc": "设备序列号",
+		"type": "string",
+		"default": "bird"
+	},
+	{
+		"name": "ip",
+		"desc": "IP地址",
+		"type": "string"
+	},
+	{
+		"name": "ports",
+		"desc": "端口可用列表",
+		"type": "table",
+		"cols": [
+			{
+				"name": "port",
+				"desc": "设端口",
+				"type": "number",
+				"default": 8080
+			}
+		]
+	}
+]

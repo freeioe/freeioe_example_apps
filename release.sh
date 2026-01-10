@@ -8,6 +8,9 @@ RELEASE_APP (){
 # Release ioe
 RELEASE_APP ioe
 
+# Release Agriculture Apps
+RELEASE_APP agriculture/flybird
+
 # modbus apps
 RELEASE_APP modbus/master
 RELEASE_APP modbus/slave
@@ -53,6 +56,7 @@ RELEASE_APP mqtt/telit
 RELEASE_APP mqtt/citic
 RELEASE_APP mqtt/inspur
 RELEASE_APP mqtt/bj_grid
+RELEASE_APP mqtt/lj_energy
 
 # PLC
 RELEASE_APP plc/ab
