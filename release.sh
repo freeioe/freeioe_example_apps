@@ -9,7 +9,7 @@ RELEASE_APP (){
 RELEASE_APP ioe
 
 # Release Agriculture Apps
-RELEASE_APP agriculture/flybird
+RELEASE_APP agriculture/vivent_ws
 
 # modbus apps
 RELEASE_APP modbus/master
