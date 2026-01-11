@@ -98,8 +98,11 @@ end
 function app:on_run(tms)
 	local log = self:log_api()
 	if self._conn then
-		if self._open_time and ioe.time() - self._open_time > (self._ping_interval / 1000) then
-			websocket.write(self._conn, '3', text, 1) -- heartbeat
+		if self._hb_time then
+			if (ioe.time() - self._hb_time) >= (self._ping_interval / 1000) then
+				websocket.write(self._conn, '3', text, 1) -- heartbeat
+				self._hb_time =  ioe.time()
+			end
 		end
 		local resp, close_reason = websocket.read(self._conn)
 		if resp then
@@ -112,6 +115,8 @@ function app:on_run(tms)
 			end
 			if pt == 0 then
 				self:on_socketio_open(json)
+			elseif pt == 2 then
+				self:on_socketio_pt2(json)
 			elseif pt == 40 then
 				self:on_socketio_sid(json)
 			elseif pt == 42 then
@@ -121,6 +126,7 @@ function app:on_run(tms)
 			end
 		else
 			self._conn = nil
+			self._hb_time = nil
 			log:warning("Connection closed. reason:", close_reason)
 			-- TODO: invalid data???
 		end
@@ -133,13 +139,18 @@ function app:on_socketio_open(json)
 	if self._conn then
 		websocket.write(self._conn, '40', text, 0)
 		local data = cjson.decode(json)
-		self._open_time = ioe.time()
+		self._hb_time = ioe.time() - 1
 		self._ping_interval = data.pingInterval
 		self._ping_timeout = data.pingTimeout
 	end
 end
 
 function app:on_socketio_sid(json)
+end
+
+function app:on_socketio_pt2(json)
+	self:log_api():warning("Received PT2")
+	websocket.write(self._conn, '3', text, 1) -- heartbeat
 end
 
 
