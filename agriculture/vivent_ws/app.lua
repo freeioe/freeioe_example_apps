@@ -156,7 +156,13 @@ function app:on_socketio_open(json)
 		if not r then
 			return self:on_ws_close()
 		end
-		local data = cjson.decode(json)
+		local data, err = cjson.decode(json)
+		if not data then
+			local log = self:log_api()
+			log:error("JSON decode error:", err)
+			return
+		end
+
 		self._hb_time = ioe.time() - 1
 		self._ping_interval = data.pingInterval
 		self._ping_timeout = data.pingTimeout
