@@ -6,6 +6,12 @@
 		"default": "bird"
 	},
 	{
+		"name": "proto",
+		"desc": "Protol",
+		"type": "string",
+		"default": "ws"
+	},
+	{
 		"name": "ip",
 		"desc": "IP地址",
 		"type": "string"

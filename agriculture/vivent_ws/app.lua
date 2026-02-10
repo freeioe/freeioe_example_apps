@@ -1,7 +1,4 @@
-local serial = require 'serialdriver'
-local basexx = require 'basexx'
 local base = require 'app.base'
---local chk_sum = require 'hasings.sum16'
 local cjson = require 'cjson.safe'
 local websocket = require 'http.websocket'
 local ioe = require 'ioe'
@@ -37,9 +34,7 @@ function app:on_start()
 
 	--- 增加设备实例
 	local inputs = {}
-	local vals = {}
 	for i = 1, 8 do
-		vals[i] = 0 -- default is 0
 		table.insert(inputs, {
 			name = "chn_"..i,
 			desc = "通道#"..i,
@@ -53,45 +48,56 @@ function app:on_start()
 	meta.description = meta.name .. "模块"
 
 	local sn = sys_id.."."..conf.sn
-	self._dev = self._api:add_device(sn, meta, inputs, outputs)
-	sys:fork(function()
-		local cur_port = nil
-		local cur_index = 0
-		while not self._closed do
-			if not self._conn then
-				local port = cur_port
-				if not port then
-					cur_index = cur_index % #conf.ports + 1
-					port = assert(conf.ports[cur_index]).port
-				end
-				-- /socket.io//?EIO=4&transport=websocket&EIO=4
-				local url = string.format("%s://%s:%d/socket.io//?EIO=4&transport=websocket&EIO=4", conf.proto, conf.ip, port)
-				local ok, conn = pcall(websocket.connect, url)
-				if ok then
-					self._conn = conn
-					cur_port = port
-					log:info("Connected to", url)
-					-- websocket.ping(conn)
-				else
-					log:warning("Failed to connect to ", url, 'error ', conn)
-				end
-			end
-			sys:sleep(1000)
-		end
-	end)
+	self._dev = self._api:add_device(sn, meta, inputs)
+
+	-- Start socket connection proc
+	sys:fork(self.ws_socket_proc, self, conf)
 
 	return true
+end
+
+function app:ws_socket_proc(conf)
+	local log = self:log_api()
+	local sys = self:sys_api()
+	local cur_port = nil
+	local cur_index = 0
+	while not self._closed do
+		if not self._conn then
+			local port = cur_port
+			if not port then
+				cur_index = cur_index % #conf.ports + 1
+				port = assert(conf.ports[cur_index]).port
+			end
+			-- /socket.io//?EIO=4&transport=websocket&EIO=4
+			local url = string.format("%s://%s:%d/socket.io//?EIO=4&transport=websocket&EIO=4", conf.proto, conf.ip, port)
+			local ok, conn = pcall(websocket.connect, url)
+			if ok then
+				self._conn = conn
+				cur_port = port
+				log:info("Connected to", url)
+				-- websocket.ping(conn)
+			else
+				log:warning("Failed to connect to ", url, 'error ', conn)
+			end
+		end
+		sys:sleep(1000)
+	end
 end
 
 --- 应用退出函数
 function app:on_close(reason)
 	self._closed = true
+	self:on_ws_close()
+	return true
+end
+
+function app:on_ws_close()
 	if self._conn then
 		local to_close = self._conn
 		self._conn = nil
 		websocket.close(to_close)
 	end
-	return true
+	self._hb_time = nil
 end
 
 --- 应用运行入口
@@ -100,11 +106,21 @@ function app:on_run(tms)
 	if self._conn then
 		if self._hb_time then
 			if (ioe.time() - self._hb_time) >= (self._ping_interval / 1000) then
-				websocket.write(self._conn, '3', text, 1) -- heartbeat
+				local r, resp = pcall(websocket.write, self._conn, '3', 'text', 1) -- heartbeat
 				self._hb_time =  ioe.time()
+				if not r then
+					log:warning("Connection closed. reason:", resp)
+					self:on_ws_close()
+					return 1000;
+				end
 			end
 		end
-		local resp, close_reason = websocket.read(self._conn)
+		local r, resp, close_reason = pcall(websocket.read, self._conn)
+		if not r then
+			log:warning("Connection closed. reason:", resp)
+			self:on_ws_close()
+			return 1000;
+		end
 		if resp then
 			self._dev:dump_comm("IN", resp)
 			local pt, json = string.match(resp, '^(%d+)(.*)')
@@ -114,9 +130,9 @@ function app:on_run(tms)
 				goto RUN_END
 			end
 			if pt == 0 then
-				self:on_socketio_open(json)
+				self:on_socketio_open()
 			elseif pt == 2 then
-				self:on_socketio_pt2(json)
+				self:on_socketio_pt2()
 			elseif pt == 40 then
 				self:on_socketio_sid(json)
 			elseif pt == 42 then
@@ -125,10 +141,9 @@ function app:on_run(tms)
 				log:warning("Unknown Packet Type:", pt)
 			end
 		else
-			self._conn = nil
-			self._hb_time = nil
 			log:warning("Connection closed. reason:", close_reason)
-			-- TODO: invalid data???
+			self:on_ws_close()
+			return 1000;
 		end
 	end
 ::RUN_END::
@@ -137,7 +152,10 @@ end
 
 function app:on_socketio_open(json)
 	if self._conn then
-		websocket.write(self._conn, '40', text, 0)
+		local r, resp = pcall(websocket.write, self._conn, '40', 'text', 0)
+		if not r then
+			return self:on_ws_close()
+		end
 		local data = cjson.decode(json)
 		self._hb_time = ioe.time() - 1
 		self._ping_interval = data.pingInterval
@@ -145,12 +163,15 @@ function app:on_socketio_open(json)
 	end
 end
 
-function app:on_socketio_sid(json)
+function app:on_socketio_sid()
 end
 
-function app:on_socketio_pt2(json)
+function app:on_socketio_pt2()
 	self:log_api():warning("Received PT2")
-	websocket.write(self._conn, '3', text, 1) -- heartbeat
+	local r, resp = pcall(websocket.write, self._conn, '3', 'text', 1) -- heartbeat
+	if not r then
+		return self:on_ws_close()
+	end
 end
 
 
