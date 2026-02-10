@@ -130,11 +130,11 @@ function app:on_run(tms)
 				goto RUN_END
 			end
 			if pt == 0 then
-				self:on_socketio_open()
+				self:on_socketio_open(json)
 			elseif pt == 2 then
 				self:on_socketio_pt2()
 			elseif pt == 40 then
-				self:on_socketio_sid(json)
+				self:on_socketio_sid()
 			elseif pt == 42 then
 				self:on_socketio_data(json)
 			else
@@ -159,7 +159,7 @@ function app:on_socketio_open(json)
 		local data, err = cjson.decode(json)
 		if not data then
 			local log = self:log_api()
-			log:error("JSON decode error:", err)
+			log:error("on_socketio_open, JSON decode error:", err)
 			return
 		end
 
@@ -185,7 +185,7 @@ function app:on_socketio_data(json)
 	local log = self:log_api()
 	local data, err = cjson.decode(json)
 	if not data or #data ~= 2 or data[1] ~= 'sm' then
-		log:error("JSON decode error:", err)
+		log:error("on_socketio_data, JSON decode error:", err)
 		return
 	end
 	local t = {}
