@@ -24,8 +24,7 @@
 			{
 				"name": "port",
 				"desc": "设端口",
-				"type": "number",
-				"default": 8080
+				"type": "number"
 			}
 		]
 	}
