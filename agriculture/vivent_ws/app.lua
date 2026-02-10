@@ -26,7 +26,7 @@ function app:on_start()
 		conf.ip = conf.ip or '192.168.0.1'
 	end
 
-	if #conf.ports == 0 then
+	if not conf.prots or #conf.ports == 0 then
 		conf.ports = {
 			{ port = 8080 },
 			{ port = 8082 },
