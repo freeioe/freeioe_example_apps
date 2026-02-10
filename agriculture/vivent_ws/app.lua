@@ -109,6 +109,7 @@ function app:on_run(tms)
 	if self._conn then
 		if self._hb_time then
 			if (ioe.time() - self._hb_time) >= (self._ping_interval / 1000) then
+				self._dev:dump_comm("OUT", '3')
 				local r, resp = pcall(websocket.write, self._conn, '3', 'text', 1) -- heartbeat
 				self._hb_time =  ioe.time()
 				if not r then
@@ -155,6 +156,7 @@ end
 
 function app:on_socketio_open(json)
 	if self._conn then
+		self._dev:dump_comm("OUT", '40')
 		local r, resp = pcall(websocket.write, self._conn, '40', 'text', 0)
 		if not r then
 			return self:on_ws_close()
@@ -177,6 +179,7 @@ end
 
 function app:on_socketio_pt2()
 	self:log_api():warning("Received PT2")
+	self._dev:dump_comm("OUT", '3')
 	local r, resp = pcall(websocket.write, self._conn, '3', 'text', 1) -- heartbeat
 	if not r then
 		return self:on_ws_close()
