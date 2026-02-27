@@ -200,6 +200,9 @@ function app:on_socketio_data(json)
 	end
 	if t[1] == nil then
 		log:error("on_socketio_data, incorrect data:", data[2], json)
+
+		local data = { data = data, json = json, time=os.date() }
+		self._dev:fire_event(event.LEVEL_ERROR, event.EVENT_APP, 'Data Error Event', data)
 		return
 	end
 	-- print(#t)
