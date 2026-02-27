@@ -198,6 +198,10 @@ function app:on_socketio_data(json)
 	for d in string.gmatch(data[2], '([^,]+)') do
 		t[#t + 1] = tonumber(d)
 	end
+	if t[1] == nil then
+		log:error("on_socketio_data, incorrect data:", data[2], json)
+		return
+	end
 	-- print(#t)
 	local tm = t[1] / 1000 -- MS
 	-- print(tm)
