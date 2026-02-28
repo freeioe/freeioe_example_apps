@@ -1,7 +1,9 @@
-local base = require 'app.base'
 local cjson = require 'cjson.safe'
 local websocket = require 'http.websocket'
 local ioe = require 'ioe'
+local base = require 'app.base'
+local event = require 'app.event'
+local vv_http = require 'vv_http'
 
 local app = base:subclass("AGRI_VIVENT_WS_APP")
 app.static.API_VER = 10
@@ -23,7 +25,7 @@ function app:on_start()
 	if ioe.developer_mode() ~= 0 then
 		conf.proto = conf.proto or 'ws'
 		conf.sn = conf.sn or self._name
-		conf.ip = conf.ip or '192.168.0.1'
+		conf.ip = conf.ip or '192.168.88.128'
 	end
 
 	if not conf.prots or #conf.ports == 0 then
@@ -40,7 +42,9 @@ function app:on_start()
 		self._chn_num = 8
 	end
 	--- 增加设备实例
-	local inputs = {}
+	local inputs = {
+		{ name = 'status', desc = '连接状态', vt = 'int' }
+	}
 	for i = 1, self._chn_num do
 		table.insert(inputs, {
 			name = "chn_"..i,
@@ -48,46 +52,78 @@ function app:on_start()
 			vt = "float"
 		})
 	end
+	---
+	local commands = {
+		{name="reboot", desc="Reboot ViVent Device"}
+	}
 
 	local meta = self._api:default_meta()
-	meta.name = conf.name or "ViVent_PhytlSigns8"
+	meta.name = conf.name or "ViVent_PhytlSigns"
 	meta.inst = self._name
 	meta.description = meta.name .. "模块"
 
 	local sn = sys_id.."."..conf.sn
-	self._dev = self._api:add_device(sn, meta, inputs)
+	self._dev = self._api:add_device(sn, meta, inputs, nil, commands)
+
+	-- Set status to zero
+	self._dev:set_input_prop('status', 'value', 0)
 
 	-- Start socket connection proc
 	sys:fork(self.ws_socket_proc, self, conf)
 
+	self._http = vv_http(conf.ip)
+
+	log:info("vivent_ws started!!!")
+
 	return true
+end
+
+function app:on_command(app_src, sn, command, params)
+	if command == 'reboot' then
+		self:reboot_device()
+	end
+	return false, "Command is unknown"
 end
 
 function app:ws_socket_proc(conf)
 	local log = self:log_api()
 	local sys = self:sys_api()
-	local cur_port = nil
 	local cur_index = 0
+	local failed_cnt = 0
 	while not self._closed do
 		if not self._conn then
-			local port = cur_port
-			if not port then
-				cur_index = cur_index % #conf.ports + 1
-				port = assert(conf.ports[cur_index]).port
-			end
+			cur_index = cur_index % #conf.ports + 1
+			local port = assert(conf.ports[cur_index]).port
+
 			-- /socket.io//?EIO=4&transport=websocket&EIO=4
 			local url = string.format("%s://%s:%d/socket.io//?EIO=4&transport=websocket&EIO=4", conf.proto, conf.ip, port)
 			local ok, conn = pcall(websocket.connect, url)
 			if ok then
 				self._conn = conn
-				cur_port = port
+				failed_cnt = 0
 				log:info("Connected to", url)
 				-- websocket.ping(conn)
 			else
 				log:warning("Failed to connect to ", url, 'error ', conn)
+				failed_cnt = failed_cnt + 1
+				if failed_cnt == #conf.ports then
+					log:warning("All ports are failed, so try to reboot device")
+					self:reboot_device()
+				end
 			end
 		end
 		sys:sleep(1000)
+	end
+end
+
+function app:reboot_device()
+	local log = self:log_api()
+	log:info('Reboot device...')
+	local ok, err = self._http.reboot()
+	if ok then
+		log:info('Reboot Done!!!')
+	else
+		log:error('Reboot failed', tostring(err))
 	end
 end
 
@@ -104,7 +140,9 @@ function app:on_ws_close()
 		self._conn = nil
 		websocket.close(to_close)
 	end
+	self._data_recv_time = nil
 	self._hb_time = nil
+	self._dev:set_input_prop('status', 'value', 0)
 end
 
 --- 应用运行入口
@@ -119,7 +157,7 @@ function app:on_run(tms)
 				if not r then
 					log:warning("Connection closed. reason:", resp)
 					self:on_ws_close()
-					return 1000;
+					return 1000
 				end
 			end
 		end
@@ -127,7 +165,14 @@ function app:on_run(tms)
 		if not r then
 			log:warning("Connection closed. reason:", resp)
 			self:on_ws_close()
-			return 1000;
+			return 1000
+		end
+		if self._data_recv_time then
+			if ioe.time() - self._data_recv_time > 5 then
+				log:warning("Connection is bad, close connect now")
+				self:on_ws_close()
+				return 1000
+			end
 		end
 		if resp then
 			self._dev:dump_comm("IN", resp)
@@ -151,7 +196,7 @@ function app:on_run(tms)
 		else
 			log:warning("Connection closed. reason:", close_reason)
 			self:on_ws_close()
-			return 1000;
+			return 1000
 		end
 	end
 ::RUN_END::
@@ -175,6 +220,9 @@ function app:on_socketio_open(json)
 		self._hb_time = ioe.time() - 1
 		self._ping_interval = data.pingInterval
 		self._ping_timeout = data.pingTimeout
+		self._data_recv_time = ioe.time()
+
+		self._dev:set_input_prop('status', 'value', 1)
 	end
 end
 
@@ -192,6 +240,8 @@ end
 
 
 function app:on_socketio_data(json)
+	self._data_recv_time = ioe.time()
+
 	local log = self:log_api()
 	local data, err = cjson.decode(json)
 	if not data or #data ~= 2 or data[1] ~= 'sm' then
@@ -205,8 +255,8 @@ function app:on_socketio_data(json)
 	if t[1] == nil then
 		log:error("on_socketio_data, incorrect data:", data[2], json)
 
-		local data = { data = data, json = json, time=os.date() }
-		self._dev:fire_event(event.LEVEL_ERROR, event.EVENT_APP, 'Data Error Event', data)
+		local evt_data = { data = data, json = json, time=os.date() }
+		self._dev:fire_event(event.LEVEL_ERROR, event.EVENT_APP, 'Data Error Event', evt_data)
 		return
 	end
 	-- print(#t)
