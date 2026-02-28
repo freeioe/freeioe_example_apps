@@ -17,6 +17,11 @@
 		"type": "string"
 	},
 	{
+		"name": "chn_num",
+		"desc": "通道数",
+		"type": "number"
+	},
+	{
 		"name": "ports",
 		"desc": "端口可用列表",
 		"type": "table",

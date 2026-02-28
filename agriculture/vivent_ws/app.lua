@@ -35,9 +35,13 @@ function app:on_start()
 		}
 	end
 
+	self._chn_num = tonumber(conf.chn_num) or 8
+	if self._chn_num > 8 then
+		self._chn_num = 8
+	end
 	--- 增加设备实例
 	local inputs = {}
-	for i = 1, 8 do
+	for i = 1, self._chn_num do
 		table.insert(inputs, {
 			name = "chn_"..i,
 			desc = "通道#"..i,
@@ -209,8 +213,9 @@ function app:on_socketio_data(json)
 	local tm = t[1] / 1000 -- MS
 	-- print(tm)
 	for i, v in ipairs(t) do
-		if i > 1 then
-			self._dev:set_input_prop("chn_"..(i - 1), 'value', v, tm, 0)
+		local chn_num = i - 1
+		if chn_num >= 1 and chn_num <= self._chn_num then
+			self._dev:set_input_prop("chn_"..chn_num, 'value', v, tm, 0)
 		end
 	end
 end
