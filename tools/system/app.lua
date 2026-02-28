@@ -13,7 +13,7 @@ local function fs_access(file)
 	return mode
 end
 
-function my_app:on_command(app, sn, command, params)
+function my_app:on_command(app_src, sn, command, params)
 	if command == 'restart' then
 		self._sys:timeout(1000, function()
 			skynet.abort()

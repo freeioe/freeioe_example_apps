@@ -89,7 +89,7 @@ function my_app:switch_reset()
 	return true
 end
 
-function my_app:on_command(app, sn, command, params)
+function my_app:on_command(app_src, sn, command, params)
 	local log = self:log_api()
 	if command == 'switch' then
 		if type(params.cloud) == 'string' then

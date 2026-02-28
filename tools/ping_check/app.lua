@@ -91,7 +91,7 @@ function my_app:repower_wwan_module(iface_name)
 end
 
 
-function my_app:on_command(app, sn, command, params)
+function my_app:on_command(app_src, sn, command, params)
 	if command == 'reset' then
 		self:reset_wwan_module(self._iface)
 	elseif command == 'repower' then
