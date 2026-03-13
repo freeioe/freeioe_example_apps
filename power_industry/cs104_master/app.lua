@@ -12,6 +12,7 @@ local csv_tpl = require 'csv_tpl'
 local valid_value = require 'valid_value'
 local linker = require 'linker'
 local data_parser = require 'data_parser'
+local data_writer = require 'data_writer'
 
 local queue = require 'skynet.queue'
 local conf_helper = require 'app.conf_helper'
@@ -27,27 +28,15 @@ app.static.API_VER = 14
 function app:on_init()
 	self._queue = queue()
 	local sys = self:sys_api()
-	iec_util.time = function()
-		return sys:time()
-	end
-	iec_util.now = function()
-		return sys:now()
-	end
-	iec_util.fork = function(...)
-		return sys:fork(...)
-	end
-	iec_util.wakeup = function(...)
-		return sys:wakeup(...)
-	end
-	iec_util.sleep = function(...)
-		return sys:sleep(...)
-	end
-	iec_util.wait = function(...)
-		return sys:wait(...)
-	end
-	iec_util.timeout = function(...)
-		return sys:timeout(...)
-	end
+	iec_util.setup({
+		time = function() return sys:time() end,
+		now = function() return sys:now() end,
+		fork = function(...) return sys:fork(...) end,
+		wakeup = function(...) return sys:wakeup(...) end,
+		sleep = function(...) return sys:sleep(...) end,
+		wait = function(...) return sys:wait(...) end,
+		timeout = function(...) return sys:timeout(...) end
+	})
 
 	local log = self:log_api()
 	iec_logger.set_log(function(lvl, ...)
@@ -63,9 +52,9 @@ function app:on_init()
 
 end
 
-function app:set_input_value(unit, ti, addr, val, timestamp, iv)
+function app:set_input_value(caoa, ti, addr, val, timestamp, iv)
 	for _, v in ipairs(self._devs) do
-		if v.unit == unit then
+		if v.addr == caoa then
 			for _, input in ipairs(v.inputs) do
 				if input.ti == ti and input.addr == addr then
 					if ti == 'BO' then
@@ -95,7 +84,7 @@ function app:on_start()
 			nodelay = true
 		}
 		config.devs = {
-			{ unit = 1, name = 'DEV.1', sn = 'dev1', tpl = 'example', is_fx1 = false, pack_opt = 'default' }
+			{ addr = 1, name = 'DEV.1', sn = 'dev1', tpl = 'example', is_fx1 = false, pack_opt = 'default' }
 		}
 		config.tpls = {}
 	end
@@ -110,7 +99,7 @@ function app:on_start()
 
 	self._devs = {}
 	for _, v in ipairs(helper:devices()) do
-		assert(v.sn and v.name and v.unit and v.tpl)
+		assert(v.sn and v.name and v.addr and v.tpl)
 
 		--- 生成设备的序列号
 		local dev_sn = dev_sn_prefix and sys_id.."."..v.sn or v.sn
@@ -155,7 +144,7 @@ function app:on_start()
 			local stat = dev:stat('port')
 
 			table.insert(self._devs, {
-				unit = tonumber(v.unit) or 0,
+				addr = tonumber(v.addr) or 0,
 				sn = dev_sn,
 				dev = dev,
 				tpl = tpl,
@@ -208,11 +197,11 @@ function app:on_start()
 	end
 
 	-- Create slave
-	local slave = cs104_slave:new(self._master, self._channel, dev.unit, false, {k = 12, w = 8})
+	local slave = cs104_slave:new(self._master, self._channel, dev.addr, false, {k = 12, w = 8})
 	slave:set_poll_cycle(self._loop_gap)
-	slave:set_data_cb(data_parser:new(function(unit, ti, addr, data, timestamp, iv)
-		print('CB', unit, ti, addr, data, timestamp, iv)
-		self:set_input_value(unit, ti, addr, data, timestamp, iv)
+	slave:set_data_cb(data_parser:new(function(caoa, ti, addr, data, timestamp, iv)
+		print('CB', caoa, ti, addr, data, timestamp, iv)
+		self:set_input_value(caoa, ti, addr, data, timestamp, iv)
 	end))
 	if self._master:add_slave(self._linker, slave) then
 		self._slave = slave
@@ -283,7 +272,7 @@ function app:on_output(app_src, sn, output, prop, value, timestamp)
 		return nil, 'Bit value only can write by BT command'
 	end
 
-	local r, err = self._queue(self.write_packet, self, dev.dev, dev.stat, dev.unit, tpl_output, val)
+	local r, err = self._queue(self.write_packet, self, dev.dev, dev.stat, dev.addr, tpl_output, val)
 	--[[
 	if not r then
 		local info = "Write output failure!"
@@ -294,8 +283,8 @@ function app:on_output(app_src, sn, output, prop, value, timestamp)
 	return r, err or "Done"
 end
 
-function app:write_packet(dev, stat, unit, output, value)
-	if not self._client then
+function app:write_packet(dev, stat, addr, output, value)
+	if not self._master then
 		return
 	end
 
@@ -309,14 +298,14 @@ function app:write_packet(dev, stat, unit, output, value)
 
 	--- 写入数据
 	stat:inc('packets_out', 1)
-	self._log:debug("Fire write request:", unit, output.wcmd, addr, value, timeout)
+	self._log:debug("Fire write request:", addr, output.wcmd, addr, value, timeout)
 	local count = 1
 	if output.wcmd == 'WW' or output.wcmd == 'QW' then
 		count = string.len(val_data) // 2
 	end
-		local basexx = require 'basexx'
+	local basexx = require 'basexx'
 	print(count, string.len(val_data), basexx.to_hex(val_data))
-	local pdu, err = self._client:write(unit, output.wcmd, addr, count, val_data, nil, timeout)
+	local pdu, err = self._client:write(addr, output.wcmd, addr, count, val_data, nil, timeout)
 
 	if not pdu then 
 		self._log:warning("write failed: " .. err) 
@@ -345,7 +334,7 @@ function app:on_run(tms)
 	local gap = self._loop_gap or 5000
 
 	for _, dev in ipairs(self._devs) do
-		-- self._master:poll_data(dev.unit)
+		-- self._master:poll_data(dev.addr)
 	end
 
 	local next_tms = gap - ((self._sys:time() - begin_time) * 1000)

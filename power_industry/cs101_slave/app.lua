@@ -26,27 +26,15 @@ app.static.API_VER = 15
 function app:on_init()
 	self._queue = queue()
 	local sys = self:sys_api()
-	iec_util.time = function()
-		return sys:time()
-	end
-	iec_util.now = function()
-		return sys:now()
-	end
-	iec_util.fork = function(...)
-		return sys:fork(...)
-	end
-	iec_util.wakeup = function(...)
-		return sys:wakeup(...)
-	end
-	iec_util.sleep = function(...)
-		return sys:sleep(...)
-	end
-	iec_util.wait = function(...)
-		return sys:wait(...)
-	end
-	iec_util.timeout = function(...)
-		return sys:timeout(...)
-	end
+	iec_util.setup({
+		time = function() return sys:time() end,
+		now = function() return sys:now() end,
+		fork = function(...) return sys:fork(...) end,
+		wakeup = function(...) return sys:wakeup(...) end,
+		sleep = function(...) return sys:sleep(...) end,
+		wait = function(...) return sys:wait(...) end,
+		timeout = function(...) return sys:timeout(...) end
+	})
 
 	local log = self:log_api()
 	iec_logger.set_log(function(lvl, ...)
@@ -76,12 +64,7 @@ function app:on_start()
 	local sys_id = sys:id()
 	--- Mapping 
 	local function map_dev_sn(sn)
-		if sn == 'GW' then
-			return sys_id
-		end
-		local sn = sn or 'GW'
-		sn = string.gsub(sn, '^GW(%..*)$', sys_id..'%1')
-		return sn
+		return string.gsub(sn or 'GW', '^GW(%..*)$', sys_id..'%1')
 	end
 
 	local conf = self._conf or {}
@@ -139,7 +122,7 @@ function app:on_start()
 	end
 	self._tpl = tpl
 
-	self._unit = tonumber(conf.unit) or 1 -- default is 1
+	self._addr = tonumber(conf.addr) or 1 -- default is 1
 
 	conf.channel_type = conf.channel_type or 'tcp.server'
 	if conf.channel_type == 'tcp.server' then
@@ -169,23 +152,23 @@ function app:on_start()
 	-- Create slaves
 	log:info("Create slave", assert(conf.addr), assert(conf.mode))
 	self._device = device:new(conf.caoa, conf.mode, tpl.props, log)
-	local master = cs101_master:new(conf.addr, self._device:DEVICE(), self._channel, conf.mode, true, conf.target)
-	self._slave:add_master(master:ADDR(), master)
+	slef._master = cs101_master:new(conf.addr, self._device:DEVICE(), self._channel, conf.mode, true, conf.target)
+	self._slave:add_master(self._master:ADDR(), self._master)
 	local r, err = self._slave:start()
 	if not r then
 		log:error('Slave start failed', err)
 	end
 
 	--- 设定通讯口数据回调
-	self._channel:set_io_cb(function(io, unit, msg)
+	self._channel:set_io_cb(function(io, addr, msg)
 		local basexx = require 'basexx'
-		print(io, unit, basexx.to_hex(msg))
+		print(io, addr, basexx.to_hex(msg))
 		--- 输出通讯报文
-		if self._unit == tonumber(unit) then
+		if self._addr == tonumber(addr) then
 			local dev_sn = sys_id.."."..self:app_name()
 			sys:dump_comm(dev_sn, io, msg)
 		else
-			-- self._log:error('No dev for unit:'..unit)
+			-- self._log:error('No dev for addr:'..addr)
 			sys:dump_comm(sys_id, io, msg)
 		end
 	end)
@@ -231,10 +214,11 @@ end
 
 --- 应用退出函数
 function app:on_close(reason)
+	local log = self:log_api()
 	local close_master = function()
-		if self._master then
-			self._master:stop()
-			self._master = nil
+		if self._slave then
+			self._slave:stop()
+			self._slave = nil
 		end
 		if self._linker then
 			self._linker:close()
@@ -242,9 +226,9 @@ function app:on_close(reason)
 		end
 	end
 
-	self._log:debug("Wait for reading queue finished")
+	log:debug("Wait for reading queue finished")
 	self._queue(function()
-		self._log:debug("Reading queue finished! close master now ...")
+		log:debug("Reading queue finished! close master now ...")
 		close_master()
 	end)
 end

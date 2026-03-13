@@ -25,27 +25,15 @@ app.static.API_VER = 14
 function app:on_init()
 	self._queue = queue()
 	local sys = self:sys_api()
-	iec_util.time = function()
-		return sys:time()
-	end
-	iec_util.now = function()
-		return sys:now()
-	end
-	iec_util.fork = function(...)
-		return sys:fork(...)
-	end
-	iec_util.wakeup = function(...)
-		return sys:wakeup(...)
-	end
-	iec_util.sleep = function(...)
-		return sys:sleep(...)
-	end
-	iec_util.wait = function(...)
-		return sys:wait(...)
-	end
-	iec_util.timeout = function(...)
-		return sys:timeout(...)
-	end
+	iec_util.setup({
+		time = function() return sys:time() end,
+		now = function() return sys:now() end,
+		fork = function(...) return sys:fork(...) end,
+		wakeup = function(...) return sys:wakeup(...) end,
+		sleep = function(...) return sys:sleep(...) end,
+		wait = function(...) return sys:wait(...) end,
+		timeout = function(...) return sys:timeout(...) end
+	})
 
 	local log = self:log_api()
 	iec_logger.set_log(function(lvl, ...)
@@ -61,9 +49,9 @@ function app:on_init()
 
 end
 
-function app:set_input_value(unit, ti, addr, val, timestamp, iv)
+function app:set_input_value(caoa, ti, addr, val, timestamp, iv)
 	for _, v in ipairs(self._devs) do
-		if v.unit == unit then
+		if v.addr == caoa then
 			for _, input in ipairs(v.inputs) do
 				if input.ti == ti and input.addr == addr then
 					if ti == 'BO' then
@@ -95,7 +83,7 @@ function app:on_start()
 			nodelay = true
 		}
 		config.devs = {
-			{ unit = 1, name = 'DEV.1', sn = 'dev1', tpl = 'example', is_fx1 = false, pack_opt = 'default' }
+			{ addr = 1, caoa = 0, name = 'DEV.1', sn = 'dev1', tpl = 'example', is_fx1 = false, pack_opt = 'default' }
 		}
 		config.tpls = {}
 	end
@@ -107,7 +95,7 @@ function app:on_start()
 
 	self._devs = {}
 	for _, v in ipairs(helper:devices()) do
-		assert(v.sn and v.name and v.unit and v.tpl)
+		assert(v.sn and v.name and v.addr and v.caoa and v.tpl)
 
 		--- 生成设备的序列号
 		local dev_sn = dev_sn_prefix and sys_id.."."..v.sn or v.sn
@@ -117,8 +105,8 @@ function app:on_start()
 			self._log:error("loading csv tpl failed", err)
 		else
 			local meta = self._api:default_meta()
-			meta.name = tpl.meta.name or "Modbus"
-			meta.description = tpl.meta.desc or "Modbus Device"
+			meta.name = tpl.meta.name or "IEC_101_Device"
+			meta.description = tpl.meta.desc or "IEC 60870-5-101 Device"
 			meta.series = tpl.meta.series or "XXX"
 			meta.inst = v.name
 
@@ -152,7 +140,8 @@ function app:on_start()
 			local stat = dev:stat('port')
 
 			table.insert(self._devs, {
-				unit = tonumber(v.unit) or 0,
+				addr = tonumber(v.addr) or 0,
+				caoa = tonumber(v.caoa) or 0,
 				sn = dev_sn,
 				dev = dev,
 				tpl = tpl,
@@ -192,14 +181,14 @@ function app:on_start()
 
 	self._channel = cs101_channel:new(self._master, self._linker)
 	--- 设定通讯口数据回调
-	self._channel:set_io_cb(function(io, unit, msg)
+	self._channel:set_io_cb(function(io, addr, msg)
 		self._log:trace(io, basexx.to_hex(msg))
 		--[[
 		]]--
 
 		local dev = nil
 		for _, v in ipairs(self._devs) do
-			if v.unit == tonumber(unit) then
+			if v.addr == tonumber(addr) then
 				dev = v
 				break
 			end
@@ -228,7 +217,7 @@ function app:on_start()
 	for _, v in ipairs(self._devs) do
 		local slave = self._master:find_slave(v.addr)
 		if not slave then
-			local slave = cs101_slave:new(self._master, self._channel, v.addr, 'unbalance', false)
+			slave = cs101_slave:new(self._master, self._channel, v.addr, 'unbalance', false)
 			slave:set_caoa(v.caoa)
 			slave:set_poll_cycle(self._loop_gap)
 			self._master:add_slave(v.addr, slave)
@@ -298,12 +287,12 @@ function app:on_output(app_src, sn, output, prop, value, timestamp)
 		val = val / tpl_output.rate
 	end
 
-	local r, err = self._queue(self.write_packet, self, dev.slave, dev.stat, dev.unit, tpl_output, val)
+	local r, err = self._queue(self.write_packet, self, dev.slave, dev.stat, dev.addr, tpl_output, val)
 
 	return r, err or "Done"
 end
 
-function app:write_packet(slave, stat, unit, output, value)
+function app:write_packet(slave, stat, addr, output, value)
 	if not self._master then
 		return
 	end
@@ -318,7 +307,7 @@ function app:write_packet(slave, stat, unit, output, value)
 	local req = nil
 	local err = nil
 
-	self._log:debug("Fire write request:", unit, output.wcmd, addr, value)
+	self._log:debug("Fire write request:", addr, output.wcmd, addr, value)
 
 	local writer = data_writer:new(slave)
 
@@ -351,16 +340,10 @@ function app:on_run(tms)
 		if not self._master then
 			break
 		end
-		if not dev.slave then
-			local slave = cs101_slave:new(self._master, self._channel, dev.unit, false, false)
-			slave:set_poll_cycle(self._loop_gap)
-			if self._master:add_slave(dev.unit, slave) then
-				dev.slave = slave
-			end
-		else
-			self:on_output('TEST', dev.sn, 'SP0', 'value', 1)
+		if dev.slave then
+			-- self:on_output('TEST', dev.sn, 'SP0', 'value', 1)
 		end
-		-- self._master:poll_data(dev.unit)
+		-- self._master:poll_data(dev.addr)
 	end
 
 	local next_tms = gap - ((self._sys:time() - begin_time) * 1000)
